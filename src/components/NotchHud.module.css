@@ -346,9 +346,11 @@
 
 /* ---- Retry Icon ---- */
 .retryIcon {
+  all: unset;
   color: #f97316;
   font-size: 16px;
   cursor: pointer;
+  line-height: 1;
 }
 
 /* ---- Collapsing: content fade out ---- */
@@ -357,4 +359,41 @@
 .notchCollapsing .learnedTermsRow {
   opacity: 0;
   transition: opacity 0.15s ease;
+}
+
+/* ---- Reduced Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .waveformBar,
+  .waveformMorphing,
+  .waveformDot,
+  .waveformConverge,
+  .waveformScatter {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .notchShake {
+    animation: none !important;
+  }
+
+  .notchCollapsing .notchContent,
+  .notchCollapsing .errorMessageRow,
+  .notchCollapsing .learnedTermsRow {
+    transition: none;
+  }
+
+  .notchWrapperSuccess,
+  .notchWrapperLearned {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .checkmarkSvg path {
+    animation: none !important;
+  }
+
+  .learnedIconSvg,
+  .cancelledIconSvg {
+    animation: none !important;
+  }
 }
