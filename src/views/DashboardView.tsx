@@ -34,7 +34,7 @@ import {
 
 const TRANSCRIPTION_COMPLETED = "transcription:completed";
 // TODO: Update URL if repo moves
-const COMMUNITY_URL = "https://github.com/bobo52310/SayIt/issues";
+const COMMUNITY_URL = "https://github.com/bobo52310/TypeLate/issues";
 
 export default function DashboardView() {
   const { t } = useTranslation();
@@ -441,7 +441,7 @@ export default function DashboardView() {
                     ...dailyUsageTrendList.map((d) => d.count),
                     1,
                   );
-                  const heightPct = Math.max(6, (day.count / maxCount) * 100);
+                  const heightPct = day.count === 0 ? 0 : Math.max(6, (day.count / maxCount) * 100);
                   const isToday = i === dailyUsageTrendList.length - 1;
                   return (
                     <div

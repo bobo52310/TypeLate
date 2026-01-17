@@ -19,9 +19,9 @@ TypeLate is a cross-platform desktop voice-to-text tool built with Tauri v2, Rea
 
 | Platform | Link |
 |----------|------|
-| macOS (Apple Silicon) | [TypeLate-mac-arm64.dmg](https://github.com/bobo52310/SayIt/releases/latest/download/TypeLate-mac-arm64.dmg) |
-| macOS (Intel) | [TypeLate-mac-x64.dmg](https://github.com/bobo52310/SayIt/releases/latest/download/TypeLate-mac-x64.dmg) |
-| Windows | [TypeLate-windows-x64.exe](https://github.com/bobo52310/SayIt/releases/latest/download/TypeLate-windows-x64.exe) |
+| macOS (Apple Silicon) | [TypeLate-mac-arm64.dmg](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-mac-arm64.dmg) |
+| macOS (Intel) | [TypeLate-mac-x64.dmg](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-mac-x64.dmg) |
+| Windows | [TypeLate-windows-x64.exe](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-windows-x64.exe) |
 
 ## Quick Start
 
@@ -42,8 +42,8 @@ TypeLate is a cross-platform desktop voice-to-text tool built with Tauri v2, Rea
 ### Setup
 
 ```bash
-git clone https://github.com/bobo52310/SayIt.git
-cd SayIt
+git clone https://github.com/bobo52310/TypeLate.git
+cd TypeLate
 pnpm install
 pnpm tauri dev
 ```
