@@ -21,7 +21,7 @@ export class EnhancerApiError extends Error {
 }
 
 export function getDefaultSystemPrompt(): string {
-  return getMinimalPromptForLocale(i18n.global.locale.value as SupportedLocale);
+  return getMinimalPromptForLocale(i18n.language as SupportedLocale);
 }
 
 export interface EnhanceOptions {

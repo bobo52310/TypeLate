@@ -41,6 +41,7 @@ export const HOTKEY_ERROR = "hotkey:error" as const;
 export const QUALITY_MONITOR_RESULT = "quality-monitor:result" as const;
 export const CORRECTION_MONITOR_RESULT = "correction-monitor:result" as const;
 export const AUDIO_WAVEFORM = "audio:waveform" as const;
+export const ESCAPE_PRESSED = "escape:pressed" as const;
 
 // Frontend-only events (cross-window)
 export const VOICE_FLOW_STATE_CHANGED = "voice-flow:state-changed" as const;

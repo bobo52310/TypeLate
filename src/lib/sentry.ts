@@ -1,7 +1,5 @@
 /// <reference types="vite/client" />
-import * as Sentry from "@sentry/vue";
-import type { App } from "vue";
-import type { Router } from "vue-router";
+import * as Sentry from "@sentry/react";
 
 declare const __APP_VERSION__: string;
 
@@ -29,11 +27,10 @@ function isSentryEnabled(): boolean {
   return import.meta.env.PROD && Boolean(getSentryDsn());
 }
 
-export function initSentryForHud(app: App): void {
+export function initSentryForHud(): void {
   if (!isSentryEnabled()) return;
 
   Sentry.init({
-    app,
     dsn: getSentryDsn(),
     environment: getSentryEnvironment(),
     release: getSentryRelease(),
@@ -45,19 +42,18 @@ export function initSentryForHud(app: App): void {
   });
 }
 
-export function initSentryForDashboard(app: App, router: Router): void {
+export function initSentryForDashboard(): void {
   if (!isSentryEnabled()) return;
 
   const tracesSampleRate = getTracesSampleRate();
 
   Sentry.init({
-    app,
     dsn: getSentryDsn(),
     environment: getSentryEnvironment(),
     release: getSentryRelease(),
     sendDefaultPii: false,
     integrations:
-      tracesSampleRate > 0 ? [Sentry.browserTracingIntegration({ router })] : [],
+      tracesSampleRate > 0 ? [Sentry.browserTracingIntegration()] : [],
     ...(tracesSampleRate > 0 ? { tracesSampleRate } : {}),
     initialScope: {
       tags: { window: "dashboard" },

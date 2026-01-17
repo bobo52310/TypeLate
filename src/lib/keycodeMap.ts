@@ -485,7 +485,7 @@ const MAC_KEYCODE_COLLISION_KEYS: Set<string> = new Set([
 ]);
 
 export function getEscapeReservedMessage(): string {
-  return i18n.global.t("errors.hotkey.escReserved");
+  return i18n.t("errors.hotkey.escReserved");
 }
 
 export function getDangerousKeyWarning(domCode: string): string | null {
@@ -504,7 +504,7 @@ export function getDangerousKeyWarning(domCode: string): string | null {
       ScrollLock: "F14",
       Pause: "F15",
     };
-    return i18n.global.t("errors.hotkey.keycodeCollision", {
+    return i18n.t("errors.hotkey.keycodeCollision", {
       target: collisionMap[domCode],
     });
   }

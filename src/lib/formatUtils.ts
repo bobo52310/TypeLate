@@ -2,11 +2,11 @@ import type { TranscriptionRecord } from "../types/transcription";
 import i18n from "../i18n";
 
 function t(key: string, params?: Record<string, unknown>): string {
-  return i18n.global.t(key, params ?? {});
+  return i18n.t(key, params ?? {});
 }
 
 function currentLocale(): string {
-  return i18n.global.locale.value;
+  return i18n.language;
 }
 
 export function formatTimestamp(timestamp: number): string {

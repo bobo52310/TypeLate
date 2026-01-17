@@ -2,7 +2,7 @@ import i18n from "../i18n";
 import { EnhancerApiError } from "./enhancer";
 
 function t(key: string, params?: Record<string, unknown>): string {
-  return i18n.global.t(key, params ?? {});
+  return i18n.t(key, params ?? {});
 }
 
 export function extractErrorMessage(err: unknown): string {
