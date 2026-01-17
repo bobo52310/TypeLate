@@ -1,6 +1,6 @@
-# Contributing to SayIt
+# Contributing to TypeLate
 
-Thank you for your interest in contributing to SayIt. This guide covers the development environment, project conventions, and submission process.
+Thank you for your interest in contributing to TypeLate. This guide covers the development environment, project conventions, and submission process.
 
 ## Table of Contents
 
@@ -47,7 +47,7 @@ This starts both the Vite dev server (frontend) and the Tauri Rust backend. The 
 ## Project Structure
 
 ```
-SayIt/
+TypeLate/
 +-- src/                        # React frontend source
 |   +-- app/                    # Application entry points and router
 |   |   +-- DashboardApp.tsx    # Dashboard window root component
@@ -171,7 +171,7 @@ export const useMyStore = create<MyStore>()((set, get) => ({
 
 ### shadcn/ui Usage
 
-SayIt uses [shadcn/ui](https://ui.shadcn.com/) (New York style) for UI components. These components live in `src/components/ui/`.
+TypeLate uses [shadcn/ui](https://ui.shadcn.com/) (New York style) for UI components. These components live in `src/components/ui/`.
 
 Rules:
 - **Use shadcn/ui components instead of raw HTML elements.** For example, use `<Button>` instead of `<button>`, `<Input>` instead of `<input>`.
@@ -237,7 +237,7 @@ pnpm test:coverage    # Generate coverage report
 
 ## Translation Guide
 
-SayIt supports five languages. Translation files are located in `src/i18n/locales/`:
+TypeLate supports five languages. Translation files are located in `src/i18n/locales/`:
 
 ```
 src/i18n/locales/

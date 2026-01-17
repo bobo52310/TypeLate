@@ -17,12 +17,18 @@
     "dateGroup": {
       "today": "Today",
       "yesterday": "Yesterday"
-    }
+    },
+    "slogans": [
+      "Type is Late \u2014 voice is the future",
+      "Too tired to type? Just speak it",
+      "Speak your mind, skip the keyboard",
+      "Your voice, perfectly transcribed"
+    ]
   },
   "settings": {
     "about": {
-      "title": "About SayIt",
-      "description": "Hold to speak, release to paste. SayIt is an open-source desktop speech-to-text tool, licensed under MIT.",
+      "title": "About TypeLate",
+      "description": "Hold to speak, release to paste. TypeLate is an open-source desktop speech-to-text tool, licensed under MIT.",
       "author": "Author:",
       "website": "Website",
       "sourceCode": "View Source Code",
@@ -65,7 +71,7 @@
       "notSet": "Not Set",
       "goToConsole": "Go to Groq Console",
       "instruction": "Generate an API Key in Groq Console and paste it here.",
-      "onboarding": "Welcome to SayIt! Please set up your Groq API Key to enable voice input.",
+      "onboarding": "Welcome to TypeLate! Please set up your Groq API Key to enable voice input.",
       "show": "Show",
       "hide": "Hide",
       "saved": "API Key saved",
@@ -141,7 +147,7 @@
       "soundFeedbackEnabled": "Sound feedback enabled",
       "soundFeedbackDisabled": "Sound feedback disabled",
       "autoStart": "Launch at Login",
-      "autoStartDescription": "Automatically start SayIt when you log in",
+      "autoStartDescription": "Automatically start TypeLate when you log in",
       "autoStartEnabled": "Launch at login enabled",
       "autoStartDisabled": "Launch at login disabled",
       "transcriptionLanguage": "Transcription Language",
@@ -211,15 +217,26 @@
     "quotaLlmRequests": "LLM {used}/{limit} req",
     "quotaLlmTokens": "LLM {used}/{limit} tokens",
     "vocabularyAnalysis": "Dictionary Analysis",
-    "vocabularyAnalysisUsage": "Dictionary Analysis: {requests} req / {tokens} tokens"
+    "vocabularyAnalysisUsage": "Dictionary Analysis: {requests} req / {tokens} tokens",
+    "heroPrefix": "You are",
+    "heroMultiplier": "{value}x Faster",
+    "heroSuffix": "with TypeLate",
+    "speakingTime": "Speaking Time",
+    "typingTime": "Typing Time (est.)",
+    "charsPerMinute": "Chars/Minute",
+    "charsPerMinuteUnit": "chars/min",
+    "communityTitle": "Need Help?",
+    "communityDescription": "Got ideas? Report bugs or request features"
   },
   "history": {
     "searchPlaceholder": "Search transcriptions...",
     "loading": "Loading...",
     "noResults": "No results matching \"{query}\"",
     "emptyState": "No transcriptions yet. Start using voice input!",
-    "enhancedText": "Enhanced Text",
+    "enhancedText": "AI Processed Text",
     "rawText": "Raw Text",
+    "whisperModel": "Speech: {model}",
+    "llmModel": "AI: {model}",
     "recordingLabel": "Recording:",
     "transcriptionLabel": "Transcription:",
     "aiLabel": "AI:",
@@ -258,9 +275,9 @@
   },
   "accessibility": {
     "title": "Accessibility Permission Required",
-    "description": "SayIt needs Accessibility permission to listen for global hotkeys. Without it, the hotkey feature will not work.",
+    "description": "TypeLate needs Accessibility permission to listen for global hotkeys. Without it, the hotkey feature will not work.",
     "step1": "Click the button below to open System Settings.",
-    "step2": "Find SayIt in the list and enable it.",
+    "step2": "Find TypeLate in the list and enable it.",
     "step3": "Return to the app. It will automatically detect and activate.",
     "reinitializing": "Permission detected. Activating hotkey...",
     "reinitializeError": "Failed to reinitialize hotkey. Please restart the application.",
@@ -354,16 +371,16 @@
       "checkError": "Error checking for updates",
       "updateFailed": "Update failed. Please download manually",
       "autoInstallTitle": "Update Ready",
-      "autoInstallDescription": "SayIt v{version} has been downloaded. The application will restart after installation.",
+      "autoInstallDescription": "TypeLate v{version} has been downloaded. The application will restart after installation.",
       "later": "Later",
       "installRestart": "Install & Restart",
       "newVersionTitle": "New Version Available",
-      "newVersionDescription": "SayIt v{version} is available. Click Start Update to download and restart the application automatically.",
+      "newVersionDescription": "TypeLate v{version} is available. Click Start Update to download and restart the application automatically.",
       "cancel": "Cancel",
       "startUpdate": "Start Update"
     },
     "upgradeNotice": {
-      "title": "SayIt Update Summary",
+      "title": "TypeLate Update Summary",
       "item1": "1. Security fix: microphone stays active after stopping recording on macOS when a specific device is selected — now fixed",
       "item2": "2. Microphone selection: choose your input device in settings",
       "item3": "3. Improved soft speech detection: peak energy escape hatch reduces false positives",

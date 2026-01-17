@@ -34,6 +34,8 @@ interface RawTranscriptionRow {
   created_at: string;
   audio_file_path: string | null;
   status: string;
+  whisper_model_id: string | null;
+  llm_model_id: string | null;
 }
 
 function mapRowToRecord(row: RawTranscriptionRow): TranscriptionRecord {
@@ -52,6 +54,8 @@ function mapRowToRecord(row: RawTranscriptionRow): TranscriptionRecord {
     createdAt: row.created_at,
     audioFilePath: row.audio_file_path,
     status: row.status as TranscriptionRecord["status"],
+    whisperModelId: row.whisper_model_id,
+    llmModelId: row.llm_model_id,
   };
 }
 
@@ -60,15 +64,15 @@ const INSERT_SQL = `
     id, timestamp, raw_text, processed_text,
     recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
     char_count, trigger_mode, was_enhanced, was_modified,
-    audio_file_path, status
-  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    audio_file_path, status, whisper_model_id, llm_model_id
+  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 `;
 
 const SELECT_ALL_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status
+         audio_file_path, status, whisper_model_id, llm_model_id
   FROM transcriptions
   ORDER BY timestamp DESC
 `;
@@ -77,7 +81,7 @@ const SELECT_PAGED_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status
+         audio_file_path, status, whisper_model_id, llm_model_id
   FROM transcriptions
   ORDER BY timestamp DESC
   LIMIT $1 OFFSET $2
@@ -87,7 +91,7 @@ const SEARCH_PAGED_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status
+         audio_file_path, status, whisper_model_id, llm_model_id
   FROM transcriptions
   WHERE raw_text LIKE $1 ESCAPE '\\' OR processed_text LIKE $1 ESCAPE '\\'
   ORDER BY timestamp DESC
@@ -159,7 +163,7 @@ const SELECT_RECENT_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status
+         audio_file_path, status, whisper_model_id, llm_model_id
   FROM transcriptions
   ORDER BY timestamp DESC
   LIMIT $1
@@ -400,6 +404,8 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         record.wasModified === null ? null : record.wasModified ? 1 : 0,
         record.audioFilePath,
         record.status,
+        record.whisperModelId,
+        record.llmModelId,
       ]);
     } catch (err) {
       console.error(

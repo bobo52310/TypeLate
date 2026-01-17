@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve SayIt
+about: Report a bug to help us improve TypeLate
 title: ""
 labels: bug
 assignees: ""
@@ -33,12 +33,12 @@ If applicable, add screenshots to help explain the problem.
 
 - **OS**: [e.g., macOS 15.2 (Sequoia), Windows 11 23H2]
 - **Architecture**: [e.g., Apple Silicon, Intel, x64]
-- **SayIt Version**: [e.g., 1.0.0 -- found in Settings > About]
+- **TypeLate Version**: [e.g., 1.0.0 -- found in Settings > About]
 - **Audio Input Device**: [e.g., Built-in Microphone, AirPods]
 
 ## Logs
 
-If applicable, include relevant log output. On macOS, you can view logs via Console.app by filtering for "SayIt".
+If applicable, include relevant log output. On macOS, you can view logs via Console.app by filtering for "TypeLate".
 
 <details>
 <summary>Log output</summary>

@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in SayIt, please report it responsibly. **Do not open a public GitHub issue for security vulnerabilities.**
+If you discover a security vulnerability in TypeLate, please report it responsibly. **Do not open a public GitHub issue for security vulnerabilities.**
 
 ### How to Report
 
@@ -16,7 +16,7 @@ You can report security issues through either of the following channels:
 
 - A description of the vulnerability and its potential impact.
 - Steps to reproduce the issue.
-- The version(s) of SayIt affected.
+- The version(s) of TypeLate affected.
 - Any suggested fixes or mitigations, if available.
 
 ### What to Expect
@@ -28,7 +28,7 @@ You can report security issues through either of the following channels:
 
 ## Scope
 
-This policy applies to the SayIt desktop application and its source code. It covers:
+This policy applies to the TypeLate desktop application and its source code. It covers:
 
 - The Tauri/Rust backend (audio recording, clipboard access, hotkey handling, system integrations).
 - The React frontend (data handling, API key storage, IPC communication).
@@ -42,7 +42,7 @@ This policy applies to the SayIt desktop application and its source code. It cov
 
 ## Security Considerations
 
-SayIt handles sensitive data including:
+TypeLate handles sensitive data including:
 
 - **API keys**: Stored locally using `tauri-plugin-store` (not in SQLite). Never transmitted except to the configured API endpoint.
 - **Audio recordings**: Recorded and processed locally. Sent only to the Groq API for transcription.
@@ -50,4 +50,4 @@ SayIt handles sensitive data including:
 
 ## Supported Versions
 
-Security updates are provided for the latest release only. We recommend keeping SayIt updated to the most recent version.
+Security updates are provided for the latest release only. We recommend keeping TypeLate updated to the most recent version.

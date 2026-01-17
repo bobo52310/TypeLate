@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
+import { open } from "@tauri-apps/plugin-shell";
+import { MessageCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -31,6 +33,8 @@ import {
 } from "@/lib/modelRegistry";
 
 const TRANSCRIPTION_COMPLETED = "transcription:completed";
+// TODO: Update URL if repo moves
+const COMMUNITY_URL = "https://github.com/bobo52310/SayIt/issues";
 
 export default function DashboardView() {
   const { t } = useTranslation();
@@ -123,6 +127,24 @@ export default function DashboardView() {
     );
   }, [dashboardStats]);
 
+  const estimatedTypingTimeMs = useMemo(() => {
+    return (
+      dashboardStats.estimatedTimeSavedMs +
+      dashboardStats.totalRecordingDurationMs
+    );
+  }, [dashboardStats.estimatedTimeSavedMs, dashboardStats.totalRecordingDurationMs]);
+
+  const speedMultiplier = useMemo(() => {
+    if (dashboardStats.totalRecordingDurationMs <= 0) return 0;
+    return estimatedTypingTimeMs / dashboardStats.totalRecordingDurationMs;
+  }, [estimatedTypingTimeMs, dashboardStats.totalRecordingDurationMs]);
+
+  const charsPerMinute = useMemo(() => {
+    if (dashboardStats.totalRecordingDurationMs <= 0) return 0;
+    const minutes = dashboardStats.totalRecordingDurationMs / 60000;
+    return Math.round(dashboardStats.totalCharacters / minutes);
+  }, [dashboardStats.totalCharacters, dashboardStats.totalRecordingDurationMs]);
+
   useEffect(() => {
     void refreshDashboard();
 
@@ -142,23 +164,61 @@ export default function DashboardView() {
     window.location.hash = "#/history";
   }
 
+  function openCommunityUrl() {
+    void open(COMMUNITY_URL);
+  }
+
   return (
     <div className="p-5">
-      {/* Stats cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>
-              {t("dashboard.totalRecordingTime")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-foreground">
-              {formatDurationFromMs(dashboardStats.totalRecordingDurationMs)}
+      {/* Hero: Speed comparison */}
+      {dashboardStats.totalTranscriptions > 0 && speedMultiplier > 1 && (
+        <Card className="mb-5">
+          <CardContent className="pt-6">
+            <p className="text-center text-lg text-muted-foreground">
+              {t("dashboard.heroPrefix")}{" "}
+              <span className="text-3xl font-bold text-primary">
+                {t("dashboard.heroMultiplier", {
+                  value: speedMultiplier.toFixed(1),
+                })}
+              </span>{" "}
+              {t("dashboard.heroSuffix")}
             </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-muted/50 px-4 py-3">
+                <p className="text-2xl font-bold text-foreground">
+                  {formatDurationFromMs(
+                    dashboardStats.totalRecordingDurationMs,
+                  )}
+                </p>
+                <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {t("dashboard.speakingTime")}
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-4 py-3">
+                <p className="text-2xl font-bold text-foreground">
+                  {formatDurationFromMs(estimatedTypingTimeMs)}
+                </p>
+                <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {t("dashboard.typingTime")}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {t("dashboard.timeSaved")}
+              </p>
+              <p className="text-2xl font-bold text-primary">
+                {formatDurationFromMs(dashboardStats.estimatedTimeSavedMs)}
+              </p>
+            </div>
           </CardContent>
         </Card>
+      )}
 
+      {/* Stats cards */}
+      <div className="grid grid-cols-3 gap-3">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>
@@ -175,17 +235,6 @@ export default function DashboardView() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>{t("dashboard.timeSaved")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-foreground">
-              {formatDurationFromMs(dashboardStats.estimatedTimeSavedMs)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
             <CardDescription>
               {t("dashboard.totalTranscriptions")}
             </CardDescription>
@@ -194,6 +243,20 @@ export default function DashboardView() {
             <p className="text-2xl font-bold text-foreground">
               {formatNumber(dashboardStats.totalTranscriptions)}{" "}
               {t("dashboard.transcriptionUnit")}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>
+              {t("dashboard.charsPerMinute")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-foreground">
+              {formatNumber(charsPerMinute)}{" "}
+              {t("dashboard.charsPerMinuteUnit")}
             </p>
           </CardContent>
         </Card>
@@ -287,6 +350,25 @@ export default function DashboardView() {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+
+        <Card
+          className="cursor-pointer transition-colors hover:bg-muted/50"
+          onClick={openCommunityUrl}
+        >
+          <CardContent className="flex items-center gap-3 pt-5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <MessageCircle className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">
+                {t("dashboard.communityTitle")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("dashboard.communityDescription")}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Daily usage trend */}

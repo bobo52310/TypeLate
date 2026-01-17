@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature or improvement for SayIt
+about: Suggest a new feature or improvement for TypeLate
 title: ""
 labels: enhancement
 assignees: ""
