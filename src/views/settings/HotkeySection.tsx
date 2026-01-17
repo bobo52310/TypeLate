@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { IS_MAC } from "@/lib/platform";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 
@@ -67,7 +68,7 @@ export default function HotkeySection() {
     (s) => s.getHotkeyRecordingTimeoutMessage,
   );
 
-  const isMac = navigator.userAgent.includes("Mac");
+  const isMac = IS_MAC;
 
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
