@@ -1,6 +1,26 @@
+/**
+ * VoiceFlow Zustand store -- the central state machine for recording/transcription.
+ *
+ * Manages HUD status transitions, event listener setup, and delegates
+ * to sub-modules for specific concerns:
+ *   - hudWindow: HUD window show/hide/repositioning
+ *   - timers: all setTimeout/setInterval management
+ *   - transcriptionPipeline: recording -> transcribe -> enhance -> paste
+ *   - correctionDetection: post-paste correction monitoring
+ *   - retryFlow: re-transcribe from saved audio
+ *   - storeAccessors: lazy sibling store access (breaks circular deps)
+ */
+
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, emit, type UnlistenFn } from "@tauri-apps/api/event";
+import { Window } from "@tauri-apps/api/window";
+import i18n from "@/i18n";
+import {
+  extractErrorMessage,
+  getHotkeyErrorMessage,
+} from "@/lib/errorUtils";
+import { captureError } from "@/lib/sentry";
 import type { HudStatus } from "@/types";
 import type {
   HotkeyEventPayload,
@@ -8,8 +28,9 @@ import type {
   QualityMonitorResultPayload,
   VoiceFlowStateChangedPayload,
 } from "@/types/events";
-import { extractErrorMessage, getHotkeyErrorMessage } from "@/lib/errorUtils";
-import { captureError } from "@/lib/sentry";
+import {
+  HOTKEY_ERROR_CODES,
+} from "@/types/events";
 import {
   HOTKEY_PRESSED,
   HOTKEY_RELEASED,
@@ -17,19 +38,10 @@ import {
   HOTKEY_ERROR,
   QUALITY_MONITOR_RESULT,
   VOICE_FLOW_STATE_CHANGED,
+  ESCAPE_PRESSED,
 } from "@/hooks/useTauriEvent";
 
-import {
-  clearAutoHideTimer,
-  clearCollapseHideTimer,
-  clearDelayedMuteTimer,
-  setAutoHideTimer,
-  setCollapseHideTimer,
-  startElapsedTimer,
-  stopElapsedTimer,
-  cleanupAllTimers,
-  setStoreRef,
-} from "./voiceFlow/timers";
+// Sub-modules
 import {
   showHud,
   hideHud,
@@ -37,12 +49,37 @@ import {
   stopMonitorPolling,
   resetHudWindowState,
 } from "./voiceFlow/hudWindow";
-import { handleStartRecording, handleStopRecording } from "./voiceFlow/transcriptionPipeline";
-import { handleRetryTranscription as handleRetryTranscriptionFlow } from "./voiceFlow/retryFlow";
-import { registerStoreAccessors } from "./voiceFlow/storeAccessors";
-import { useSettingsStore } from "./settingsStore";
-import { useHistoryStore } from "./historyStore";
-import { useVocabularyStore } from "./vocabularyStore";
+import {
+  clearAutoHideTimer,
+  clearCollapseHideTimer,
+  setAutoHideTimer,
+  setCollapseHideTimer,
+  cleanupAllTimers,
+  stopElapsedTimer,
+  clearDelayedMuteTimer,
+  setStoreRef,
+} from "./voiceFlow/timers";
+import {
+  stopCorrectionSnapshotPolling,
+  cleanupCorrectionMonitorListener,
+} from "./voiceFlow/correctionDetection";
+import {
+  handleStartRecording,
+  handleStopRecording,
+  restoreSystemAudio,
+  getAbortController,
+  setVoiceFlowActions,
+} from "./voiceFlow/transcriptionPipeline";
+import {
+  handleRetryTranscription as retryTranscription,
+  setRetryFlowActions,
+} from "./voiceFlow/retryFlow";
+import {
+  registerStoreAccessors,
+  type SettingsStoreAccessor,
+  type HistoryStoreAccessor,
+  type VocabularyStoreAccessor,
+} from "./voiceFlow/storeAccessors";
 
 // ── Constants ──
 
@@ -51,42 +88,15 @@ const ERROR_DISPLAY_DURATION_MS = 3000;
 const ERROR_WITH_RETRY_DISPLAY_DURATION_MS = 6000;
 const CANCELLED_DISPLAY_DURATION_MS = 1000;
 
-// ── ESCAPE_PRESSED event (defined here since not all windows use it) ──
-
-const ESCAPE_PRESSED = "escape:pressed" as const;
-
-// ── Store type ──
-
-export interface VoiceFlowState {
-  status: HudStatus;
-  message: string;
-  isRecording: boolean;
-  recordingElapsedSeconds: number;
-  lastWasModified: boolean | null;
-  lastFailedTranscriptionId: string | null;
-  lastFailedAudioFilePath: string | null;
-  lastFailedRecordingDurationMs: number;
-  lastFailedPeakEnergyLevel: number;
-  lastFailedRmsEnergyLevel: number;
-  isAborted: boolean;
-  isRetryAttempt: boolean;
-
-  // Derived
-  canRetry: () => boolean;
-
-  // Actions
-  initialize: () => Promise<void>;
-  cleanup: () => void;
-  transitionTo: (nextStatus: HudStatus, nextMessage?: string) => void;
-  handleRetryTranscription: () => Promise<void>;
-}
-
 // ── Module-level state ──
 
-let unlistenFunctions: UnlistenFn[] = [];
-let abortController: AbortController | null = null;
+const unlistenFunctions: UnlistenFn[] = [];
 
 // ── Helpers ──
+
+function t(key: string, params?: Record<string, unknown>): string {
+  return i18n.t(key, params ?? {});
+}
 
 function writeInfoLog(logMessage: string): void {
   void invoke("debug_log", { level: "info", message: logMessage });
@@ -96,236 +106,380 @@ function writeErrorLog(logMessage: string): void {
   void invoke("debug_log", { level: "error", message: logMessage });
 }
 
-export function playSoundIfEnabled(command: string): void {
-  const settings = useSettingsStore.getState();
-  if (settings.isSoundEffectsEnabled) {
-    void invoke(command).catch(() => {});
+// ── Store interface ──
+
+export interface VoiceFlowState {
+  // Public state (consumed by React components)
+  status: HudStatus;
+  message: string;
+  isRecording: boolean;
+  recordingElapsedSeconds: number;
+  canRetry: boolean;
+  lastWasModified: boolean | null;
+
+  // Internal state (used by sub-modules, prefixed with _ to indicate internal)
+  /** @internal */ _isAborted: boolean;
+  /** @internal */ _isRetryAttempt: boolean;
+  /** @internal */ _lastFailedTranscriptionId: string | null;
+  /** @internal */ _lastFailedAudioFilePath: string | null;
+  /** @internal */ _lastFailedRecordingDurationMs: number;
+  /** @internal */ _lastFailedPeakEnergyLevel: number;
+  /** @internal */ _lastFailedRmsEnergyLevel: number;
+
+  // Actions
+  initialize: (stores: VoiceFlowInitStores) => Promise<void>;
+  cleanup: () => void;
+  handleRetryTranscription: () => Promise<void>;
+}
+
+/**
+ * Sibling store getters passed to initialize() to avoid circular imports.
+ * The caller (e.g. main.tsx or an init hook) imports all stores and passes them.
+ */
+export interface VoiceFlowInitStores {
+  getSettingsStore: () => SettingsStoreAccessor;
+  getHistoryStore: () => HistoryStoreAccessor;
+  getVocabularyStore: () => VocabularyStoreAccessor;
+}
+
+// ── Core state machine function ──
+
+/**
+ * Central state machine coordinator.
+ * 1. Clears timers
+ * 2. Sets status + message
+ * 3. Emits VOICE_FLOW_STATE_CHANGED event
+ * 4. Based on nextStatus: shows/hides HUD, sets auto-hide timers, enables/disables cursor events
+ */
+export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
+  clearAutoHideTimer();
+  clearCollapseHideTimer();
+
+  const state = useVoiceFlowStore.getState();
+  const canRetryNext =
+    nextStatus === "error" &&
+    state._lastFailedAudioFilePath !== null &&
+    !state._isRetryAttempt;
+
+  useVoiceFlowStore.setState({
+    status: nextStatus,
+    message: nextMessage,
+    canRetry: canRetryNext,
+  });
+
+  // Emit cross-window event
+  const payload: VoiceFlowStateChangedPayload = {
+    status: nextStatus,
+    message: nextMessage,
+  };
+  void emit(VOICE_FLOW_STATE_CHANGED, payload);
+
+  if (nextStatus === "idle") {
+    stopMonitorPolling();
+    setCollapseHideTimer(() => {
+      hideHud().catch((err: unknown) => {
+        writeErrorLog(
+          `voiceFlowStore: hideHud failed: ${extractErrorMessage(err)}`,
+        );
+        captureError(err, { source: "voice-flow", step: "hideHud" });
+      });
+    });
+    return;
+  }
+
+  if (
+    nextStatus === "recording" ||
+    nextStatus === "transcribing" ||
+    nextStatus === "enhancing"
+  ) {
+    showHud().catch((err: unknown) => {
+      writeErrorLog(
+        `voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`,
+      );
+      captureError(err, { source: "voice-flow", step: "showHud" });
+    });
+    return;
+  }
+
+  if (nextStatus === "success") {
+    showHud().catch((err: unknown) => {
+      writeErrorLog(
+        `voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`,
+      );
+      captureError(err, { source: "voice-flow", step: "showHud" });
+    });
+    setAutoHideTimer(() => {
+      transitionTo("idle");
+    }, SUCCESS_DISPLAY_DURATION_MS);
+    return;
+  }
+
+  if (nextStatus === "cancelled") {
+    showHud().catch((err: unknown) => {
+      writeErrorLog(
+        `voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`,
+      );
+      captureError(err, { source: "voice-flow", step: "showHud" });
+    });
+    setAutoHideTimer(() => {
+      transitionTo("idle");
+    }, CANCELLED_DISPLAY_DURATION_MS);
+    return;
+  }
+
+  if (nextStatus === "error") {
+    showHud()
+      .then(() => enableCursorEvents())
+      .catch((err: unknown) => {
+        writeErrorLog(
+          `voiceFlowStore: showHud/enableCursor failed: ${extractErrorMessage(err)}`,
+        );
+        captureError(err, {
+          source: "voice-flow",
+          step: "showHud-enableCursor",
+        });
+      });
+    const errorDuration = canRetryNext
+      ? ERROR_WITH_RETRY_DISPLAY_DURATION_MS
+      : ERROR_DISPLAY_DURATION_MS;
+    setAutoHideTimer(() => {
+      transitionTo("idle");
+    }, errorDuration);
   }
 }
 
-export function getAbortController(): AbortController | null {
-  return abortController;
+export function playSoundIfEnabled(command: string): void {
+  try {
+    const { getSettingsStore: getSettings } = await_import_storeAccessors();
+    if (getSettings().isSoundEffectsEnabled) {
+      void invoke(command).catch(() => {});
+    }
+  } catch {
+    // Settings store not yet registered -- skip sound
+  }
 }
 
-export function setAbortController(controller: AbortController | null): void {
-  abortController = controller;
+/**
+ * Re-export storeAccessors import (already at top level via ESM import).
+ * Wrapped in a function to provide a consistent access pattern and
+ * clear error when accessed before registration.
+ */
+function await_import_storeAccessors() {
+  // storeAccessors is already imported at the top of this file.
+  // This is just a named wrapper for clarity in the try/catch above.
+  return { getSettingsStore: getSettingsStoreAccessor };
 }
 
-// ── Store ──
+// Re-import from storeAccessors with a non-conflicting name
+import { getSettingsStore as getSettingsStoreAccessor } from "./voiceFlow/storeAccessors";
 
-export const useVoiceFlowStore = create<VoiceFlowState>()((set, get) => ({
-  status: "idle",
+export function failRecordingFlow(
+  errorMessage: string,
+  logMessage: string,
+  error?: unknown,
+): void {
+  clearDelayedMuteTimer();
+  void restoreSystemAudio();
+  useVoiceFlowStore.setState({ isRecording: false });
+  transitionTo("error", errorMessage);
+  playSoundIfEnabled("play_error_sound");
+  writeErrorLog(logMessage);
+  if (error) {
+    captureError(error, { userMessage: errorMessage, source: "voice-flow" });
+  }
+}
+
+// ── Escape abort handler ──
+
+function handleEscapeAbort(): void {
+  const state = useVoiceFlowStore.getState();
+  const currentStatus = state.status;
+  if (
+    currentStatus === "idle" ||
+    currentStatus === "success" ||
+    currentStatus === "error" ||
+    currentStatus === "cancelled"
+  )
+    return;
+
+  writeInfoLog(`voiceFlowStore: ESC abort from ${currentStatus}`);
+  useVoiceFlowStore.setState({ _isAborted: true, isRecording: false });
+  getAbortController()?.abort();
+
+  if (currentStatus === "recording") {
+    void invoke("stop_recording").catch(() => {});
+    stopElapsedTimer();
+  }
+
+  // Full cleanup of in-progress resources
+  clearDelayedMuteTimer();
+  stopMonitorPolling();
+  stopCorrectionSnapshotPolling();
+  cleanupCorrectionMonitorListener();
+  void restoreSystemAudio();
+
+  // Reset toggle mode state
+  void invoke("reset_hotkey_state").catch(() => {});
+
+  transitionTo("cancelled", t("voiceFlow.cancelled"));
+}
+
+// ── Zustand store ──
+
+export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
+  // Public state
+  status: "idle" as HudStatus,
   message: "",
   isRecording: false,
   recordingElapsedSeconds: 0,
+  canRetry: false,
   lastWasModified: null,
-  lastFailedTranscriptionId: null,
-  lastFailedAudioFilePath: null,
-  lastFailedRecordingDurationMs: 0,
-  lastFailedPeakEnergyLevel: 0,
-  lastFailedRmsEnergyLevel: 0,
-  isAborted: false,
-  isRetryAttempt: false,
 
-  canRetry: () => {
-    const state = get();
-    return (
-      state.status === "error" &&
-      state.lastFailedAudioFilePath !== null &&
-      !state.isRetryAttempt
-    );
-  },
+  // Internal state
+  _isAborted: false,
+  _isRetryAttempt: false,
+  _lastFailedTranscriptionId: null,
+  _lastFailedAudioFilePath: null,
+  _lastFailedRecordingDurationMs: 0,
+  _lastFailedPeakEnergyLevel: 0,
+  _lastFailedRmsEnergyLevel: 0,
 
-  transitionTo: (nextStatus: HudStatus, nextMessage = "") => {
-    clearAutoHideTimer();
-    clearCollapseHideTimer();
-    set({ status: nextStatus, message: nextMessage });
-
-    // Emit state change event for cross-window sync
-    const payload: VoiceFlowStateChangedPayload = {
-      status: nextStatus,
-      message: nextMessage,
-    };
-    void emit(VOICE_FLOW_STATE_CHANGED, payload);
-
-    if (nextStatus === "idle") {
-      stopMonitorPolling();
-      setCollapseHideTimer(() => {
-        hideHud().catch((err) => {
-          writeErrorLog(`voiceFlowStore: hideHud failed: ${extractErrorMessage(err)}`);
-          captureError(err, { source: "voice-flow", step: "hideHud" });
-        });
-      });
-      return;
-    }
-
-    if (
-      nextStatus === "recording" ||
-      nextStatus === "transcribing" ||
-      nextStatus === "enhancing"
-    ) {
-      showHud().catch((err) => {
-        writeErrorLog(`voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`);
-        captureError(err, { source: "voice-flow", step: "showHud" });
-      });
-      return;
-    }
-
-    if (nextStatus === "success") {
-      showHud().catch((err) => {
-        writeErrorLog(`voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`);
-        captureError(err, { source: "voice-flow", step: "showHud" });
-      });
-      setAutoHideTimer(() => {
-        get().transitionTo("idle");
-      }, SUCCESS_DISPLAY_DURATION_MS);
-      return;
-    }
-
-    if (nextStatus === "cancelled") {
-      showHud().catch((err) => {
-        writeErrorLog(`voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`);
-        captureError(err, { source: "voice-flow", step: "showHud" });
-      });
-      setAutoHideTimer(() => {
-        get().transitionTo("idle");
-      }, CANCELLED_DISPLAY_DURATION_MS);
-      return;
-    }
-
-    if (nextStatus === "error") {
-      showHud()
-        .then(() => enableCursorEvents())
-        .catch((err) => {
-          writeErrorLog(
-            `voiceFlowStore: showHud/enableCursor failed: ${extractErrorMessage(err)}`,
-          );
-          captureError(err, { source: "voice-flow", step: "showHud-enableCursor" });
-        });
-      const canRetryNow = get().canRetry();
-      const errorDuration = canRetryNow
-        ? ERROR_WITH_RETRY_DISPLAY_DURATION_MS
-        : ERROR_DISPLAY_DURATION_MS;
-      setAutoHideTimer(() => {
-        get().transitionTo("idle");
-      }, errorDuration);
-    }
-  },
-
-  handleRetryTranscription: async () => {
-    await handleRetryTranscriptionFlow();
-  },
+  // ── Actions ──
 
   initialize: async () => {
-    // Register store accessors for sub-modules (breaks circular deps)
-    registerStoreAccessors({
-      settings: () => useSettingsStore.getState(),
-      history: () => useHistoryStore.getState(),
-      vocabulary: () => useVocabularyStore.getState(),
+    writeInfoLog("voiceFlowStore: initializing");
+
+    // Inject store ref into timers (breaks circular dep)
+    setStoreRef({
+      getState: () => ({
+        recordingElapsedSeconds: get().recordingElapsedSeconds,
+      }),
+      setState: (partial) => set(partial),
     });
 
-    // Inject store ref into timers module
-    setStoreRef(useVoiceFlowStore);
+    // Register sibling store accessors (lazy, breaks circular dep)
+    registerStoreAccessors({
+      settings: () => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const mod = require("./settingsStore") as {
+          useSettingsStore: { getState: () => SettingsStoreAccessor };
+        };
+        return mod.useSettingsStore.getState();
+      },
+      history: () => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const mod = require("./historyStore") as {
+          useHistoryStore: { getState: () => HistoryStoreAccessor };
+        };
+        return mod.useHistoryStore.getState();
+      },
+      vocabulary: () => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const mod = require("./vocabularyStore") as {
+          useVocabularyStore: { getState: () => VocabularyStoreAccessor };
+        };
+        return mod.useVocabularyStore.getState();
+      },
+    });
 
-    // ── Hotkey listeners ──
+    // Inject action references into sub-modules
+    const sharedActions = {
+      getState: () => get(),
+      setState: (partial: Record<string, unknown>) =>
+        set(partial as Partial<VoiceFlowState>),
+      transitionTo,
+      playSoundIfEnabled,
+      failRecordingFlow,
+    };
+    setVoiceFlowActions(sharedActions);
+    setRetryFlowActions(sharedActions);
 
-    const unlistenPressed = await listen<HotkeyEventPayload>(
-      HOTKEY_PRESSED,
-      () => {
-        const state = get();
-        if (state.status !== "idle" && state.status !== "error") return;
+    // Load settings
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const settingsModule = require("./settingsStore") as {
+        useSettingsStore: {
+          getState: () => { loadSettings: () => Promise<void> };
+        };
+      };
+      await settingsModule.useSettingsStore.getState().loadSettings();
+    } catch (err) {
+      writeErrorLog(
+        `voiceFlowStore: loadSettings failed: ${extractErrorMessage(err)}`,
+      );
+    }
 
-        set({ isAborted: false, isRetryAttempt: false });
-        abortController = new AbortController();
-
+    // Set up Tauri event listeners
+    const listeners = await Promise.all([
+      listen(ESCAPE_PRESSED, () => {
+        handleEscapeAbort();
+      }),
+      listen(HOTKEY_PRESSED, () => {
         void handleStartRecording();
-      },
-    );
-    unlistenFunctions.push(unlistenPressed);
-
-    const unlistenReleased = await listen<HotkeyEventPayload>(
-      HOTKEY_RELEASED,
-      () => {
-        const state = get();
-        if (!state.isRecording) return;
-
+      }),
+      listen(HOTKEY_RELEASED, () => {
         void handleStopRecording();
-      },
-    );
-    unlistenFunctions.push(unlistenReleased);
-
-    const unlistenToggled = await listen<HotkeyEventPayload>(
-      HOTKEY_TOGGLED,
-      (event) => {
-        const action = event.payload.action;
-        const state = get();
-
-        if (action === "start") {
-          if (state.status !== "idle" && state.status !== "error") return;
-          set({ isAborted: false, isRetryAttempt: false });
-          abortController = new AbortController();
+      }),
+      listen<HotkeyEventPayload>(HOTKEY_TOGGLED, (event) => {
+        if (event.payload.action === "start") {
           void handleStartRecording();
-        } else {
-          if (!state.isRecording) return;
+          return;
+        }
+        if (event.payload.action === "stop") {
           void handleStopRecording();
         }
-      },
-    );
-    unlistenFunctions.push(unlistenToggled);
-
-    const unlistenError = await listen<HotkeyErrorPayload>(
-      HOTKEY_ERROR,
-      (event) => {
-        const errorMessage = getHotkeyErrorMessage(
-          event.payload.error,
-          event.payload.message,
-        );
-        get().transitionTo("error", errorMessage);
-        writeErrorLog(`voiceFlowStore: hotkey error: ${event.payload.message}`);
-      },
-    );
-    unlistenFunctions.push(unlistenError);
-
-    const unlistenQuality = await listen<QualityMonitorResultPayload>(
-      QUALITY_MONITOR_RESULT,
-      (event) => {
-        set({ lastWasModified: event.payload.wasModified });
-        writeInfoLog(
-          `voiceFlowStore: quality monitor result: wasModified=${event.payload.wasModified}`,
-        );
-      },
-    );
-    unlistenFunctions.push(unlistenQuality);
-
-    const unlistenEscape = await listen(ESCAPE_PRESSED, () => {
-      const state = get();
-      if (state.isRecording || state.status === "transcribing" || state.status === "enhancing") {
-        set({ isAborted: true });
-        abortController?.abort();
-
-        if (state.isRecording) {
-          // Stop recording and discard
-          void invoke("stop_recording").catch(() => {});
-          void invoke("restore_system_audio").catch(() => {});
-          clearDelayedMuteTimer();
-          stopElapsedTimer();
-          set({ isRecording: false });
+      }),
+      listen<QualityMonitorResultPayload>(
+        QUALITY_MONITOR_RESULT,
+        (event) => {
+          set({ lastWasModified: event.payload.wasModified });
+          writeInfoLog(
+            `voiceFlowStore: quality monitor result: wasModified=${String(event.payload.wasModified)}`,
+          );
+        },
+      ),
+      listen<HotkeyErrorPayload>(HOTKEY_ERROR, (event) => {
+        const hudMessage = getHotkeyErrorMessage(event.payload.error);
+        if (
+          event.payload.error === HOTKEY_ERROR_CODES.ACCESSIBILITY_PERMISSION
+        ) {
+          void (async () => {
+            try {
+              const mainWindow = await Window.getByLabel("main-window");
+              if (!mainWindow) return;
+              await mainWindow.show();
+              await mainWindow.setFocus();
+            } catch (err) {
+              writeErrorLog(
+                `voiceFlowStore: show/focus main-window failed: ${extractErrorMessage(err)}`,
+              );
+            }
+          })();
         }
-
-        get().transitionTo("cancelled", "");
-        writeInfoLog("voiceFlowStore: recording/transcription aborted by Escape");
-      }
-    });
-    unlistenFunctions.push(unlistenEscape);
+        transitionTo("error", hudMessage);
+        playSoundIfEnabled("play_error_sound");
+        writeErrorLog(
+          `voiceFlowStore: hotkey error: ${event.payload.message}`,
+        );
+      }),
+    ]);
+    unlistenFunctions.push(...listeners);
   },
 
   cleanup: () => {
+    cleanupAllTimers();
+    stopMonitorPolling();
+    stopCorrectionSnapshotPolling();
+    cleanupCorrectionMonitorListener();
+    resetHudWindowState();
+
     for (const unlisten of unlistenFunctions) {
       unlisten();
     }
-    unlistenFunctions = [];
-    cleanupAllTimers();
-    resetHudWindowState();
-    abortController = null;
+    unlistenFunctions.length = 0;
+  },
+
+  handleRetryTranscription: async () => {
+    await retryTranscription();
   },
 }));
