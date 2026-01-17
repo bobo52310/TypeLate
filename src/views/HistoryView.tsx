@@ -206,7 +206,24 @@ export default function HistoryView() {
     }
   }
 
-  async function handleDeleteRecord(record: TranscriptionRecord) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const confirmDeleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function requestDeleteRecord(record: TranscriptionRecord) {
+    if (confirmDeleteId === record.id) {
+      // Second click — confirmed
+      if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
+      setConfirmDeleteId(null);
+      void executeDeleteRecord(record);
+    } else {
+      // First click — enter confirm state, auto-revert after 3s
+      setConfirmDeleteId(record.id);
+      if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
+      confirmDeleteTimerRef.current = setTimeout(() => setConfirmDeleteId(null), 3000);
+    }
+  }
+
+  async function executeDeleteRecord(record: TranscriptionRecord) {
     try {
       await deleteTranscription(record.id);
       if (expandedRecordId === record.id) setExpandedRecordId(null);
@@ -252,6 +269,7 @@ export default function HistoryView() {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
       if (copiedRawTimerRef.current) clearTimeout(copiedRawTimerRef.current);
+      if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
     };
   }, [resetAndFetch]);
 
@@ -487,13 +505,18 @@ export default function HistoryView() {
                           )}
                           <div className="ml-auto">
                             <Button
-                              variant="ghost"
+                              variant={confirmDeleteId === record.id ? "destructive" : "ghost"}
                               size="sm"
-                              className="h-6 gap-1 px-2 text-[11px] text-destructive hover:text-destructive"
-                              onClick={(e) => { e.stopPropagation(); void handleDeleteRecord(record); }}
+                              className={cn(
+                                "h-6 gap-1 px-2 text-[11px]",
+                                confirmDeleteId === record.id
+                                  ? "animate-pulse"
+                                  : "text-destructive hover:text-destructive",
+                              )}
+                              onClick={(e) => { e.stopPropagation(); requestDeleteRecord(record); }}
                             >
                               <Trash2 className="h-3 w-3" />
-                              {t("history.delete")}
+                              {confirmDeleteId === record.id ? t("settings.apiKey.confirmDelete") : t("history.delete")}
                             </Button>
                           </div>
                         </div>
