@@ -41,6 +41,7 @@ import { useTauriEvent, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
 import { captureError, initSentryForDashboard } from "@/lib/sentry";
+import { IS_MAC } from "@/lib/platform";
 import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
 import { AccessibilityGuide } from "@/components/AccessibilityGuide";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
@@ -255,7 +256,7 @@ export function DashboardApp() {
       }
 
       // macOS accessibility check
-      const isMacOS = navigator.userAgent.includes("Macintosh");
+      const isMacOS = IS_MAC;
       if (isMacOS) {
         try {
           const hasPermission = await invoke<boolean>(

@@ -27,10 +27,7 @@ import {
   formatDurationFromMs,
   formatNumber,
 } from "@/lib/formatUtils";
-import {
-  findLlmModelConfig,
-  findWhisperModelConfig,
-} from "@/lib/modelRegistry";
+import { useQuotaInfo } from "@/hooks/useQuotaInfo";
 
 const TRANSCRIPTION_COMPLETED = "transcription:completed";
 // TODO: Update URL if repo moves
@@ -46,80 +43,12 @@ export default function DashboardView() {
   const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
 
   const hasApiKey = useSettingsStore((s) => s.hasApiKey);
-  const selectedWhisperModelId = useSettingsStore(
-    (s) => s.selectedWhisperModelId,
-  );
-  const selectedLlmModelId = useSettingsStore((s) => s.selectedLlmModelId);
 
-  const quotaDimensionList = useMemo(() => {
-    const usage = dashboardStats.dailyQuotaUsage;
-    const wConfig = findWhisperModelConfig(selectedWhisperModelId);
-    const lConfig = findLlmModelConfig(selectedLlmModelId);
-
-    const wRpdLimit = wConfig?.freeQuotaRpd ?? 2000;
-    const wAudioLimitMs =
-      (wConfig?.freeQuotaAudioSecondsPerDay ?? 28800) * 1000;
-    const lRpdLimit = lConfig?.freeQuotaRpd ?? 1000;
-    const lTpdLimit = lConfig?.freeQuotaTpd ?? 100_000;
-
-    return [
-      {
-        remaining:
-          wRpdLimit > 0 ? 1 - usage.whisperRequestCount / wRpdLimit : 0,
-        label: t("dashboard.quotaWhisperRequests", {
-          used: usage.whisperRequestCount,
-          limit: formatNumber(wRpdLimit),
-        }),
-      },
-      {
-        remaining:
-          wAudioLimitMs > 0
-            ? 1 - usage.whisperBilledAudioMs / wAudioLimitMs
-            : 0,
-        label: t("dashboard.quotaAudio", {
-          used: formatDurationFromMs(usage.whisperBilledAudioMs),
-          limit: formatDurationFromMs(wAudioLimitMs),
-        }),
-      },
-      {
-        remaining:
-          lRpdLimit > 0 ? 1 - usage.llmRequestCount / lRpdLimit : 0,
-        label: t("dashboard.quotaLlmRequests", {
-          used: usage.llmRequestCount,
-          limit: formatNumber(lRpdLimit),
-        }),
-      },
-      {
-        remaining:
-          lTpdLimit > 0 ? 1 - usage.llmTotalTokens / lTpdLimit : 0,
-        label: t("dashboard.quotaLlmTokens", {
-          used: formatNumber(usage.llmTotalTokens),
-          limit: formatNumber(lTpdLimit),
-        }),
-      },
-    ];
-  }, [dashboardStats, selectedWhisperModelId, selectedLlmModelId, t]);
-
-  const quotaRemainingPercent = useMemo(() => {
-    const minRemaining = Math.min(
-      ...quotaDimensionList.map((d) => d.remaining),
-    );
-    return Math.max(0, minRemaining);
-  }, [quotaDimensionList]);
-
-  const quotaBottleneckLabel = useMemo(() => {
-    const sorted = [...quotaDimensionList].sort(
-      (a, b) => a.remaining - b.remaining,
-    );
-    return sorted[0]?.label ?? "";
-  }, [quotaDimensionList]);
-
-  const quotaBarColorClass = useMemo(() => {
-    const pct = quotaRemainingPercent;
-    if (pct >= 0.5) return "bg-primary";
-    if (pct >= 0.2) return "bg-warning";
-    return "bg-destructive";
-  }, [quotaRemainingPercent]);
+  const quotaInfo = useQuotaInfo();
+  const quotaDimensionList = quotaInfo.dimensions;
+  const quotaRemainingPercent = quotaInfo.percent / 100;
+  const quotaBottleneckLabel = quotaInfo.bottleneckLabel;
+  const quotaBarColorClass = quotaInfo.colorClass;
 
   const avgCharacters = useMemo(() => {
     if (dashboardStats.totalTranscriptions <= 0) return 0;

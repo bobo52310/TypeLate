@@ -54,21 +54,21 @@ import {
 } from "@/lib/modelRegistry";
 
 import { APP_VERSION } from "@/lib/version";
+import { IS_MAC } from "@/lib/platform";
 
 const STORE_NAME = "settings.json";
 
 export const DEFAULT_ENHANCEMENT_THRESHOLD_ENABLED = false;
 export const DEFAULT_ENHANCEMENT_THRESHOLD_CHAR_COUNT = 10;
 export const DEFAULT_MUTE_ON_RECORDING = true;
-const DEFAULT_SMART_DICTIONARY_ENABLED = navigator.userAgent.includes("Mac");
+const DEFAULT_SMART_DICTIONARY_ENABLED = IS_MAC;
 const DEFAULT_SOUND_EFFECTS_ENABLED = true;
 const DEFAULT_PROMPT_MODE: PromptMode = "minimal";
 const DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED = false;
 const DEFAULT_RECORDING_AUTO_CLEANUP_DAYS = 7;
 
 function getDefaultTriggerKey(): TriggerKey {
-  const isMac = navigator.userAgent.includes("Mac");
-  return isMac ? "fn" : "rightAlt";
+  return IS_MAC ? "fn" : "rightAlt";
 }
 
 const PRESET_KEY_DISPLAY_NAMES: Record<string, string> = {

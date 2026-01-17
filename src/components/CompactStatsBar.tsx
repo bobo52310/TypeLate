@@ -7,19 +7,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useHistoryStore } from "@/stores/historyStore";
-import { useSettingsStore } from "@/stores/settingsStore";
-import { formatDurationFromMs, formatNumber } from "@/lib/formatUtils";
-import {
-  findLlmModelConfig,
-  findWhisperModelConfig,
-} from "@/lib/modelRegistry";
+import { formatDurationFromMs } from "@/lib/formatUtils";
+import { useQuotaInfo } from "@/hooks/useQuotaInfo";
 
 export function CompactStatsBar() {
   const { t } = useTranslation();
   const dashboardStats = useHistoryStore((s) => s.dashboardStats);
   const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
-  const selectedWhisperModelId = useSettingsStore((s) => s.selectedWhisperModelId);
-  const selectedLlmModelId = useSettingsStore((s) => s.selectedLlmModelId);
+  const quotaInfo = useQuotaInfo();
 
   const todayCount = useMemo(() => {
     if (dailyUsageTrendList.length === 0) return 0;
@@ -27,57 +22,6 @@ export function CompactStatsBar() {
     const todayEntry = dailyUsageTrendList.find((d) => d.date === today);
     return todayEntry?.count ?? 0;
   }, [dailyUsageTrendList]);
-
-  const quotaInfo = useMemo(() => {
-    const usage = dashboardStats.dailyQuotaUsage;
-    const wConfig = findWhisperModelConfig(selectedWhisperModelId);
-    const lConfig = findLlmModelConfig(selectedLlmModelId);
-
-    const dimensions = [
-      {
-        remaining: (wConfig?.freeQuotaRpd ?? 2000) > 0
-          ? 1 - usage.whisperRequestCount / (wConfig?.freeQuotaRpd ?? 2000)
-          : 0,
-        label: t("dashboard.quotaWhisperRequests", {
-          used: usage.whisperRequestCount,
-          limit: formatNumber(wConfig?.freeQuotaRpd ?? 2000),
-        }),
-      },
-      {
-        remaining: ((wConfig?.freeQuotaAudioSecondsPerDay ?? 28800) * 1000) > 0
-          ? 1 - usage.whisperBilledAudioMs / ((wConfig?.freeQuotaAudioSecondsPerDay ?? 28800) * 1000)
-          : 0,
-        label: t("dashboard.quotaAudio", {
-          used: formatDurationFromMs(usage.whisperBilledAudioMs),
-          limit: formatDurationFromMs((wConfig?.freeQuotaAudioSecondsPerDay ?? 28800) * 1000),
-        }),
-      },
-      {
-        remaining: (lConfig?.freeQuotaRpd ?? 1000) > 0
-          ? 1 - usage.llmRequestCount / (lConfig?.freeQuotaRpd ?? 1000)
-          : 0,
-        label: t("dashboard.quotaLlmRequests", {
-          used: usage.llmRequestCount,
-          limit: formatNumber(lConfig?.freeQuotaRpd ?? 1000),
-        }),
-      },
-      {
-        remaining: (lConfig?.freeQuotaTpd ?? 100_000) > 0
-          ? 1 - usage.llmTotalTokens / (lConfig?.freeQuotaTpd ?? 100_000)
-          : 0,
-        label: t("dashboard.quotaLlmTokens", {
-          used: formatNumber(usage.llmTotalTokens),
-          limit: formatNumber(lConfig?.freeQuotaTpd ?? 100_000),
-        }),
-      },
-    ];
-
-    const minRemaining = Math.max(0, Math.min(...dimensions.map((d) => d.remaining)));
-    const percent = Math.round(minRemaining * 100);
-    const colorClass = percent >= 50 ? "bg-primary" : percent >= 20 ? "bg-warning" : "bg-destructive";
-
-    return { percent, colorClass, dimensions };
-  }, [dashboardStats, selectedWhisperModelId, selectedLlmModelId, t]);
 
   return (
     <div className="flex items-center gap-6 rounded-lg border border-border bg-muted/30 px-4 py-2.5">
