@@ -28,9 +28,7 @@ import type {
   QualityMonitorResultPayload,
   VoiceFlowStateChangedPayload,
 } from "@/types/events";
-import {
-  HOTKEY_ERROR_CODES,
-} from "@/types/events";
+import { HOTKEY_ERROR_CODES } from "@/types/events";
 import {
   HOTKEY_PRESSED,
   HOTKEY_RELEASED,
@@ -76,6 +74,7 @@ import {
 } from "./voiceFlow/retryFlow";
 import {
   registerStoreAccessors,
+  getSettingsStore as getSettingsStoreFromAccessors,
   type SettingsStoreAccessor,
   type HistoryStoreAccessor,
   type VocabularyStoreAccessor,
@@ -134,7 +133,7 @@ export interface VoiceFlowState {
 
 /**
  * Sibling store getters passed to initialize() to avoid circular imports.
- * The caller (e.g. main.tsx or an init hook) imports all stores and passes them.
+ * The caller (e.g. main.tsx or an init hook) imports all stores and passes them in.
  */
 export interface VoiceFlowInitStores {
   getSettingsStore: () => SettingsStoreAccessor;
@@ -149,7 +148,8 @@ export interface VoiceFlowInitStores {
  * 1. Clears timers
  * 2. Sets status + message
  * 3. Emits VOICE_FLOW_STATE_CHANGED event
- * 4. Based on nextStatus: shows/hides HUD, sets auto-hide timers, enables/disables cursor events
+ * 4. Based on nextStatus: shows/hides HUD, sets auto-hide timers,
+ *    enables/disables cursor events
  */
 export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
   clearAutoHideTimer();
@@ -250,28 +250,13 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
 
 export function playSoundIfEnabled(command: string): void {
   try {
-    const { getSettingsStore: getSettings } = await_import_storeAccessors();
-    if (getSettings().isSoundEffectsEnabled) {
+    if (getSettingsStoreFromAccessors().isSoundEffectsEnabled) {
       void invoke(command).catch(() => {});
     }
   } catch {
     // Settings store not yet registered -- skip sound
   }
 }
-
-/**
- * Re-export storeAccessors import (already at top level via ESM import).
- * Wrapped in a function to provide a consistent access pattern and
- * clear error when accessed before registration.
- */
-function await_import_storeAccessors() {
-  // storeAccessors is already imported at the top of this file.
-  // This is just a named wrapper for clarity in the try/catch above.
-  return { getSettingsStore: getSettingsStoreAccessor };
-}
-
-// Re-import from storeAccessors with a non-conflicting name
-import { getSettingsStore as getSettingsStoreAccessor } from "./voiceFlow/storeAccessors";
 
 export function failRecordingFlow(
   errorMessage: string,
@@ -346,7 +331,7 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
 
   // ── Actions ──
 
-  initialize: async () => {
+  initialize: async (stores: VoiceFlowInitStores) => {
     writeInfoLog("voiceFlowStore: initializing");
 
     // Inject store ref into timers (breaks circular dep)
@@ -357,29 +342,11 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
       setState: (partial) => set(partial),
     });
 
-    // Register sibling store accessors (lazy, breaks circular dep)
+    // Register sibling store accessors
     registerStoreAccessors({
-      settings: () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const mod = require("./settingsStore") as {
-          useSettingsStore: { getState: () => SettingsStoreAccessor };
-        };
-        return mod.useSettingsStore.getState();
-      },
-      history: () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const mod = require("./historyStore") as {
-          useHistoryStore: { getState: () => HistoryStoreAccessor };
-        };
-        return mod.useHistoryStore.getState();
-      },
-      vocabulary: () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const mod = require("./vocabularyStore") as {
-          useVocabularyStore: { getState: () => VocabularyStoreAccessor };
-        };
-        return mod.useVocabularyStore.getState();
-      },
+      settings: stores.getSettingsStore,
+      history: stores.getHistoryStore,
+      vocabulary: stores.getVocabularyStore,
     });
 
     // Inject action references into sub-modules
@@ -396,13 +363,7 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
 
     // Load settings
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const settingsModule = require("./settingsStore") as {
-        useSettingsStore: {
-          getState: () => { loadSettings: () => Promise<void> };
-        };
-      };
-      await settingsModule.useSettingsStore.getState().loadSettings();
+      await stores.getSettingsStore().loadSettings();
     } catch (err) {
       writeErrorLog(
         `voiceFlowStore: loadSettings failed: ${extractErrorMessage(err)}`,

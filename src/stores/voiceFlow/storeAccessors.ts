@@ -10,7 +10,7 @@
 // ── Lazy accessor type definitions ──
 
 export interface SettingsStoreAccessor {
-  triggerMode: "hold" | "toggle";
+  triggerMode: () => "hold" | "toggle";
   selectedAudioInputDeviceName: string;
   selectedWhisperModelId: string;
   selectedLlmModelId: string;
@@ -20,7 +20,7 @@ export interface SettingsStoreAccessor {
   isSmartDictionaryEnabled: boolean;
   isEnhancementThresholdEnabled: boolean;
   enhancementThresholdCharCount: number;
-  getApiKey: () => string | null;
+  getApiKey: () => string;
   refreshApiKey: () => Promise<void>;
   getAiPrompt: () => string;
   getWhisperLanguageCode: () => string | null;
