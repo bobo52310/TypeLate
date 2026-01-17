@@ -5,11 +5,19 @@ import { resolve } from "path";
 
 const host = process.env.TAURI_DEV_HOST;
 
+const vendorChunks: Record<string, string[]> = {
+  "vendor-react": ["react", "react-dom"],
+  "vendor-router": ["@tanstack/react-router"],
+  "vendor-ui": ["class-variance-authority", "clsx", "tailwind-merge"],
+  "vendor-charts": ["recharts"],
+  "vendor-table": ["@tanstack/react-table"],
+};
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "@": resolve(__dirname, "./src"),
+      "@": resolve(import.meta.dirname!, "./src"),
     },
   },
   clearScreen: false,
@@ -29,22 +37,18 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       input: {
-        main: resolve(__dirname, "index.html"),
-        "main-window": resolve(__dirname, "main-window.html"),
+        main: resolve(import.meta.dirname!, "index.html"),
+        "main-window": resolve(import.meta.dirname!, "main-window.html"),
       },
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom"],
-          "vendor-router": ["@tanstack/react-router"],
-          "vendor-ui": [
-            "class-variance-authority",
-            "clsx",
-            "tailwind-merge",
-          ],
-          "vendor-charts": ["recharts"],
-          "vendor-table": ["@tanstack/react-table"],
+        manualChunks(id) {
+          for (const [chunk, deps] of Object.entries(vendorChunks)) {
+            if (deps.some((dep) => id.includes(`node_modules/${dep}/`))) {
+              return chunk;
+            }
+          }
         },
       },
     },

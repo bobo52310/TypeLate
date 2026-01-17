@@ -5,3 +5,7 @@ src-tauri/gen/
 *.log
 .DS_Store
 coverage/
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.d.ts.map
+vite.config.js
