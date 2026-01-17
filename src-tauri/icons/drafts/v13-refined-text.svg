@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#A5F3FC"/>
+      <stop offset="100%" stop-color="#67E8F9"/>
+    </linearGradient>
+    <linearGradient id="cursor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <!-- Subtle text shadow for depth -->
+    <filter id="textShadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1E1B4B" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="220" ry="220" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+
+  <!-- Microphone body -->
+  <rect x="412" y="100" width="200" height="340" rx="100" ry="100" fill="white" opacity="0.95"/>
+
+  <!-- Sleepy droopy eyes -->
+  <line x1="462" y1="230" x2="500" y2="224" stroke="#6366F1" stroke-width="8" stroke-linecap="round"/>
+  <line x1="524" y1="224" x2="562" y2="230" stroke="#6366F1" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Sleepy open mouth -->
+  <ellipse cx="512" cy="268" rx="12" ry="8" fill="#6366F1" opacity="0.25"/>
+
+  <!-- Mic arc -->
+  <path d="M 330 350 Q 330 540, 512 540 Q 694 540, 694 350"
+        fill="none" stroke="white" stroke-width="40" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- Mic stand -->
+  <line x1="512" y1="540" x2="512" y2="615" stroke="white" stroke-width="40" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- LEFT: Sound waveform bars -->
+  <rect x="115" y="260" width="30" height="110" rx="15" fill="url(#wave)" opacity="0.6"/>
+  <rect x="166" y="190" width="30" height="250" rx="15" fill="url(#wave)" opacity="0.85"/>
+  <rect x="217" y="225" width="30" height="180" rx="15" fill="url(#wave)" opacity="0.7"/>
+  <rect x="268" y="270" width="30" height="90" rx="15" fill="url(#wave)" opacity="0.5"/>
+
+  <!-- RIGHT: Text lines -->
+  <rect x="738" y="225" width="155" height="24" rx="12" fill="url(#wave)" opacity="0.85"/>
+  <rect x="738" y="271" width="195" height="24" rx="12" fill="url(#wave)" opacity="0.7"/>
+  <rect x="738" y="317" width="125" height="24" rx="12" fill="url(#wave)" opacity="0.6"/>
+  <rect x="738" y="363" width="168" height="24" rx="12" fill="url(#wave)" opacity="0.5"/>
+
+  <!-- Big Zzz -->
+  <text x="660" y="155" font-family="-apple-system, sans-serif" font-weight="800" font-size="85" fill="#A5F3FC" opacity="0.7">Z</text>
+  <text x="730" y="100" font-family="-apple-system, sans-serif" font-weight="800" font-size="62" fill="#A5F3FC" opacity="0.5">z</text>
+  <text x="778" y="55" font-family="-apple-system, sans-serif" font-weight="800" font-size="44" fill="#A5F3FC" opacity="0.3">z</text>
+
+  <!-- Cursor between mic and text -->
+  <rect x="498" y="655" width="28" height="55" rx="6" fill="url(#cursor)"/>
+
+  <!-- TypeLate text — larger, with subtle shadow for depth -->
+  <g filter="url(#textShadow)">
+    <!-- "Type" — lighter weight, lower opacity -->
+    <text x="370" y="870" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+          font-weight="500" font-size="128" fill="white" letter-spacing="2" opacity="0.45">
+      Type
+    </text>
+    <!-- "Late" — bold, full opacity -->
+    <text x="660" y="870" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+          font-weight="800" font-size="128" fill="white" letter-spacing="2" opacity="0.95">
+      Late
+    </text>
+  </g>
+</svg>

@@ -125,7 +125,7 @@ export default function VocabularyListSection() {
 
       {/* Feedback */}
       {feedback.message && (
-        <p className={`text-sm ${feedback.type === "success" ? "text-emerald-500" : "text-destructive"}`}>
+        <p className={`text-sm ${feedback.type === "success" ? "text-primary" : "text-destructive"}`}>
           {feedback.message}
         </p>
       )}

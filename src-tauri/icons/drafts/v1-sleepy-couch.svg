@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="mic1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+    <linearGradient id="couch1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="50%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="url(#bg1)"/>
+
+  <!-- Couch / sofa shape -->
+  <rect x="140" y="480" width="744" height="160" rx="60" fill="url(#couch1)" opacity="0.6"/>
+  <!-- Couch armrest left -->
+  <rect x="140" y="420" width="120" height="220" rx="50" fill="url(#couch1)" opacity="0.7"/>
+  <!-- Couch armrest right -->
+  <rect x="764" y="420" width="120" height="220" rx="50" fill="url(#couch1)" opacity="0.7"/>
+  <!-- Couch seat cushion -->
+  <rect x="220" y="500" width="584" height="100" rx="40" fill="#8B5CF6" opacity="0.5"/>
+
+  <!-- Microphone person lying on couch, tilted -->
+  <g transform="translate(512, 460) rotate(-20)">
+    <!-- Mic body (torso) -->
+    <rect x="-55" y="-120" width="110" height="190" rx="55" fill="url(#mic1)"/>
+    <!-- Mic grille lines -->
+    <line x1="-25" y1="-70" x2="25" y2="-70" stroke="#6366F1" stroke-width="5" stroke-linecap="round" opacity="0.25"/>
+    <line x1="-25" y1="-45" x2="25" y2="-45" stroke="#6366F1" stroke-width="5" stroke-linecap="round" opacity="0.25"/>
+    <line x1="-25" y1="-20" x2="25" y2="-20" stroke="#6366F1" stroke-width="5" stroke-linecap="round" opacity="0.25"/>
+
+    <!-- Sleepy eyes (closed, curved lines) -->
+    <path d="M -25 -95 Q -15 -105, -5 -95" fill="none" stroke="#6366F1" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 5 -95 Q 15 -105, 25 -95" fill="none" stroke="#6366F1" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- Sleepy mouth (small content smile) -->
+    <path d="M -10 -75 Q 0 -68, 10 -75" fill="none" stroke="#6366F1" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- Blush cheeks -->
+    <circle cx="-28" cy="-82" r="8" fill="#F9A8D4" opacity="0.5"/>
+    <circle cx="28" cy="-82" r="8" fill="#F9A8D4" opacity="0.5"/>
+
+    <!-- Legs (mic stand as legs, splayed out lazily) -->
+    <line x1="-20" y1="70" x2="-60" y2="160" stroke="#CBD5E1" stroke-width="20" stroke-linecap="round"/>
+    <line x1="20" y1="70" x2="80" y2="150" stroke="#CBD5E1" stroke-width="20" stroke-linecap="round"/>
+
+    <!-- Arms (one draped over, one dangling) -->
+    <line x1="-55" y1="-30" x2="-110" y2="30" stroke="#CBD5E1" stroke-width="16" stroke-linecap="round"/>
+    <line x1="55" y1="0" x2="100" y2="60" stroke="#CBD5E1" stroke-width="16" stroke-linecap="round"/>
+  </g>
+
+  <!-- Zzz floating -->
+  <text x="700" y="340" font-family="-apple-system, sans-serif" font-weight="800" font-size="60" fill="#A5F3FC" opacity="0.8">z</text>
+  <text x="740" y="290" font-family="-apple-system, sans-serif" font-weight="800" font-size="48" fill="#A5F3FC" opacity="0.6">z</text>
+  <text x="770" y="250" font-family="-apple-system, sans-serif" font-weight="800" font-size="36" fill="#A5F3FC" opacity="0.4">z</text>
+
+  <!-- TypeLate text -->
+  <text x="512" y="830" text-anchor="middle"
+        font-family="-apple-system, 'SF Pro Rounded', sans-serif"
+        font-weight="700" font-size="90" fill="white" letter-spacing="2" opacity="0.95">
+    TypeLate
+  </text>
+</svg>

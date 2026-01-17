@@ -1,18 +1,32 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { logError } from "@/lib/logger";
-import { Mic, KeyRound, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
+import { getRandomSlogan } from "@/lib/slogans";
+import logoTypeLate from "@/assets/logo-typelate.png";
+import {
+  Mic,
+  KeyRound,
+  CheckCircle2,
+  ArrowRight,
+  Loader2,
+  ExternalLink,
+  ClipboardPaste,
+  Keyboard,
+  Sparkles,
+} from "lucide-react";
 
-type OnboardingStep = "welcome" | "api-key" | "hotkey" | "mic-test" | "done";
+type OnboardingStep = "welcome" | "api-key-intro" | "api-key-paste" | "hotkey" | "mic-test" | "done";
 
 interface OnboardingViewProps {
   onComplete: () => void;
 }
+
+const GROQ_CONSOLE_URL = "https://console.groq.com/keys";
 
 export default function OnboardingView({ onComplete }: OnboardingViewProps) {
   const { t } = useTranslation();
@@ -22,9 +36,14 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
   const [error, setError] = useState("");
   const [micTestPassed, setMicTestPassed] = useState(false);
   const [isMicTesting, setIsMicTesting] = useState(false);
+  const [slogan] = useState(() => getRandomSlogan());
 
   const saveApiKey = useSettingsStore((s) => s.saveApiKey);
-  const hasApiKey = useSettingsStore((s) => s.hasApiKey);
+
+  const handleOpenGroqConsole = useCallback(() => {
+    void open(GROQ_CONSOLE_URL);
+    setStep("api-key-paste");
+  }, []);
 
   const handleSaveApiKey = useCallback(async () => {
     if (!apiKeyInput.trim()) return;
@@ -68,181 +87,305 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
     onComplete();
   }, [onComplete]);
 
+  const currentStepNum = step === "api-key-intro" || step === "api-key-paste" ? 1 : step === "hotkey" ? 2 : 3;
+  const showStepIndicator = !["welcome", "done"].includes(step);
+
   return (
-    <div className="flex h-full items-center justify-center bg-background p-8">
-      <Card className="w-full max-w-md">
-        <CardContent className="pt-6">
-          {step === "welcome" && (
-            <div className="flex flex-col items-center gap-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                <Mic className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
-                  {t("onboarding.welcomeTitle", "Welcome to TypeLate")}
-                </h1>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {t("onboarding.welcomeDescription", "Voice-to-text, right where you type. Let's get you set up in 3 steps.")}
-                </p>
-              </div>
-              <Button className="w-full" onClick={() => setStep("api-key")}>
-                {t("onboarding.getStarted", "Get Started")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          )}
+    <div className="relative flex h-full items-center justify-center overflow-hidden p-8 pt-14">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5" />
+      {/* Subtle decorative glow */}
+      <div className="absolute -top-32 -right-32 h-64 w-64 rounded-full bg-primary/8 blur-3xl" />
+      <div className="absolute -bottom-32 -left-32 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
 
-          {step === "api-key" && (
-            <div className="flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <KeyRound className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {t("onboarding.apiKeyTitle", "Groq API Key")}
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {t("onboarding.apiKeyDescription", "TypeLate uses Groq for fast transcription. Get a free key at console.groq.com")}
-                  </p>
-                </div>
-              </div>
-              <Input
-                type="password"
-                placeholder="gsk_..."
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void handleSaveApiKey();
-                }}
-              />
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setStep("welcome")}>
-                  {t("common.back", "Back")}
-                </Button>
-                <Button
-                  className="flex-1"
-                  disabled={!apiKeyInput.trim() || isSubmitting}
-                  onClick={() => void handleSaveApiKey()}
-                >
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t("common.save", "Save")}
-                </Button>
-              </div>
-            </div>
-          )}
+      {/* Skip button — top right */}
+      <button
+        onClick={() => void handleComplete()}
+        className="absolute top-4 right-5 z-20 text-xs text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+      >
+        {t("onboarding.skipSetup", "Skip setup")} &rarr;
+      </button>
 
-          {step === "hotkey" && (
-            <div className="flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <KeyRound className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {t("onboarding.hotkeyTitle", "Hotkey")}
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {t("onboarding.hotkeyDescription", "Press and hold the Fn key (or your configured hotkey) to start recording. Release to stop and transcribe.")}
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-lg border border-border bg-muted/50 p-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                  {t("onboarding.hotkeyHint", "Default: Fn key (macOS) / Right Alt (Windows)")}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t("onboarding.hotkeyCustomize", "You can customize this later in Settings.")}
-                </p>
-              </div>
-              <Button className="w-full" onClick={() => setStep("mic-test")}>
-                {t("common.next", "Next")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+      <div className="relative z-10 w-full max-w-md">
+        {/* ── Welcome ── */}
+        {step === "welcome" && (
+          <div className="flex flex-col items-center gap-8 text-center">
+            {/* Logo */}
+            <div className="relative">
+              <div className="absolute inset-0 animate-pulse rounded-3xl bg-primary/20 blur-xl" />
+              <img src={logoTypeLate} alt="TypeLate" className="relative h-20 w-20 rounded-2xl drop-shadow-lg" />
             </div>
-          )}
 
-          {step === "mic-test" && (
-            <div className="flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <Mic className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {t("onboarding.micTitle", "Microphone")}
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {t("onboarding.micDescription", "Let's make sure your microphone is working.")}
-                  </p>
-                </div>
-              </div>
-              {micTestPassed ? (
-                <div className="flex items-center gap-2 rounded-lg bg-green-500/10 p-3">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  <span className="text-sm text-green-500">
-                    {t("onboarding.micSuccess", "Microphone detected!")}
-                  </span>
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled={isMicTesting}
-                  onClick={() => void handleMicTest()}
-                >
-                  {isMicTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t("onboarding.testMic", "Test Microphone")}
-                </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                TypeLate
+              </h1>
+              <p className="mt-3 text-base text-muted-foreground">
+                {t("onboarding.welcomeDescription", "Voice-to-text, right where you type.")}
+              </p>
+              {/* Slogan */}
+              {slogan && (
+                <p className="mt-2 text-sm italic text-primary/70">
+                  &ldquo;{slogan}&rdquo;
+                </p>
               )}
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setStep("hotkey")}>
-                  {t("common.back", "Back")}
-                </Button>
-                <Button className="flex-1" onClick={() => setStep("done")}>
-                  {micTestPassed
-                    ? t("common.next", "Next")
-                    : t("onboarding.skip", "Skip")}
-                </Button>
-              </div>
             </div>
-          )}
 
-          {step === "done" && (
-            <div className="flex flex-col items-center gap-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-500/10">
-                <CheckCircle2 className="h-8 w-8 text-green-500" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">
-                  {t("onboarding.doneTitle", "You're all set!")}
-                </h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {t("onboarding.doneDescription", "Press your hotkey anytime to start dictating. TypeLate will transcribe and paste the text automatically.")}
+            <div className="w-full space-y-3">
+              <Button
+                size="lg"
+                className="w-full gap-2 text-base"
+                onClick={() => setStep("api-key-intro")}
+              >
+                {t("onboarding.getStarted", "Get Started")}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <p className="text-xs text-muted-foreground/60">
+                {t("onboarding.setupTime", "Setup takes about 1 minute")}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step cards (shared card wrapper) ── */}
+        {step !== "welcome" && step !== "done" && (
+          <div className="rounded-xl border border-border/50 bg-card/80 p-6 shadow-lg backdrop-blur-sm">
+            {/* ── Step 1a: API Key intro ── */}
+            {step === "api-key-intro" && (
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10">
+                    <KeyRound className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {t("onboarding.apiKeyTitle", "Step 1: Get a Groq API Key")}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {t("onboarding.apiKeyIntroSubtitle", "Free, takes about 30 seconds")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-lg border border-border/50 bg-muted/20 p-4">
+                  {[
+                    t("onboarding.apiKeyStep1", "Click the button below to open Groq Console"),
+                    t("onboarding.apiKeyStep2", "Sign up or log in (Google account works)"),
+                    t("onboarding.apiKeyStep3", 'Click "Create API Key", copy the key starting with gsk_'),
+                    t("onboarding.apiKeyStep4", "Come back here and paste it in the next step"),
+                  ].map((text, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-500 text-[11px] font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <p className="text-sm text-muted-foreground">{text}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <Button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white" onClick={handleOpenGroqConsole}>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {t("onboarding.openGroqConsole", "Open Groq Console")}
+                </Button>
+
+                <p className="text-center text-xs text-muted-foreground">
+                  {t("onboarding.alreadyHaveKey", "Already have a key?")}
+                  {" "}
+                  <button className="text-primary hover:underline" onClick={() => setStep("api-key-paste")}>
+                    {t("onboarding.pasteItNow", "Paste it now")}
+                  </button>
                 </p>
               </div>
-              <Button className="w-full" onClick={() => void handleComplete()}>
-                {t("onboarding.startUsing", "Start Using TypeLate")}
-              </Button>
-            </div>
-          )}
+            )}
 
-          {/* Step indicator */}
-          {step !== "welcome" && step !== "done" && (
-            <div className="mt-6 flex justify-center gap-1.5">
-              {(["api-key", "hotkey", "mic-test"] as const).map((s) => (
-                <div
-                  key={s}
-                  className={`h-1.5 w-8 rounded-full transition-colors ${
-                    s === step ? "bg-primary" : "bg-muted"
-                  }`}
+            {/* ── Step 1b: Paste API Key ── */}
+            {step === "api-key-paste" && (
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10">
+                    <ClipboardPaste className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {t("onboarding.pasteKeyTitle", "Paste your API Key")}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {t("onboarding.pasteKeyDescription", "Paste the key you copied from Groq Console")}
+                    </p>
+                  </div>
+                </div>
+
+                <Input
+                  type="password"
+                  placeholder="gsk_..."
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") void handleSaveApiKey(); }}
+                  className="border-border/50"
+                  autoFocus
                 />
-              ))}
+                {error && <p className="text-sm text-destructive">{error}</p>}
+
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setStep("api-key-intro")}>
+                    {t("common.back", "Back")}
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={!apiKeyInput.trim() || isSubmitting}
+                    onClick={() => void handleSaveApiKey()}
+                  >
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t("onboarding.saveAndContinue", "Save & Continue")}
+                  </Button>
+                </div>
+
+                <p className="text-center text-xs text-muted-foreground">
+                  {t("onboarding.needKey", "Don't have a key yet?")}
+                  {" "}
+                  <button className="text-primary hover:underline" onClick={() => setStep("api-key-intro")}>
+                    {t("onboarding.getOneNow", "Get one now")}
+                  </button>
+                </p>
+              </div>
+            )}
+
+            {/* ── Step 2: Hotkey ── */}
+            {step === "hotkey" && (
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <Keyboard className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {t("onboarding.hotkeyTitle", "Step 2: Hotkey")}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {t("onboarding.hotkeyDescription", "Press and hold the hotkey to record, release to transcribe.")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 text-center">
+                  <div className="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-2">
+                    <Keyboard className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Fn</span>
+                  </div>
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {t("onboarding.hotkeyHint", "Default: Fn key (macOS) / Right Alt (Windows)")}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground/60">
+                    {t("onboarding.hotkeyCustomize", "You can customize this later in Settings.")}
+                  </p>
+                </div>
+
+                <Button className="w-full" onClick={() => setStep("mic-test")}>
+                  {t("common.next", "Next")}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* ── Step 3: Mic test ── */}
+            {step === "mic-test" && (
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <Mic className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {t("onboarding.micTitle", "Step 3: Microphone")}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {t("onboarding.micDescription", "Let's make sure your microphone is working.")}
+                    </p>
+                  </div>
+                </div>
+
+                {micTestPassed ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 p-4">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                    <span className="text-sm font-medium text-primary">
+                      {t("onboarding.micSuccess", "Microphone detected!")}
+                    </span>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full border-primary/30 hover:bg-primary/5"
+                    disabled={isMicTesting}
+                    onClick={() => void handleMicTest()}
+                  >
+                    {isMicTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Mic className="mr-2 h-4 w-4" />
+                    {t("onboarding.testMic", "Test Microphone")}
+                  </Button>
+                )}
+
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setStep("hotkey")}>
+                    {t("common.back", "Back")}
+                  </Button>
+                  <Button className="flex-1" onClick={() => setStep("done")}>
+                    {micTestPassed ? t("common.next", "Next") : t("onboarding.skip", "Skip")}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step indicator */}
+            {showStepIndicator && (
+              <div className="mt-6 flex items-center justify-center gap-1.5">
+                {Array.from({ length: 3 }, (_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i + 1 === currentStepNum ? "w-8 bg-primary" : "w-4 bg-muted"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Done ── */}
+        {step === "done" && (
+          <div className="flex flex-col items-center gap-8 text-center">
+            <div className="relative">
+              <div className="absolute inset-0 animate-pulse rounded-3xl bg-primary/20 blur-xl" />
+              <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 backdrop-blur-sm">
+                <Sparkles className="h-10 w-10 text-primary" />
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight text-foreground">
+                {t("onboarding.doneTitle", "You're all set!")}
+              </h2>
+              <p className="mt-3 text-base text-muted-foreground">
+                {t("onboarding.doneDescription", "Press your hotkey anytime to start dictating. TypeLate will transcribe and paste the text automatically.")}
+              </p>
+              {slogan && (
+                <p className="mt-3 text-sm italic text-primary/70">
+                  &ldquo;{slogan}&rdquo;
+                </p>
+              )}
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full gap-2 text-base"
+              onClick={() => void handleComplete()}
+            >
+              {t("onboarding.startUsing", "Start Using TypeLate")}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
