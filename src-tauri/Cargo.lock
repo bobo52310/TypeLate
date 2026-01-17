@@ -4402,34 +4402,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sayit"
-version = "0.8.9"
-dependencies = [
- "arboard",
- "core-foundation 0.10.1",
- "core-graphics",
- "cpal",
- "hound",
- "objc",
- "reqwest 0.12.28",
- "rustfft",
- "sentry",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-autostart",
- "tauri-plugin-http",
- "tauri-plugin-process",
- "tauri-plugin-shell",
- "tauri-plugin-sql",
- "tauri-plugin-store",
- "tauri-plugin-updater",
- "thiserror 2.0.18",
- "windows 0.61.3",
-]
-
-[[package]]
 name = "schannel"
 version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6275,6 +6247,34 @@ name = "typeid"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
+
+[[package]]
+name = "typelate"
+version = "1.0.0"
+dependencies = [
+ "arboard",
+ "core-foundation 0.10.1",
+ "core-graphics",
+ "cpal",
+ "hound",
+ "objc",
+ "reqwest 0.12.28",
+ "rustfft",
+ "sentry",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-autostart",
+ "tauri-plugin-http",
+ "tauri-plugin-process",
+ "tauri-plugin-shell",
+ "tauri-plugin-sql",
+ "tauri-plugin-store",
+ "tauri-plugin-updater",
+ "thiserror 2.0.18",
+ "windows 0.61.3",
+]
 
 [[package]]
 name = "typenum"

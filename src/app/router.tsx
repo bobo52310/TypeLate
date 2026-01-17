@@ -15,7 +15,7 @@ const ROUTE_COMPONENTS: Record<RoutePath, React.LazyExoticComponent<React.Compon
 };
 
 function getHashPath(): RoutePath {
-  const raw = window.location.hash.slice(1) || "/dashboard";
+  const raw = window.location.hash.slice(1).split("?")[0] || "/dashboard";
   if (ROUTES.includes(raw as RoutePath)) return raw as RoutePath;
   return "/dashboard";
 }

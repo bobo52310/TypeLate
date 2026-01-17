@@ -91,10 +91,9 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
   const showStepIndicator = !["welcome", "done"].includes(step);
 
   return (
-    <div className="relative flex h-full items-center justify-center overflow-hidden p-8 pt-14">
-      {/* Gradient background */}
+    <div className="relative flex h-screen min-h-0 items-center justify-center overflow-hidden bg-background p-8 pt-14">
+      {/* Gradient background — full coverage */}
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5" />
-      {/* Subtle decorative glow */}
       <div className="absolute -top-32 -right-32 h-64 w-64 rounded-full bg-primary/8 blur-3xl" />
       <div className="absolute -bottom-32 -left-32 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
 
@@ -154,8 +153,8 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
             {step === "api-key-intro" && (
               <div className="flex flex-col gap-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10">
-                    <KeyRound className="h-5 w-5 text-cyan-400" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <KeyRound className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">
@@ -175,7 +174,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                     t("onboarding.apiKeyStep4", "Come back here and paste it in the next step"),
                   ].map((text, i) => (
                     <div key={i} className="flex items-start gap-3">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-500 text-[11px] font-bold text-white">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white">
                         {i + 1}
                       </span>
                       <p className="text-sm text-muted-foreground">{text}</p>
@@ -183,7 +182,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                   ))}
                 </div>
 
-                <Button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white" onClick={handleOpenGroqConsole}>
+                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleOpenGroqConsole}>
                   <ExternalLink className="mr-2 h-4 w-4" />
                   {t("onboarding.openGroqConsole", "Open Groq Console")}
                 </Button>
@@ -202,8 +201,8 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
             {step === "api-key-paste" && (
               <div className="flex flex-col gap-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10">
-                    <ClipboardPaste className="h-5 w-5 text-cyan-400" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <ClipboardPaste className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">
