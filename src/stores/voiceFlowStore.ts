@@ -251,7 +251,9 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
 export function playSoundIfEnabled(command: string): void {
   try {
     if (getSettingsStoreFromAccessors().isSoundEffectsEnabled) {
-      void invoke(command).catch(() => {});
+      void invoke(command).catch((err) => {
+        writeErrorLog(`Sound playback failed for ${command}: ${String(err)}`);
+      });
     }
   } catch {
     // Settings store not yet registered -- skip sound
@@ -292,7 +294,9 @@ function handleEscapeAbort(): void {
   getAbortController()?.abort();
 
   if (currentStatus === "recording") {
-    void invoke("stop_recording").catch(() => {});
+    void invoke("stop_recording").catch((err) => {
+      writeErrorLog(`ESC abort: stop_recording failed: ${String(err)}`);
+    });
     stopElapsedTimer();
   }
 
@@ -304,7 +308,9 @@ function handleEscapeAbort(): void {
   void restoreSystemAudio();
 
   // Reset toggle mode state
-  void invoke("reset_hotkey_state").catch(() => {});
+  void invoke("reset_hotkey_state").catch((err) => {
+    writeErrorLog(`ESC abort: reset_hotkey_state failed: ${String(err)}`);
+  });
 
   transitionTo("cancelled", t("voiceFlow.cancelled"));
 }

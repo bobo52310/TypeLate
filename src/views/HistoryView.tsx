@@ -17,6 +17,7 @@ import {
   Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { captureError } from "@/lib/sentry";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import type { TranscriptionRecord } from "@/types/transcription";
@@ -189,8 +190,8 @@ export default function HistoryView() {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
       setCopiedRecordId(record.id);
       copiedTimerRef.current = setTimeout(() => setCopiedRecordId(null), 2500);
-    } catch {
-      // clipboard write may fail
+    } catch (err) {
+      captureError(err, { source: "history", action: "copy-text" });
     }
   }
 
@@ -200,8 +201,8 @@ export default function HistoryView() {
       if (copiedRawTimerRef.current) clearTimeout(copiedRawTimerRef.current);
       setCopiedRawRecordId(record.id);
       copiedRawTimerRef.current = setTimeout(() => setCopiedRawRecordId(null), 2500);
-    } catch {
-      // clipboard write may fail
+    } catch (err) {
+      captureError(err, { source: "history", action: "copy-raw-text" });
     }
   }
 
@@ -209,8 +210,8 @@ export default function HistoryView() {
     try {
       await deleteTranscription(record.id);
       if (expandedRecordId === record.id) setExpandedRecordId(null);
-    } catch {
-      // handled at store layer
+    } catch (err) {
+      captureError(err, { source: "history", action: "delete-record" });
     }
   }
 
@@ -232,7 +233,8 @@ export default function HistoryView() {
       audio.addEventListener("ended", () => { cleanupAudio(); setPlayingRecordId(null); });
       audio.addEventListener("error", () => { cleanupAudio(); setPlayingRecordId(null); });
       await audio.play();
-    } catch {
+    } catch (err) {
+      captureError(err, { source: "history", action: "play-recording" });
       cleanupAudio();
       setPlayingRecordId(null);
     }
