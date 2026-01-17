@@ -76,7 +76,7 @@ export function detectSystemLocale(): SupportedLocale {
     }
 
     // 3. Language prefix match (e.g. "ja-JP" -> ja, "ko-KR" -> ko, "en-US" -> en)
-    const langPrefix = browserLang.split("-")[0].toLowerCase();
+    const langPrefix = (browserLang.split("-")[0] ?? "").toLowerCase();
     for (const option of LANGUAGE_OPTIONS) {
       if (option.locale.toLowerCase() === langPrefix) {
         return option.locale;

@@ -156,7 +156,7 @@ export async function analyzeCorrections(
     return { suggestedTermList: [], usage, rawResponse: "" };
   }
 
-  const content = data.choices[0].message.content?.trim() ?? "";
+  const content = data.choices[0]?.message.content?.trim() ?? "";
   const suggestedTermList = parseSuggestedTermList(content);
 
   return { suggestedTermList, usage, rawResponse: content };

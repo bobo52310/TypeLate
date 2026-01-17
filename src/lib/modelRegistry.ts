@@ -185,7 +185,7 @@ export function getEffectiveLlmModelId(savedId: string | null): LlmModelId {
   if (savedId && findLlmModelConfig(savedId)) return savedId as LlmModelId;
 
   if (savedId && savedId in DECOMMISSIONED_MODEL_MAP) {
-    return DECOMMISSIONED_MODEL_MAP[savedId];
+    return DECOMMISSIONED_MODEL_MAP[savedId] ?? DEFAULT_LLM_MODEL_ID;
   }
 
   return DEFAULT_LLM_MODEL_ID;

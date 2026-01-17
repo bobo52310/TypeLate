@@ -17,8 +17,7 @@ export default function ApiKeySection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
-  const hasApiKeyFn = useSettingsStore((s) => s.hasApiKey);
-  const hasApiKey = hasApiKeyFn();
+  const hasApiKey = useSettingsStore((s) => s.hasApiKey());
   const saveApiKey = useSettingsStore((s) => s.saveApiKey);
   const deleteApiKey = useSettingsStore((s) => s.deleteApiKey);
   const getApiKey = useSettingsStore((s) => s.getApiKey);
@@ -27,7 +26,7 @@ export default function ApiKeySection() {
   const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-  const deleteConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const deleteConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const apiKeyStatusLabel = hasApiKey
     ? t("settings.apiKey.set")

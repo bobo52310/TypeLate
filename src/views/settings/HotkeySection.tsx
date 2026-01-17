@@ -39,7 +39,7 @@ export default function HotkeySection() {
   const feedback = useFeedbackMessage();
 
   const hotkeyConfig = useSettingsStore((s) => s.hotkeyConfig);
-  const triggerMode = useSettingsStore((s) => s.triggerMode);
+  const triggerMode = useSettingsStore((s) => s.triggerMode());
   const customTriggerKey = useSettingsStore((s) => s.customTriggerKey);
   const customTriggerKeyDomCode = useSettingsStore(
     (s) => s.customTriggerKeyDomCode,
@@ -73,7 +73,7 @@ export default function HotkeySection() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingWarning, setRecordingWarning] = useState("");
   const [recordingHint, setRecordingHint] = useState("");
-  const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const triggerKeyOptions = useMemo<
     { value: PresetTriggerKey; label: string }[]
@@ -215,7 +215,7 @@ export default function HotkeySection() {
     setRecordingWarning("");
     setRecordingHint("");
 
-    document.addEventListener("keydown", handleKeydownForRecording as EventListener, {
+    document.addEventListener("keydown", handleKeydownForRecording as unknown as EventListener, {
       capture: true,
       once: true,
     });

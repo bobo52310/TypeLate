@@ -40,9 +40,9 @@ import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import { useTauriEvent, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
-import { captureError } from "@/lib/sentry";
-import { initSentryForDashboard } from "@/lib/sentry";
+import { captureError, initSentryForDashboard } from "@/lib/sentry";
 import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
+import { AccessibilityGuide } from "@/components/AccessibilityGuide";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
 import { getRandomSlogan } from "@/lib/slogans";
 
@@ -413,20 +413,11 @@ export function DashboardApp() {
       </SidebarProvider>
       )}
 
-      {/* Accessibility guide placeholder */}
-      {showAccessibilityGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-lg bg-background p-6 shadow-lg">
-            <p className="text-foreground">Accessibility Guide (placeholder)</p>
-            <Button
-              className="mt-4"
-              onClick={() => setShowAccessibilityGuide(false)}
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* macOS Accessibility permission guide */}
+      <AccessibilityGuide
+        visible={showAccessibilityGuide}
+        onClose={() => setShowAccessibilityGuide(false)}
+      />
 
       {/* Auto-install AlertDialog: update downloaded, ask to install & restart */}
       <AlertDialog open={showAutoInstallDialog}>

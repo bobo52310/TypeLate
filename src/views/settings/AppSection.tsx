@@ -20,6 +20,8 @@ import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import {
   LANGUAGE_OPTIONS,
   TRANSCRIPTION_LANGUAGE_OPTIONS,
+  type SupportedLocale,
+  type TranscriptionLocale,
 } from "@/i18n/languageConfig";
 
 export default function AppSection() {
@@ -48,7 +50,7 @@ export default function AppSection() {
 
   async function handleLocaleChange(newLocale: string) {
     try {
-      await saveLocale(newLocale);
+      await saveLocale(newLocale as SupportedLocale);
       localeFeedback.show("success", t("settings.app.languageUpdated"));
     } catch (err) {
       localeFeedback.show(
@@ -60,7 +62,7 @@ export default function AppSection() {
 
   async function handleTranscriptionLocaleChange(newLocale: string) {
     try {
-      await saveTranscriptionLocale(newLocale);
+      await saveTranscriptionLocale(newLocale as TranscriptionLocale);
       transcriptionLocaleFeedback.show(
         "success",
         t("settings.app.transcriptionLanguageUpdated"),

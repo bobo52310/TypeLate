@@ -22,6 +22,8 @@ import {
   WHISPER_MODEL_LIST,
   findLlmModelConfig,
   findWhisperModelConfig,
+  type WhisperModelId,
+  type LlmModelId,
 } from "@/lib/modelRegistry";
 
 export default function ModelSection() {
@@ -49,7 +51,7 @@ export default function ModelSection() {
 
   async function handleWhisperModelChange(newId: string) {
     try {
-      await saveWhisperModel(newId);
+      await saveWhisperModel(newId as WhisperModelId);
       feedback.show("success", t("settings.model.whisperUpdated"));
     } catch (err) {
       feedback.show(
@@ -61,7 +63,7 @@ export default function ModelSection() {
 
   async function handleLlmModelChange(newId: string) {
     try {
-      await saveLlmModel(newId);
+      await saveLlmModel(newId as LlmModelId);
       feedback.show("success", t("settings.model.llmUpdated"));
     } catch (err) {
       feedback.show(

@@ -58,7 +58,7 @@ export function getTranscriptionErrorMessage(error: unknown): string {
     if (error.message.includes("Groq API error")) {
       const statusMatch = error.message.match(/\((\d+)\)/);
       if (statusMatch) {
-        const status = parseInt(statusMatch[1], 10);
+        const status = parseInt(statusMatch[1] ?? "0", 10);
         if (status === 400) return t("errors.transcription.invalidAudio");
         if (status === 401) return t("errors.transcription.invalidApiKey");
         if (status === 429) return t("errors.transcription.rateLimited");

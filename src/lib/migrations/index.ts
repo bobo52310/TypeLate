@@ -74,6 +74,6 @@ export async function runMigrations(db: Database): Promise<void> {
   }
 
   console.log(
-    `[migrations] All migrations applied. Schema version: ${pending[pending.length - 1].version}`,
+    `[migrations] All migrations applied. Schema version: ${pending[pending.length - 1]?.version}`,
   );
 }
