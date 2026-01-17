@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+
+const OnboardingView = lazy(() => import("@/views/OnboardingView"));
 import {
   BookOpen,
   Download,
@@ -77,6 +79,10 @@ const AUTO_CHECK_INTERVAL_MS = 15 * 60_000; // 15 minutes
 export function DashboardApp() {
   const { t } = useTranslation();
   const { currentPath, navigate } = useHashRouter();
+
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const onboardingCheckedRef = useRef(false);
 
   // Database error state
   const [databaseError, setDatabaseError] = useState<string | null>(null);
@@ -282,6 +288,21 @@ export function DashboardApp() {
       await settingsActions.consumeUpgradeNotice();
       await settingsActions.loadAutoStartStatus();
 
+      // Onboarding check
+      if (!onboardingCheckedRef.current) {
+        onboardingCheckedRef.current = true;
+        try {
+          const { load } = await import("@tauri-apps/plugin-store");
+          const store = await load("settings.json");
+          const completed = await store.get<boolean>("onboardingCompleted");
+          if (!completed && !settingsActions.hasApiKey) {
+            setShowOnboarding(true);
+          }
+        } catch {
+          // If check fails, skip onboarding
+        }
+      }
+
       // macOS accessibility check
       const isMacOS = navigator.userAgent.includes("Macintosh");
       if (isMacOS) {
@@ -349,6 +370,9 @@ export function DashboardApp() {
         </span>
       </div>
 
+      {showOnboarding ? (
+        <OnboardingView onComplete={() => setShowOnboarding(false)} />
+      ) : (
       <SidebarProvider className="h-screen !min-h-0 pt-9">
         <Sidebar collapsible="offcanvas">
           <SidebarHeader className="flex-row h-12 items-center gap-3 border-b border-sidebar-border px-4">
@@ -442,6 +466,7 @@ export function DashboardApp() {
           </div>
         </SidebarInset>
       </SidebarProvider>
+      )}
 
       {/* Accessibility guide placeholder */}
       {showAccessibilityGuide && (
