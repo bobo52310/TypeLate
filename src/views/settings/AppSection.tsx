@@ -129,8 +129,8 @@ export default function AppSection() {
           <p
             className={`text-sm ${
               localeFeedback.type === "success"
-                ? "text-green-400"
-                : "text-red-400"
+                ? "text-primary"
+                : "text-destructive"
             }`}
           >
             {localeFeedback.message}
@@ -175,8 +175,8 @@ export default function AppSection() {
           <p
             className={`text-sm ${
               transcriptionLocaleFeedback.type === "success"
-                ? "text-green-400"
-                : "text-red-400"
+                ? "text-primary"
+                : "text-destructive"
             }`}
           >
             {transcriptionLocaleFeedback.message}
@@ -207,8 +207,8 @@ export default function AppSection() {
           <p
             className={`text-sm ${
               autoStartFeedback.type === "success"
-                ? "text-green-400"
-                : "text-red-400"
+                ? "text-primary"
+                : "text-destructive"
             }`}
           >
             {autoStartFeedback.message}

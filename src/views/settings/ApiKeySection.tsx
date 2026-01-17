@@ -32,8 +32,8 @@ export default function ApiKeySection() {
     ? t("settings.apiKey.set")
     : t("settings.apiKey.notSet");
   const apiKeyStatusClass = hasApiKey
-    ? "bg-green-500/20 text-green-400"
-    : "bg-red-500/20 text-red-400";
+    ? "bg-primary/20 text-primary"
+    : "bg-destructive/20 text-destructive";
   const shouldShowOnboardingHint = !hasApiKey;
 
   useEffect(() => {
@@ -157,8 +157,8 @@ export default function ApiKeySection() {
             <p
               className={`text-sm ${
                 feedback.type === "success"
-                  ? "text-green-400"
-                  : "text-red-400"
+                  ? "text-primary"
+                  : "text-destructive"
               }`}
             >
               {feedback.message}

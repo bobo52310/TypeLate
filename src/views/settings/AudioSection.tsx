@@ -191,7 +191,7 @@ export default function AudioSection() {
           <p
             className={`text-sm ${
               feedback.type === "success"
-                ? "text-green-400"
+                ? "text-primary"
                 : "text-destructive"
             }`}
           >
@@ -224,8 +224,8 @@ export default function AudioSection() {
           <p
             className={`text-sm ${
               muteOnRecordingFeedback.type === "success"
-                ? "text-green-400"
-                : "text-red-400"
+                ? "text-primary"
+                : "text-destructive"
             }`}
           >
             {muteOnRecordingFeedback.message}
@@ -257,8 +257,8 @@ export default function AudioSection() {
           <p
             className={`text-sm ${
               soundFeedbackFeedback.type === "success"
-                ? "text-green-400"
-                : "text-red-400"
+                ? "text-primary"
+                : "text-destructive"
             }`}
           >
             {soundFeedbackFeedback.message}

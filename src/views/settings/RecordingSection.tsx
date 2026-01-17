@@ -188,8 +188,8 @@ export default function RecordingSection() {
           <p
             className={`text-sm ${
               feedback.type === "success"
-                ? "text-green-400"
-                : "text-red-400"
+                ? "text-primary"
+                : "text-destructive"
             }`}
           >
             {feedback.message}
