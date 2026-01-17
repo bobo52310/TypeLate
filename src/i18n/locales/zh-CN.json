@@ -4,6 +4,27 @@
     "delete": "删除",
     "cancel": "取消"
   },
+  "home": {
+    "statsBar": {
+      "todayCount": "今日",
+      "timeSaved": "节省时间",
+      "quotaRemaining": "配额"
+    },
+    "emptyState": {
+      "title": "准备就绪",
+      "description": "按下 {hotkey} 开始录音"
+    },
+    "dateGroup": {
+      "today": "今天",
+      "yesterday": "昨天"
+    },
+    "slogans": [
+      "Type is Late — 打字已过时，语音才对味",
+      "打字太累，改用 TypeLate，用说的就好",
+      "打字太累，用说的最对味",
+      "手打太累，嘴炮输出加倍 — 快用 TypeLate"
+    ]
+  },
   "settings": {
     "about": {
       "title": "关于 TypeLate",
@@ -158,6 +179,12 @@
       "deleteConfirmDescription": "此操作将删除所有已保存的录音文件，无法恢复。历史记录仍会保留，但无法再播放。",
       "deleteSuccess": "已删除 {count} 个录音文件"
     },
+    "group": {
+      "general": "通用",
+      "voice": "语音与音频",
+      "ai": "AI 与文字整理",
+      "about": "关于"
+    },
     "smartDictionary": {
       "title": "智能字典学习",
       "description": "转录粘贴后自动检测修正，通过 AI 分析学习新词汇",
@@ -190,7 +217,22 @@
     "quotaLlmRequests": "LLM {used}/{limit} 次",
     "quotaLlmTokens": "LLM {used}/{limit} tokens",
     "vocabularyAnalysis": "字典分析",
-    "vocabularyAnalysisUsage": "字典分析：{requests} 次 / {tokens} tokens"
+    "vocabularyAnalysisUsage": "字典分析：{requests} 次 / {tokens} tokens",
+    "apiKeyMissing": {
+      "title": "请先设置 API Key",
+      "description": "TypeLate 需要 Groq API Key 才能进行语音转文字和 AI 文字整理。",
+      "action": "前往设置",
+      "guide": "设置指南"
+    },
+    "heroPrefix": "TypeLate 让你用嘴炮输出比打字快了",
+    "heroMultiplier": "{value} 倍",
+    "heroSuffix": "",
+    "speakingTime": "口述时间",
+    "typingTime": "打字时间（估算）",
+    "charsPerMinute": "每分钟字数",
+    "charsPerMinuteUnit": "字/分",
+    "communityTitle": "需要帮助？",
+    "communityDescription": "有建议？欢迎反馈问题或提出功能需求"
   },
   "history": {
     "searchPlaceholder": "搜索转录记录...",
@@ -199,6 +241,8 @@
     "emptyState": "尚无转录记录，开始使用语音输入吧！",
     "enhancedText": "整理后文字",
     "rawText": "原始文字",
+    "whisperModel": "语音：{model}",
+    "llmModel": "AI：{model}",
     "recordingLabel": "录音：",
     "transcriptionLabel": "转录：",
     "aiLabel": "AI：",
@@ -306,6 +350,38 @@
       "keycodeCollision": "此按键在 macOS 上与 {target} 共用相同代码，两者会同时触发",
       "escReserved": "ESC 键已保留为全局中断键，无法作为触发键使用"
     }
+  },
+  "onboarding": {
+    "skipSetup": "跳过设置",
+    "welcomeDescription": "语音转文字，就在你打字的地方。",
+    "getStarted": "开始设置",
+    "setupTime": "设置只需约 1 分钟",
+    "apiKeyTitle": "步骤 1：获取 Groq API Key",
+    "apiKeyIntroSubtitle": "免费申请，约 30 秒完成",
+    "apiKeyStep1": "点击下方按钮打开 Groq Console",
+    "apiKeyStep2": "注册或登录（可用 Google 账号）",
+    "apiKeyStep3": "点击「Create API Key」，复制以 gsk_ 开头的密钥",
+    "apiKeyStep4": "回到这里，在下一步粘贴",
+    "openGroqConsole": "打开 Groq Console",
+    "alreadyHaveKey": "已经有 Key 了？",
+    "pasteItNow": "直接粘贴",
+    "pasteKeyTitle": "粘贴你的 API Key",
+    "pasteKeyDescription": "粘贴你从 Groq Console 复制的密钥",
+    "saveAndContinue": "保存并继续",
+    "needKey": "还没有 Key？",
+    "getOneNow": "去申请一个",
+    "hotkeyTitle": "步骤 2：快捷键",
+    "hotkeyDescription": "按住快捷键开始录音，放开自动转文字。",
+    "hotkeyHint": "默认：Fn 键",
+    "hotkeyCustomize": "之后可以在设置中自定义。",
+    "micTitle": "步骤 3：麦克风",
+    "micDescription": "确认你的麦克风正常工作。",
+    "micSuccess": "已检测到麦克风！",
+    "testMic": "测试麦克风",
+    "skip": "跳过",
+    "doneTitle": "设置完成！",
+    "doneDescription": "随时按下快捷键开始口述，TypeLate 会自动转录并粘贴文字。",
+    "startUsing": "开始使用 TypeLate"
   },
   "format": {
     "minutes": "{count} 分钟",
