@@ -46,7 +46,7 @@ import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
 import { getRandomSlogan } from "@/lib/slogans";
 
-import logoYan from "@/assets/logo-yan.png";
+import logoTypeLate from "@/assets/logo-typelate.png";
 
 import { APP_VERSION } from "@/lib/version";
 
@@ -246,7 +246,7 @@ export function DashboardApp() {
           const { load } = await import("@tauri-apps/plugin-store");
           const store = await load("settings.json");
           const completed = await store.get<boolean>("onboardingCompleted");
-          if (!completed && !settingsActions.hasApiKey) {
+          if (!completed && !settingsActions.hasApiKey()) {
             setShowOnboarding(true);
           }
         } catch {
@@ -330,7 +330,7 @@ export function DashboardApp() {
             className="flex-row h-12 items-center gap-3 border-b border-sidebar-border px-4 cursor-default"
             title={sidebarSlogan}
           >
-            <img src={logoYan} alt="言" className="h-7 w-auto" />
+            <img src={logoTypeLate} alt="TypeLate" className="h-7 w-7 rounded" />
             <span
               className="text-base font-semibold text-sidebar-foreground tracking-wide"
               style={{ fontFamily: "'SF Pro Display', 'Inter', system-ui, sans-serif" }}

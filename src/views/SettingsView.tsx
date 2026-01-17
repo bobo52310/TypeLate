@@ -28,7 +28,17 @@ const SETTINGS_TABS: SettingsTab[] = [
 
 export default function SettingsView() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("general");
+
+  // Support deep-linking via hash param: #/settings?tab=ai
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = window.location.hash;
+    const match = hash.match(/[?&]tab=(\w+)/);
+    if (match) {
+      const tab = match[1];
+      if (SETTINGS_TABS.some((t) => t.id === tab)) return tab;
+    }
+    return "general";
+  });
 
   return (
     <div className="flex h-full flex-col">

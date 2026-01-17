@@ -192,10 +192,10 @@ export default function DashboardView() {
     <div className="p-5">
       {/* API Key setup prompt */}
       {apiKeyMissing && (
-        <Card className="mb-5 border-cyan-500/30 bg-cyan-500/5">
+        <Card className="mb-5 border-primary/30 bg-primary/5">
           <CardContent className="flex items-center gap-4 pt-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-500/10">
-              <KeyRound className="h-5 w-5 text-cyan-400" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <KeyRound className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">
