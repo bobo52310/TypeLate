@@ -267,11 +267,28 @@ async function fetchDailyUsageTrend(days = 30): Promise<DailyUsageTrend[]> {
     cutoffTimestamp,
     days,
   ]);
-  return rows.map((row) => ({
-    date: row.date,
-    count: row.count,
-    totalChars: row.total_chars,
-  }));
+
+  // Build lookup from SQL results
+  const countByDate = new Map<string, { count: number; totalChars: number }>();
+  for (const row of rows) {
+    countByDate.set(row.date, { count: row.count, totalChars: row.total_chars });
+  }
+
+  // Pad to full 30-day range so the chart always shows all days
+  const result: DailyUsageTrend[] = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const entry = countByDate.get(dateStr);
+    result.push({
+      date: dateStr,
+      count: entry?.count ?? 0,
+      totalChars: entry?.totalChars ?? 0,
+    });
+  }
+  return result;
 }
 
 export const useHistoryStore = create<HistoryState>()((set, get) => ({
