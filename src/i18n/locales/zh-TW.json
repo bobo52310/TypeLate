@@ -6,23 +6,23 @@
   },
   "home": {
     "statsBar": {
-      "todayCount": "\u4eca\u65e5",
-      "timeSaved": "\u7bc0\u7701\u6642\u9593",
-      "quotaRemaining": "\u914d\u984d"
+      "todayCount": "今日",
+      "timeSaved": "節省時間",
+      "quotaRemaining": "配額"
     },
     "emptyState": {
-      "title": "\u6e96\u5099\u597d\u4e86",
-      "description": "\u6309\u4e0b {hotkey} \u958b\u59cb\u9304\u97f3"
+      "title": "準備好了",
+      "description": "按下 {hotkey} 開始錄音"
     },
     "dateGroup": {
-      "today": "\u4eca\u5929",
-      "yesterday": "\u6628\u5929"
+      "today": "今天",
+      "yesterday": "昨天"
     },
     "slogans": [
-      "Type is Late \u2014 \u6253\u5b57\u5df2\u904e\u6642\uff0c\u8a9e\u97f3\u624d\u5c0d\u5473",
-      "\u6253\u5b57\u592a\u7d2f\uff0c\u6539\u7528 TypeLate\uff0c\u7528\u8aaa\u7684\u5c31\u597d",
-      "\u6253\u5b57\u592a\u7d2f\uff0c\u7528\u8aaa\u7684\u6700\u5c0d\u5473",
-      "\u624b\u6253\u592a\u7d2f\uff0c\u5634\u7832\u8f38\u51fa\u52a0\u500d \u2014 \u5feb\u7528 TypeLate"
+      "Type is Late — 打字已過時，語音才對味",
+      "打字太累，改用 TypeLate，用說的就好",
+      "打字太累，用說的最對味",
+      "手打太累，嘴砲輸出加倍 — 快用 TypeLate"
     ]
   },
   "settings": {
@@ -178,6 +178,12 @@
       "deleteConfirmTitle": "確認刪除所有錄音",
       "deleteConfirmDescription": "此操作將刪除所有已儲存的錄音檔案，無法復原。歷史記錄仍會保留，但無法再播放。",
       "deleteSuccess": "已刪除 {count} 個錄音檔"
+    },
+    "group": {
+      "general": "一般",
+      "voice": "語音與音訊",
+      "ai": "AI 與文字整理",
+      "about": "關於"
     },
     "smartDictionary": {
       "title": "智慧字典學習",

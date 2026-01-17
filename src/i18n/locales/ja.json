@@ -4,6 +4,27 @@
     "delete": "削除",
     "cancel": "キャンセル"
   },
+  "home": {
+    "statsBar": {
+      "todayCount": "今日",
+      "timeSaved": "節約時間",
+      "quotaRemaining": "残額"
+    },
+    "emptyState": {
+      "title": "準備完了",
+      "description": "{hotkey} を押して録音を開始"
+    },
+    "dateGroup": {
+      "today": "今日",
+      "yesterday": "昨日"
+    },
+    "slogans": [
+      "Type is Late — タイピングはもう古い、声の時代へ",
+      "タイピングに疲れた？話すだけでOK",
+      "思いついたら声に出すだけ、キーボードは不要",
+      "あなたの声を、完璧にテキスト化"
+    ]
+  },
   "settings": {
     "about": {
       "title": "TypeLate について",
@@ -33,12 +54,12 @@
       "customKeyDisplay": "カスタムキー ({keycode})",
       "keys": {
         "fn": "Fn",
-        "leftOption": "左 Option (\u2325)",
-        "rightOption": "右 Option (\u2325)",
-        "leftControl": "左 Control (\u2303)",
-        "rightControl": "右 Control (\u2303)",
-        "command": "Command (\u2318)",
-        "shift": "Shift (\u21e7)",
+        "leftOption": "左 Option (⌥)",
+        "rightOption": "右 Option (⌥)",
+        "leftControl": "左 Control (⌃)",
+        "rightControl": "右 Control (⌃)",
+        "command": "Command (⌘)",
+        "shift": "Shift (⇧)",
         "rightAlt": "右 Alt",
         "leftAlt": "左 Alt",
         "control": "Control"
@@ -158,6 +179,12 @@
       "deleteConfirmDescription": "保存されたすべての録音ファイルが完全に削除されます。履歴は残りますが、再生はできなくなります。",
       "deleteSuccess": "{count} 件の録音ファイルを削除しました"
     },
+    "group": {
+      "general": "一般",
+      "voice": "音声・オーディオ",
+      "ai": "AI・テキスト整理",
+      "about": "バージョン情報"
+    },
     "smartDictionary": {
       "title": "スマート辞書学習",
       "description": "貼り付け後に修正を自動検出し、AI 分析で新語を学習",
@@ -190,7 +217,22 @@
     "quotaLlmRequests": "LLM {used}/{limit} 回",
     "quotaLlmTokens": "LLM {used}/{limit} tokens",
     "vocabularyAnalysis": "辞書分析",
-    "vocabularyAnalysisUsage": "辞書分析：{requests} 回 / {tokens} tokens"
+    "vocabularyAnalysisUsage": "辞書分析：{requests} 回 / {tokens} tokens",
+    "apiKeyMissing": {
+      "title": "API Key を設定して始めましょう",
+      "description": "TypeLate は音声文字起こしと AI テキスト整理に Groq API Key が必要です。",
+      "action": "設定",
+      "guide": "セットアップガイド"
+    },
+    "heroPrefix": "TypeLate なら",
+    "heroMultiplier": "{value} 倍速い",
+    "heroSuffix": "入力が可能です",
+    "speakingTime": "口述時間",
+    "typingTime": "タイピング時間（推定）",
+    "charsPerMinute": "1分あたりの文字数",
+    "charsPerMinuteUnit": "文字/分",
+    "communityTitle": "お困りですか？",
+    "communityDescription": "アイデアがありましたら、バグ報告や機能リクエストをお寄せください"
   },
   "history": {
     "searchPlaceholder": "文字起こし履歴を検索...",
@@ -199,6 +241,8 @@
     "emptyState": "文字起こし履歴はまだありません。音声入力を始めましょう！",
     "enhancedText": "整理後テキスト",
     "rawText": "原文テキスト",
+    "whisperModel": "音声：{model}",
+    "llmModel": "AI：{model}",
     "recordingLabel": "録音：",
     "transcriptionLabel": "文字起こし：",
     "aiLabel": "AI：",
@@ -250,7 +294,7 @@
     "noSpeechDetected": "音声が検出されませんでした",
     "recording": "録音中...",
     "transcribing": "文字起こし中...",
-    "pasteSuccess": "貼り付け完了 \u2713",
+    "pasteSuccess": "貼り付け完了 ✓",
     "pasteSuccessUnenhanced": "貼り付け完了（未整理）",
     "enhancing": "整理中...",
     "pasteFailed": "貼り付け失敗",
@@ -306,6 +350,38 @@
       "keycodeCollision": "このキーは macOS 上で {target} と同じキーコードを共有しており、両方が同時にトリガーされます",
       "escReserved": "ESC キーはグローバル中断キーとして予約されており、トリガーキーとして使用できません"
     }
+  },
+  "onboarding": {
+    "skipSetup": "セットアップをスキップ",
+    "welcomeDescription": "文字入力の場所で、そのまま音声入力。",
+    "getStarted": "はじめる",
+    "setupTime": "セットアップは約1分で完了します",
+    "apiKeyTitle": "ステップ 1：Groq API Key を取得",
+    "apiKeyIntroSubtitle": "無料、約30秒で完了",
+    "apiKeyStep1": "下のボタンをクリックして Groq Console を開きます",
+    "apiKeyStep2": "新規登録またはログイン（Google アカウント可）",
+    "apiKeyStep3": "「Create API Key」をクリックし、gsk_ で始まるキーをコピー",
+    "apiKeyStep4": "ここに戻って、次のステップで貼り付けてください",
+    "openGroqConsole": "Groq Console を開く",
+    "alreadyHaveKey": "すでにキーをお持ちですか？",
+    "pasteItNow": "今すぐ貼り付ける",
+    "pasteKeyTitle": "API Key を貼り付け",
+    "pasteKeyDescription": "Groq Console からコピーしたキーを貼り付けてください",
+    "saveAndContinue": "保存して続行",
+    "needKey": "まだキーをお持ちでないですか？",
+    "getOneNow": "今すぐ取得",
+    "hotkeyTitle": "ステップ 2：ショートカットキー",
+    "hotkeyDescription": "ショートカットキーを押し続けて録音、離すと文字起こしされます。",
+    "hotkeyHint": "デフォルト：Fn キー",
+    "hotkeyCustomize": "後から設定でカスタマイズできます。",
+    "micTitle": "ステップ 3：マイク",
+    "micDescription": "マイクが正常に動作するか確認しましょう。",
+    "micSuccess": "マイクを検出しました！",
+    "testMic": "マイクをテスト",
+    "skip": "スキップ",
+    "doneTitle": "準備完了！",
+    "doneDescription": "いつでもショートカットキーを押して口述を開始できます。TypeLate が自動的に文字起こしして貼り付けます。",
+    "startUsing": "TypeLate を使い始める"
   },
   "format": {
     "minutes": "{count} 分",
