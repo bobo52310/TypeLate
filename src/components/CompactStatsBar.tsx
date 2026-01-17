@@ -74,7 +74,7 @@ export function CompactStatsBar() {
 
     const minRemaining = Math.max(0, Math.min(...dimensions.map((d) => d.remaining)));
     const percent = Math.round(minRemaining * 100);
-    const colorClass = percent >= 50 ? "bg-emerald-500" : percent >= 20 ? "bg-amber-500" : "bg-destructive";
+    const colorClass = percent >= 50 ? "bg-primary" : percent >= 20 ? "bg-warning" : "bg-destructive";
 
     return { percent, colorClass, dimensions };
   }, [dashboardStats, selectedWhisperModelId, selectedLlmModelId, t]);

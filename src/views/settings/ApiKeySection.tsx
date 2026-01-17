@@ -17,7 +17,8 @@ export default function ApiKeySection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
-  const hasApiKey = useSettingsStore((s) => s.hasApiKey);
+  const hasApiKeyFn = useSettingsStore((s) => s.hasApiKey);
+  const hasApiKey = hasApiKeyFn();
   const saveApiKey = useSettingsStore((s) => s.saveApiKey);
   const deleteApiKey = useSettingsStore((s) => s.deleteApiKey);
   const getApiKey = useSettingsStore((s) => s.getApiKey);
@@ -118,7 +119,7 @@ export default function ApiKeySection() {
         </p>
 
         {shouldShowOnboardingHint && (
-          <p className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">
+          <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
             {t("settings.apiKey.onboarding")}
           </p>
         )}

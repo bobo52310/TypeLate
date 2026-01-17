@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="mic4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F0FDF4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Green background -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="url(#bg4)"/>
+
+  <!-- Floor line -->
+  <line x1="180" y1="590" x2="844" y2="590" stroke="white" stroke-width="4" opacity="0.2" stroke-linecap="round"/>
+
+  <!-- Mic person lying flat on the floor, completely horizontal -->
+  <g transform="translate(512, 500)">
+    <!-- Shadow on floor -->
+    <ellipse cx="0" cy="90" rx="200" ry="20" fill="#047857" opacity="0.3"/>
+
+    <!-- Body (horizontal) -->
+    <rect x="-90" y="-50" width="180" height="100" rx="50" fill="url(#mic4)"/>
+
+    <!-- Grille lines (now vertical since mic is on its side) -->
+    <line x1="-40" y1="-22" x2="-40" y2="22" stroke="#10B981" stroke-width="5" stroke-linecap="round" opacity="0.2"/>
+    <line x1="-15" y1="-22" x2="-15" y2="22" stroke="#10B981" stroke-width="5" stroke-linecap="round" opacity="0.2"/>
+    <line x1="10" y1="-22" x2="10" y2="22" stroke="#10B981" stroke-width="5" stroke-linecap="round" opacity="0.2"/>
+
+    <!-- Closed eyes (horizontal orientation) -->
+    <path d="M 42 -18 Q 52 -26, 62 -18" fill="none" stroke="#10B981" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 42 10 Q 52 2, 62 10" fill="none" stroke="#10B981" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- Peaceful smile -->
+    <path d="M 70 -6 Q 76 0, 70 6" fill="none" stroke="#10B981" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- Blush -->
+    <circle cx="58" cy="-25" r="7" fill="#FCA5A5" opacity="0.4"/>
+    <circle cx="58" cy="17" r="7" fill="#FCA5A5" opacity="0.4"/>
+
+    <!-- Arms splayed out (so relaxed) -->
+    <line x1="20" y1="-50" x2="40" y2="-100" stroke="#E2E8F0" stroke-width="14" stroke-linecap="round"/>
+    <line x1="20" y1="50" x2="50" y2="100" stroke="#E2E8F0" stroke-width="14" stroke-linecap="round"/>
+
+    <!-- Legs (mic stand pieces, just dangling) -->
+    <line x1="-90" y1="-15" x2="-150" y2="-50" stroke="#D1D5DB" stroke-width="14" stroke-linecap="round"/>
+    <line x1="-90" y1="15" x2="-155" y2="40" stroke="#D1D5DB" stroke-width="14" stroke-linecap="round"/>
+  </g>
+
+  <!-- Zzz above -->
+  <text x="590" y="320" font-family="-apple-system, sans-serif" font-weight="800" font-size="56" fill="white" opacity="0.5">z</text>
+  <text x="630" y="270" font-family="-apple-system, sans-serif" font-weight="800" font-size="44" fill="white" opacity="0.35">z</text>
+  <text x="660" y="230" font-family="-apple-system, sans-serif" font-weight="800" font-size="32" fill="white" opacity="0.2">z</text>
+
+  <!-- Keyboard being pushed away (too tired to type) -->
+  <g transform="translate(260, 610) rotate(8)">
+    <rect x="-70" y="-18" width="140" height="36" rx="6" fill="white" opacity="0.15"/>
+    <!-- keys -->
+    <rect x="-58" y="-10" width="16" height="12" rx="2" fill="white" opacity="0.15"/>
+    <rect x="-36" y="-10" width="16" height="12" rx="2" fill="white" opacity="0.15"/>
+    <rect x="-14" y="-10" width="16" height="12" rx="2" fill="white" opacity="0.15"/>
+    <rect x="8" y="-10" width="16" height="12" rx="2" fill="white" opacity="0.15"/>
+    <rect x="30" y="-10" width="16" height="12" rx="2" fill="white" opacity="0.15"/>
+    <rect x="52" y="-10" width="16" height="12" rx="2" fill="white" opacity="0.15"/>
+  </g>
+
+  <!-- TypeLate text -->
+  <text x="512" y="830" text-anchor="middle"
+        font-family="-apple-system, 'SF Pro Rounded', sans-serif"
+        font-weight="700" font-size="88" fill="white" letter-spacing="3" opacity="0.95">
+    TypeLate
+  </text>
+</svg>

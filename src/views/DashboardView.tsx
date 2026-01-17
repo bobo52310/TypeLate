@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
-import { MessageCircle } from "lucide-react";
+import { KeyRound, MessageCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -45,6 +45,7 @@ export default function DashboardView() {
   );
   const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
 
+  const hasApiKey = useSettingsStore((s) => s.hasApiKey);
   const selectedWhisperModelId = useSettingsStore(
     (s) => s.selectedWhisperModelId,
   );
@@ -115,8 +116,8 @@ export default function DashboardView() {
 
   const quotaBarColorClass = useMemo(() => {
     const pct = quotaRemainingPercent;
-    if (pct >= 0.5) return "bg-emerald-500";
-    if (pct >= 0.2) return "bg-amber-500";
+    if (pct >= 0.5) return "bg-primary";
+    if (pct >= 0.2) return "bg-warning";
     return "bg-destructive";
   }, [quotaRemainingPercent]);
 
@@ -168,8 +169,54 @@ export default function DashboardView() {
     void open(COMMUNITY_URL);
   }
 
+  const apiKeyMissing = !hasApiKey();
+
+  function navigateToSettings() {
+    window.location.hash = "#/settings?tab=ai";
+  }
+
+  async function restartOnboarding() {
+    try {
+      const { load } = await import("@tauri-apps/plugin-store");
+      const store = await load("settings.json");
+      await store.set("onboardingCompleted", false);
+      await store.save();
+      window.location.reload();
+    } catch {
+      // fallback to settings page
+      navigateToSettings();
+    }
+  }
+
   return (
     <div className="p-5">
+      {/* API Key setup prompt */}
+      {apiKeyMissing && (
+        <Card className="mb-5 border-cyan-500/30 bg-cyan-500/5">
+          <CardContent className="flex items-center gap-4 pt-5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-500/10">
+              <KeyRound className="h-5 w-5 text-cyan-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                {t("dashboard.apiKeyMissing.title")}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t("dashboard.apiKeyMissing.description")}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button size="sm" variant="outline" onClick={navigateToSettings}>
+                {t("dashboard.apiKeyMissing.action")}
+              </Button>
+              <Button size="sm" onClick={() => void restartOnboarding()}>
+                {t("dashboard.apiKeyMissing.guide")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Hero: Speed comparison */}
       {dashboardStats.totalTranscriptions > 0 && speedMultiplier > 1 && (
         <Card className="mb-5">
@@ -470,7 +517,7 @@ export default function DashboardView() {
                       {formatTimestamp(record.timestamp)}
                     </span>
                     {record.wasEnhanced && (
-                      <Badge className="border-0 bg-emerald-500/20 text-emerald-400">
+                      <Badge className="border-0 bg-primary/20 text-primary">
                         {t("dashboard.aiEnhanced")}
                       </Badge>
                     )}

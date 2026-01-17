@@ -372,7 +372,7 @@ export default function HistoryView() {
                             {truncateText(getDisplayText(record), 60)}
                           </span>
                           {record.wasEnhanced && (
-                            <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" title={t("dashboard.aiEnhanced")} />
+                            <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title={t("dashboard.aiEnhanced")} />
                           )}
                           {record.status === "failed" && (
                             <Badge variant="destructive" className="text-[9px] px-1 py-0 leading-tight">
@@ -412,7 +412,7 @@ export default function HistoryView() {
                           onClick={(e) => { e.stopPropagation(); void handleCopyText(record); }}
                         >
                           {copiedRecordId === record.id ? (
-                            <Check className="h-3 w-3 text-emerald-500" />
+                            <Check className="h-3 w-3 text-primary" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
@@ -432,7 +432,7 @@ export default function HistoryView() {
                         {/* Enhanced text */}
                         {record.wasEnhanced && record.processedText && (
                           <div>
-                            <p className="mb-1 text-[11px] font-medium text-emerald-500">
+                            <p className="mb-1 text-[11px] font-medium text-primary">
                               {t("history.enhancedText")}
                             </p>
                             <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
@@ -452,7 +452,7 @@ export default function HistoryView() {
                               onClick={(e) => { e.stopPropagation(); void handleCopyRawText(record); }}
                             >
                               {copiedRawRecordId === record.id ? (
-                                <Check className="h-2.5 w-2.5 text-emerald-500" />
+                                <Check className="h-2.5 w-2.5 text-primary" />
                               ) : (
                                 <Copy className="h-2.5 w-2.5" />
                               )}

@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#A5F3FC"/>
+      <stop offset="100%" stop-color="#67E8F9"/>
+    </linearGradient>
+    <linearGradient id="cursor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <!-- Fade out gradient for the ghost keyboard -->
+    <linearGradient id="fadeDown" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="white" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0.03"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="220" ry="220" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+
+  <!-- === Ghost keyboard fading at bottom (Type is Late — 打字過時了) === -->
+  <g opacity="0.5">
+    <!-- Keyboard outline, fading -->
+    <rect x="310" y="600" width="404" height="110" rx="14" fill="none" stroke="white" stroke-width="3" opacity="0.1"/>
+    <!-- Key row 1 -->
+    <rect x="330" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="366" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="402" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="438" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="474" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="510" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="546" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="582" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="618" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="654" y="614" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <!-- Key row 2 -->
+    <rect x="348" y="644" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="384" y="644" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="420" y="644" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="456" y="644" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="492" y="644" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="528" y="644" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="564" y="644" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="600" y="644" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <rect x="636" y="644" width="28" height="22" rx="4" fill="url(#fadeDown)"/>
+    <!-- Space bar row -->
+    <rect x="400" y="674" width="224" height="22" rx="4" fill="url(#fadeDown)"/>
+  </g>
+
+  <!-- === Microphone body === -->
+  <rect x="432" y="160" width="160" height="280" rx="80" ry="80" fill="white" opacity="0.95"/>
+
+  <!-- Sleepy droopy eyes (太累 — too tired) -->
+  <line x1="472" y1="265" x2="504" y2="260" stroke="#6366F1" stroke-width="7" stroke-linecap="round"/>
+  <line x1="520" y1="260" x2="552" y2="265" stroke="#6366F1" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Sleepy open mouth -->
+  <ellipse cx="512" cy="298" rx="10" ry="7" fill="#6366F1" opacity="0.25"/>
+
+  <!-- Grille lines -->
+  <line x1="465" y1="340" x2="559" y2="340" stroke="#4F46E5" stroke-width="6" stroke-linecap="round" opacity="0.2"/>
+  <line x1="465" y1="375" x2="559" y2="375" stroke="#4F46E5" stroke-width="6" stroke-linecap="round" opacity="0.2"/>
+  <line x1="465" y1="410" x2="559" y2="410" stroke="#4F46E5" stroke-width="6" stroke-linecap="round" opacity="0.2"/>
+
+  <!-- Mic arc -->
+  <path d="M 360 360 Q 360 520, 512 520 Q 664 520, 664 360"
+        fill="none" stroke="white" stroke-width="36" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- Mic stand -->
+  <line x1="512" y1="520" x2="512" y2="590" stroke="white" stroke-width="36" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- === Voice waves LEFT → morphing into text fragments (Translate 聯想) === -->
+  <!-- Left: normal waveform bars -->
+  <rect x="185" y="290" width="16" height="70" rx="8" fill="url(#wave)" opacity="0.65"/>
+  <rect x="220" y="255" width="16" height="140" rx="8" fill="url(#wave)" opacity="0.8"/>
+  <rect x="255" y="275" width="16" height="100" rx="8" fill="url(#wave)" opacity="0.65"/>
+  <rect x="290" y="300" width="16" height="50" rx="8" fill="url(#wave)" opacity="0.5"/>
+
+  <!-- Right: waveform bars that subtly resemble text lines (voice → text) -->
+  <rect x="718" y="300" width="16" height="50" rx="8" fill="url(#wave)" opacity="0.5"/>
+  <rect x="750" y="275" width="40" height="8" rx="4" fill="url(#wave)" opacity="0.55"/>
+  <rect x="750" y="300" width="55" height="8" rx="4" fill="url(#wave)" opacity="0.65"/>
+  <rect x="750" y="325" width="35" height="8" rx="4" fill="url(#wave)" opacity="0.5"/>
+  <rect x="750" y="350" width="48" height="8" rx="4" fill="url(#wave)" opacity="0.45"/>
+
+  <!-- === Big Zzz (太累) === -->
+  <text x="640" y="195" font-family="-apple-system, sans-serif" font-weight="800" font-size="80" fill="#A5F3FC" opacity="0.7">Z</text>
+  <text x="705" y="145" font-family="-apple-system, sans-serif" font-weight="800" font-size="58" fill="#A5F3FC" opacity="0.5">z</text>
+  <text x="752" y="105" font-family="-apple-system, sans-serif" font-weight="800" font-size="40" fill="#A5F3FC" opacity="0.3">z</text>
+
+  <!-- === Cursor (still blinking, waiting — 打字好慢) === -->
+  <rect x="498" y="740" width="28" height="60" rx="6" fill="url(#cursor)"/>
+
+  <!-- === TypeLate — "Type" slightly faded, "Late" bold (Type is Late) === -->
+  <text x="405" y="880" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+        font-weight="600" font-size="105" fill="white" letter-spacing="3" opacity="0.5">
+    Type
+  </text>
+  <text x="635" y="880" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+        font-weight="800" font-size="105" fill="white" letter-spacing="3" opacity="0.95">
+    Late
+  </text>
+</svg>
