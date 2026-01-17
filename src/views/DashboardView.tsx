@@ -39,6 +39,7 @@ export default function DashboardView() {
   const recentTranscriptionList = useHistoryStore(
     (s) => s.recentTranscriptionList,
   );
+  const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
 
   const selectedWhisperModelId = useSettingsStore(
     (s) => s.selectedWhisperModelId,
@@ -287,6 +288,74 @@ export default function DashboardView() {
           </Tooltip>
         </TooltipProvider>
       </div>
+
+      {/* Daily usage trend */}
+      <Card className="mt-5">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">
+              {t("dashboard.usageTrend")}
+            </CardTitle>
+            <CardDescription>{t("dashboard.last30Days")}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {dailyUsageTrendList.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              {t("dashboard.emptyState")}
+            </p>
+          ) : (
+            <div>
+              <div className="flex h-40 items-end gap-[3px]">
+                {dailyUsageTrendList.map((day, i) => {
+                  const maxCount = Math.max(
+                    ...dailyUsageTrendList.map((d) => d.count),
+                    1,
+                  );
+                  const heightPct = Math.max(6, (day.count / maxCount) * 100);
+                  const isToday = i === dailyUsageTrendList.length - 1;
+                  return (
+                    <div
+                      key={i}
+                      className="group relative flex-1"
+                      style={{ height: "100%" }}
+                    >
+                      {/* Hover tooltip: count prominent, date below */}
+                      <div className="pointer-events-none absolute -top-12 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center rounded-md border border-border bg-popover px-2.5 py-1.5 shadow-md group-hover:flex whitespace-nowrap">
+                        <span className="text-sm font-bold tabular-nums text-popover-foreground">
+                          {day.count} {t("dashboard.transcriptionUnit")}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {day.date.slice(5).replace("-", "/")}
+                        </span>
+                      </div>
+                      {/* Bar */}
+                      <div
+                        className={`absolute bottom-0 w-full rounded-t transition-colors ${
+                          isToday
+                            ? "bg-primary"
+                            : "bg-primary/40 group-hover:bg-primary/70"
+                        }`}
+                        style={{ height: `${heightPct}%` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              {/* X-axis */}
+              <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+                <span>{dailyUsageTrendList[0]?.date.slice(5).replace("-", "/")}</span>
+                <span>
+                  {dailyUsageTrendList[Math.floor(dailyUsageTrendList.length / 2)]?.date.slice(5).replace("-", "/")}
+                </span>
+                <span>
+                  {dailyUsageTrendList[dailyUsageTrendList.length - 1]?.date.slice(5).replace("-", "/")}
+                </span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent transcriptions */}
       <Card className="mt-5">

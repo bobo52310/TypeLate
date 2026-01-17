@@ -24,12 +24,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import { useTauriEvent, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -299,67 +305,80 @@ export function DashboardApp() {
       {showOnboarding ? (
         <OnboardingView onComplete={() => setShowOnboarding(false)} />
       ) : (
-        <div className="flex h-screen pt-9">
-          {/* Icon rail */}
-          <TooltipProvider>
-            <nav className="flex w-12 shrink-0 flex-col items-center border-r border-border bg-background py-3">
-              <img src={logoYan} alt="言" className="mb-4 h-6 w-6" />
+      <SidebarProvider className="h-screen !min-h-0 pt-9">
+        <Sidebar collapsible="offcanvas">
+          <SidebarHeader className="flex-row h-12 items-center gap-3 border-b border-sidebar-border px-4">
+            <img src={logoYan} alt="言" className="h-7 w-auto" />
+            <span
+              className="text-base font-semibold text-sidebar-foreground tracking-wide"
+              style={{ fontFamily: "'SF Pro Display', 'Inter', system-ui, sans-serif" }}
+            >
+              SayIt
+            </span>
+          </SidebarHeader>
 
-              {NAV_ITEMS.map((item) => (
-                <Tooltip key={item.path}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => navigate(item.path)}
-                      className={cn(
-                        "mb-1 flex h-8 w-8 items-center justify-center rounded-md transition-colors",
-                        currentPath.startsWith(item.path)
-                          ? "bg-accent text-accent-foreground"
-                          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                      )}
-                    >
-                      <item.icon className="h-4.5 w-4.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
-                </Tooltip>
-              ))}
-
-              <div className="mt-auto flex flex-col items-center gap-2">
-                {updateState === "ready-to-install" && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={handleSidebarInstall}
-                        className="relative flex h-8 w-8 items-center justify-center rounded-md text-primary hover:bg-accent/50"
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {NAV_ITEMS.map((item) => (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton
+                        isActive={currentPath.startsWith(item.path)}
+                        onClick={() => navigate(item.path)}
                       >
-                        <Download className="h-4 w-4" />
-                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      {t("mainApp.update.installNow")}
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-                <span className="text-[10px] text-muted-foreground">v{APP_VERSION}</span>
-              </div>
-            </nav>
-          </TooltipProvider>
+                        <item.icon />
+                        <span>{t(item.labelKey)}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
 
-          {/* Content */}
-          <main className="flex flex-1 flex-col overflow-hidden">
-            {databaseError && (
-              <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                <p className="font-medium">{t("errors.databaseInitFailed")}</p>
-                <p className="mt-1 text-xs text-destructive/80">{databaseError}</p>
-              </div>
-            )}
-
-            <div className="flex-1 overflow-y-auto">
-              <RouterOutlet />
+          <SidebarFooter className="border-t border-sidebar-border px-4 py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">v{APP_VERSION}</span>
+              {updateState === "ready-to-install" && (
+                <Button
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-xs"
+                  onClick={handleSidebarInstall}
+                >
+                  <Download className="h-3 w-3" />
+                  {t("mainApp.update.installNow")}
+                </Button>
+              )}
             </div>
-          </main>
-        </div>
+
+            {updateFeedback.message && (
+              <p
+                className={`mt-1 text-xs ${
+                  updateFeedback.type === "success"
+                    ? "text-primary"
+                    : "text-destructive"
+                }`}
+              >
+                {updateFeedback.message}
+              </p>
+            )}
+          </SidebarFooter>
+        </Sidebar>
+
+        <SidebarInset className="overflow-hidden">
+          {databaseError && (
+            <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <p className="font-medium">{t("errors.databaseInitFailed")}</p>
+              <p className="mt-1 text-xs text-destructive/80">{databaseError}</p>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto">
+            <RouterOutlet />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
       )}
 
       {/* Accessibility guide placeholder */}
