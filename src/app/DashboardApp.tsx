@@ -44,6 +44,7 @@ import { captureError } from "@/lib/sentry";
 import { initSentryForDashboard } from "@/lib/sentry";
 import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
+import { getRandomSlogan } from "@/lib/slogans";
 
 import logoYan from "@/assets/logo-yan.png";
 
@@ -75,6 +76,24 @@ const AUTO_CHECK_INTERVAL_MS = 15 * 60_000; // 15 minutes
 export function DashboardApp() {
   const { t } = useTranslation();
   const { currentPath, navigate } = useHashRouter();
+
+  // Sidebar logo hover slogan (stable per mount)
+  const [sidebarSlogan] = useState(() => getRandomSlogan());
+
+  // Easter egg: click version 7 times
+  const [easterEggSlogan, setEasterEggSlogan] = useState<string | null>(null);
+  const versionClickRef = useRef(0);
+  const easterEggTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleVersionClick = useCallback(() => {
+    versionClickRef.current += 1;
+    if (versionClickRef.current >= 7) {
+      versionClickRef.current = 0;
+      setEasterEggSlogan(getRandomSlogan());
+      if (easterEggTimerRef.current) clearTimeout(easterEggTimerRef.current);
+      easterEggTimerRef.current = setTimeout(() => setEasterEggSlogan(null), 4000);
+    }
+  }, []);
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -298,7 +317,7 @@ export function DashboardApp() {
           data-tauri-drag-region
           className="text-xs font-medium text-muted-foreground select-none"
         >
-          SayIt - 言
+          TypeLate
         </span>
       </div>
 
@@ -307,13 +326,16 @@ export function DashboardApp() {
       ) : (
       <SidebarProvider className="h-screen !min-h-0 pt-9">
         <Sidebar collapsible="offcanvas">
-          <SidebarHeader className="flex-row h-12 items-center gap-3 border-b border-sidebar-border px-4">
+          <SidebarHeader
+            className="flex-row h-12 items-center gap-3 border-b border-sidebar-border px-4 cursor-default"
+            title={sidebarSlogan}
+          >
             <img src={logoYan} alt="言" className="h-7 w-auto" />
             <span
               className="text-base font-semibold text-sidebar-foreground tracking-wide"
               style={{ fontFamily: "'SF Pro Display', 'Inter', system-ui, sans-serif" }}
             >
-              SayIt
+              TypeLate
             </span>
           </SidebarHeader>
 
@@ -338,8 +360,18 @@ export function DashboardApp() {
           </SidebarContent>
 
           <SidebarFooter className="border-t border-sidebar-border px-4 py-2">
+            {easterEggSlogan && (
+              <div className="mb-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-center">
+                <p className="text-xs italic text-primary">&ldquo;{easterEggSlogan}&rdquo;</p>
+              </div>
+            )}
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">v{APP_VERSION}</span>
+              <button
+                onClick={handleVersionClick}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors select-none"
+              >
+                v{APP_VERSION}
+              </button>
               {updateState === "ready-to-install" && (
                 <Button
                   size="sm"

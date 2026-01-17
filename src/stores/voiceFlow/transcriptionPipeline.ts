@@ -178,6 +178,8 @@ export function buildTranscriptionRecord(params: {
     createdAt: "",
     audioFilePath: params.audioFilePath,
     status: params.status,
+    whisperModelId: settingsStore.selectedWhisperModelId,
+    llmModelId: params.wasEnhanced ? settingsStore.selectedLlmModelId : null,
   };
 }
 

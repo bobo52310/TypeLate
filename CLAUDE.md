@@ -1,4 +1,4 @@
-# SayIt — Project Guide
+# TypeLate — Project Guide
 
 > Tauri v2 + React 19 + Rust voice-to-text desktop application
 

@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/resources/main/tauri-conf-v2.json",
-  "productName": "SayIt",
+  "productName": "TypeLate",
   "version": "1.0.0",
-  "identifier": "com.sayit.app",
+  "identifier": "com.typelate.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -15,7 +15,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "SayIt",
+        "title": "TypeLate",
         "width": 400,
         "height": 100,
         "x": null,
@@ -32,7 +32,7 @@
       },
       {
         "label": "main-window",
-        "title": "SayIt-言",
+        "title": "TypeLate",
         "url": "main-window.html",
         "width": 960,
         "height": 680,

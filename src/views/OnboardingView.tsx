@@ -79,7 +79,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">
-                  {t("onboarding.welcomeTitle", "Welcome to SayIt")}
+                  {t("onboarding.welcomeTitle", "Welcome to TypeLate")}
                 </h1>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {t("onboarding.welcomeDescription", "Voice-to-text, right where you type. Let's get you set up in 3 steps.")}
@@ -103,7 +103,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                     {t("onboarding.apiKeyTitle", "Groq API Key")}
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    {t("onboarding.apiKeyDescription", "SayIt uses Groq for fast transcription. Get a free key at console.groq.com")}
+                    {t("onboarding.apiKeyDescription", "TypeLate uses Groq for fast transcription. Get a free key at console.groq.com")}
                   </p>
                 </div>
               </div>
@@ -219,11 +219,11 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                   {t("onboarding.doneTitle", "You're all set!")}
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  {t("onboarding.doneDescription", "Press your hotkey anytime to start dictating. SayIt will transcribe and paste the text automatically.")}
+                  {t("onboarding.doneDescription", "Press your hotkey anytime to start dictating. TypeLate will transcribe and paste the text automatically.")}
                 </p>
               </div>
               <Button className="w-full" onClick={() => void handleComplete()}>
-                {t("onboarding.startUsing", "Start Using SayIt")}
+                {t("onboarding.startUsing", "Start Using TypeLate")}
               </Button>
             </div>
           )}

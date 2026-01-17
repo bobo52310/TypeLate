@@ -17,6 +17,8 @@ export interface TranscriptionRecord {
   createdAt: string;
   audioFilePath: string | null;
   status: TranscriptionStatus;
+  whisperModelId: string | null;
+  llmModelId: string | null;
 }
 
 export interface DailyQuotaUsage {

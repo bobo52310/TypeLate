@@ -22,19 +22,19 @@ jobs:
           - platform: macos-latest
             args: --target aarch64-apple-darwin
             rust_target: aarch64-apple-darwin
-            stable_name: SayIt-mac-arm64.dmg
+            stable_name: TypeLate-mac-arm64.dmg
             dmg_glob: "*.dmg"
             upload_sourcemaps: "true"
           - platform: macos-latest
             args: --target x86_64-apple-darwin
             rust_target: x86_64-apple-darwin
-            stable_name: SayIt-mac-x64.dmg
+            stable_name: TypeLate-mac-x64.dmg
             dmg_glob: "*.dmg"
             upload_sourcemaps: "false"
           - platform: windows-latest
             args: ""
             rust_target: ""
-            stable_name: SayIt-windows-x64.exe
+            stable_name: TypeLate-windows-x64.exe
             dmg_glob: ""
             upload_sourcemaps: "false"
 
@@ -56,8 +56,8 @@ jobs:
 
           echo "RELEASE_TAG=$RAW_TAG" >> "$GITHUB_ENV"
           echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
-          echo "SENTRY_RELEASE=sayit@$RELEASE_VERSION" >> "$GITHUB_ENV"
-          echo "VITE_SENTRY_RELEASE=sayit@$RELEASE_VERSION" >> "$GITHUB_ENV"
+          echo "SENTRY_RELEASE=typelate@$RELEASE_VERSION" >> "$GITHUB_ENV"
+          echo "VITE_SENTRY_RELEASE=typelate@$RELEASE_VERSION" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
@@ -100,7 +100,7 @@ jobs:
           VITE_SENTRY_SOURCEMAPS_ENABLED: ${{ matrix.upload_sourcemaps }}
         with:
           tagName: ${{ env.RELEASE_TAG }}
-          releaseName: "SayIt v${{ env.RELEASE_VERSION }}"
+          releaseName: "TypeLate v${{ env.RELEASE_VERSION }}"
           releaseBody: "See the assets to download and install this version."
           releaseDraft: true
           prerelease: false

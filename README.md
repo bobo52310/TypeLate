@@ -1,15 +1,15 @@
-# SayIt
+# TypeLate
 
 > Press, speak, release -- your voice becomes text, right where you type.
 
-SayIt is a cross-platform desktop voice-to-text tool built with Tauri v2, React 19, and Rust. Hold a hotkey in any application, speak naturally, and release. Your speech is transcribed via Groq Whisper API, optionally enhanced by an LLM to convert spoken language into polished written text, and auto-pasted at the cursor position.
+TypeLate is a cross-platform desktop voice-to-text tool built with Tauri v2, React 19, and Rust. Hold a hotkey in any application, speak naturally, and release. Your speech is transcribed via Groq Whisper API, optionally enhanced by an LLM to convert spoken language into polished written text, and auto-pasted at the cursor position.
 
 ## Features
 
 - **Global hotkey activation** -- Trigger voice input from any application with a configurable hotkey. Supports both hold-to-record and toggle modes.
 - **Spoken-to-written conversion** -- AI automatically removes filler words, restructures sentences, and corrects punctuation so the result reads as clean written text.
 - **Low latency** -- Powered by Groq's inference engine, end-to-end processing completes in under 3 seconds, including LLM enhancement.
-- **Custom vocabulary dictionary** -- Teach SayIt your proper nouns, technical terms, and jargon to improve transcription accuracy. Includes smart dictionary learning from transcription context.
+- **Custom vocabulary dictionary** -- Teach TypeLate your proper nouns, technical terms, and jargon to improve transcription accuracy. Includes smart dictionary learning from transcription context.
 - **History and analytics** -- All transcriptions are saved with full history search. A dashboard provides usage statistics and cost tracking.
 - **Notch-style HUD overlay** -- A minimal, always-on-top overlay displays recording and transcription status without interrupting your workflow.
 - **Multi-language support** -- Interface available in English, Japanese, Korean, Simplified Chinese, and Traditional Chinese.
@@ -19,14 +19,14 @@ SayIt is a cross-platform desktop voice-to-text tool built with Tauri v2, React 
 
 | Platform | Link |
 |----------|------|
-| macOS (Apple Silicon) | [SayIt-mac-arm64.dmg](https://github.com/bobo52310/SayIt/releases/latest/download/SayIt-mac-arm64.dmg) |
-| macOS (Intel) | [SayIt-mac-x64.dmg](https://github.com/bobo52310/SayIt/releases/latest/download/SayIt-mac-x64.dmg) |
-| Windows | [SayIt-windows-x64.exe](https://github.com/bobo52310/SayIt/releases/latest/download/SayIt-windows-x64.exe) |
+| macOS (Apple Silicon) | [TypeLate-mac-arm64.dmg](https://github.com/bobo52310/SayIt/releases/latest/download/TypeLate-mac-arm64.dmg) |
+| macOS (Intel) | [TypeLate-mac-x64.dmg](https://github.com/bobo52310/SayIt/releases/latest/download/TypeLate-mac-x64.dmg) |
+| Windows | [TypeLate-windows-x64.exe](https://github.com/bobo52310/SayIt/releases/latest/download/TypeLate-windows-x64.exe) |
 
 ## Quick Start
 
-1. Download and install SayIt for your platform.
-2. Open SayIt.
+1. Download and install TypeLate for your platform.
+2. Open TypeLate.
 3. Go to Settings and enter your [Groq API key](https://console.groq.com/keys) (free to obtain).
 4. In any application, press and hold the `Fn` key (default), speak, then release. Your transcribed text is automatically pasted at the cursor.
 
@@ -72,7 +72,7 @@ pnpm format     # Run Prettier
 
 ## Architecture
 
-SayIt uses a dual-window architecture:
+TypeLate uses a dual-window architecture:
 
 ```
 +--------------------------------------------------+

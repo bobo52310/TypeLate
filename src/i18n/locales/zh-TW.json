@@ -4,10 +4,31 @@
     "delete": "刪除",
     "cancel": "取消"
   },
+  "home": {
+    "statsBar": {
+      "todayCount": "\u4eca\u65e5",
+      "timeSaved": "\u7bc0\u7701\u6642\u9593",
+      "quotaRemaining": "\u914d\u984d"
+    },
+    "emptyState": {
+      "title": "\u6e96\u5099\u597d\u4e86",
+      "description": "\u6309\u4e0b {hotkey} \u958b\u59cb\u9304\u97f3"
+    },
+    "dateGroup": {
+      "today": "\u4eca\u5929",
+      "yesterday": "\u6628\u5929"
+    },
+    "slogans": [
+      "Type is Late \u2014 \u6253\u5b57\u5df2\u904e\u6642\uff0c\u8a9e\u97f3\u624d\u5c0d\u5473",
+      "\u6253\u5b57\u592a\u7d2f\uff0c\u6539\u7528 TypeLate\uff0c\u7528\u8aaa\u7684\u5c31\u597d",
+      "\u6253\u5b57\u592a\u7d2f\uff0c\u7528\u8aaa\u7684\u6700\u5c0d\u5473",
+      "\u624b\u6253\u592a\u7d2f\uff0c\u5634\u7832\u52a0\u500d \u2014 \u5feb\u7528 TypeLate"
+    ]
+  },
   "settings": {
     "about": {
-      "title": "關於 SayIt",
-      "description": "按住說話，放開貼上。SayIt 是開源的桌面語音轉文字工具，採用 MIT 授權。",
+      "title": "關於 TypeLate",
+      "description": "按住說話，放開貼上。TypeLate 是開源的桌面語音轉文字工具，採用 MIT 授權。",
       "author": "作者：",
       "website": "個人網站",
       "sourceCode": "查看原始碼",
@@ -50,7 +71,7 @@
       "notSet": "未設定",
       "goToConsole": "前往 Groq Console",
       "instruction": "請在 Groq Console 產生 API Key 後貼上。",
-      "onboarding": "歡迎使用 SayIt！請先設定 Groq API Key 以啟用語音輸入功能。",
+      "onboarding": "歡迎使用 TypeLate！請先設定 Groq API Key 以啟用語音輸入功能。",
       "show": "顯示",
       "hide": "隱藏",
       "saved": "API Key 已儲存",
@@ -126,7 +147,7 @@
       "soundFeedbackEnabled": "已啟用音效回饋",
       "soundFeedbackDisabled": "已停用音效回饋",
       "autoStart": "開機自動啟動",
-      "autoStartDescription": "登入系統後自動啟動 SayIt",
+      "autoStartDescription": "登入系統後自動啟動 TypeLate",
       "autoStartEnabled": "已啟用開機自啟動",
       "autoStartDisabled": "已關閉開機自啟動",
       "transcriptionLanguage": "轉錄語言",
@@ -190,15 +211,26 @@
     "quotaLlmRequests": "LLM {used}/{limit} 次",
     "quotaLlmTokens": "LLM {used}/{limit} tokens",
     "vocabularyAnalysis": "字典分析",
-    "vocabularyAnalysisUsage": "字典分析：{requests} 次 / {tokens} tokens"
+    "vocabularyAnalysisUsage": "字典分析：{requests} 次 / {tokens} tokens",
+    "heroPrefix": "TypeLate 讓你快了",
+    "heroMultiplier": "{value} 倍",
+    "heroSuffix": "",
+    "speakingTime": "口述時間",
+    "typingTime": "打字時間（估算）",
+    "charsPerMinute": "每分鐘字數",
+    "charsPerMinuteUnit": "字/分",
+    "communityTitle": "需要幫助？",
+    "communityDescription": "有建議？歡迎回報問題或提出功能需求"
   },
   "history": {
     "searchPlaceholder": "搜尋轉錄記錄...",
     "loading": "載入中...",
     "noResults": "找不到符合「{query}」的記錄",
     "emptyState": "尚無轉錄記錄，開始使用語音輸入吧！",
-    "enhancedText": "整理後文字",
+    "enhancedText": "AI 整理後文字",
     "rawText": "原始文字",
+    "whisperModel": "語音：{model}",
+    "llmModel": "AI：{model}",
     "recordingLabel": "錄音：",
     "transcriptionLabel": "轉錄：",
     "aiLabel": "AI：",
@@ -237,9 +269,9 @@
   },
   "accessibility": {
     "title": "需要輔助使用權限",
-    "description": "SayIt 需要「輔助使用」權限來監聽全域快捷鍵。若未授權，快捷鍵功能將無法使用。",
+    "description": "TypeLate 需要「輔助使用」權限來監聽全域快捷鍵。若未授權，快捷鍵功能將無法使用。",
     "step1": "點擊下方按鈕開啟系統設定。",
-    "step2": "在清單中找到 SayIt 並勾選。",
+    "step2": "在清單中找到 TypeLate 並勾選。",
     "step3": "回到 App，系統將自動偵測並啟用。",
     "reinitializing": "偵測到權限已授予，正在啟用快捷鍵...",
     "reinitializeError": "快捷鍵重新初始化失敗，請重新啟動應用程式。",
@@ -334,16 +366,16 @@
       "checkError": "檢查更新時發生錯誤",
       "updateFailed": "更新失敗，請手動下載",
       "autoInstallTitle": "更新已就緒",
-      "autoInstallDescription": "SayIt v{version} 已下載完成。安裝後需要重新啟動應用程式。",
+      "autoInstallDescription": "TypeLate v{version} 已下載完成。安裝後需要重新啟動應用程式。",
       "later": "稍後",
       "installRestart": "安裝並重啟",
       "newVersionTitle": "發現新版本",
-      "newVersionDescription": "SayIt v{version} 已可供更新。點擊開始更新將自動下載並重新啟動應用程式。",
+      "newVersionDescription": "TypeLate v{version} 已可供更新。點擊開始更新將自動下載並重新啟動應用程式。",
       "cancel": "取消",
       "startUpdate": "開始更新"
     },
     "upgradeNotice": {
-      "title": "SayIt 更新摘要",
+      "title": "TypeLate 更新摘要",
       "item1": "1. 安全修正：macOS 上選擇麥克風後停止錄音，麥克風不會關閉的問題已修復",
       "item2": "2. 新增麥克風選擇：可在設定中指定錄音使用的輸入裝置",
       "item3": "3. 改善小聲說話誤判：新增 peak energy 逃生機制，減少誤報",
