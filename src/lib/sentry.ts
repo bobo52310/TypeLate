@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import * as Sentry from "@sentry/react";
 
-declare const __APP_VERSION__: string;
+import { APP_VERSION } from "@/lib/version";
 
 function getSentryDsn(): string {
   return import.meta.env.VITE_SENTRY_DSN?.trim() ?? "";
@@ -12,7 +12,7 @@ function getSentryEnvironment(): string {
 }
 
 function getSentryRelease(): string {
-  return import.meta.env.VITE_SENTRY_RELEASE?.trim() || `sayit@${__APP_VERSION__}`;
+  return import.meta.env.VITE_SENTRY_RELEASE?.trim() || `sayit@${APP_VERSION}`;
 }
 
 function getTracesSampleRate(): number {

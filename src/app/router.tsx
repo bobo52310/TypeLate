@@ -1,30 +1,18 @@
 import { useSyncExternalStore, useCallback, lazy, Suspense } from "react";
 
-// Lazy-loaded view components
 const DashboardView = lazy(() => import("@/views/DashboardView"));
 const HistoryView = lazy(() => import("@/views/HistoryView"));
-const DictionaryView = lazy(() => import("@/views/DictionaryView"));
 const SettingsView = lazy(() => import("@/views/SettingsView"));
 
-// ── Route definitions ──
+export type RoutePath = "/dashboard" | "/history" | "/settings";
 
-export type RoutePath = "/dashboard" | "/history" | "/dictionary" | "/settings";
-
-export const ROUTES: RoutePath[] = [
-  "/dashboard",
-  "/history",
-  "/dictionary",
-  "/settings",
-];
+export const ROUTES: RoutePath[] = ["/dashboard", "/history", "/settings"];
 
 const ROUTE_COMPONENTS: Record<RoutePath, React.LazyExoticComponent<React.ComponentType>> = {
   "/dashboard": DashboardView,
   "/history": HistoryView,
-  "/dictionary": DictionaryView,
   "/settings": SettingsView,
 };
-
-// ── Hash-based router ──
 
 function getHashPath(): RoutePath {
   const raw = window.location.hash.slice(1) || "/dashboard";
@@ -37,10 +25,6 @@ function subscribeToHash(callback: () => void): () => void {
   return () => window.removeEventListener("hashchange", callback);
 }
 
-/**
- * Lightweight hash-based router hook.
- * Uses `useSyncExternalStore` to stay in sync with `window.location.hash`.
- */
 export function useHashRouter() {
   const currentPath = useSyncExternalStore(subscribeToHash, getHashPath, getHashPath);
 
@@ -51,9 +35,6 @@ export function useHashRouter() {
   return { currentPath, navigate };
 }
 
-/**
- * Renders the view component for the current hash route.
- */
 export function RouterOutlet() {
   const { currentPath } = useHashRouter();
   const Component = ROUTE_COMPONENTS[currentPath];

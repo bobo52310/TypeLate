@@ -4,7 +4,6 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const OnboardingView = lazy(() => import("@/views/OnboardingView"));
 import {
-  BookOpen,
   Download,
   FileText,
   LayoutDashboard,
@@ -13,7 +12,6 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -26,18 +24,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import { useTauriEvent, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -46,11 +38,10 @@ import { captureError } from "@/lib/sentry";
 import { initSentryForDashboard } from "@/lib/sentry";
 import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
-import type { UpdateCheckResult } from "@/lib/autoUpdater";
 
 import logoYan from "@/assets/logo-yan.png";
 
-declare const __APP_VERSION__: string;
+import { APP_VERSION } from "@/lib/version";
 
 // ── Navigation items ──
 
@@ -63,7 +54,6 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { path: "/dashboard", labelKey: "mainApp.nav.dashboard", icon: LayoutDashboard },
   { path: "/history", labelKey: "mainApp.nav.history", icon: FileText },
-  { path: "/dictionary", labelKey: "mainApp.nav.dictionary", icon: BookOpen },
   { path: "/settings", labelKey: "mainApp.nav.settings", icon: Settings },
 ];
 
@@ -109,10 +99,6 @@ export function DashboardApp() {
   const showPromptUpgradeNotice = useSettingsStore((s) => s.showPromptUpgradeNotice);
   const isRecordingAutoCleanupEnabled = useSettingsStore((s) => s.isRecordingAutoCleanupEnabled);
   const recordingAutoCleanupDays = useSettingsStore((s) => s.recordingAutoCleanupDays);
-
-  // Current page title
-  const currentPageTitle = NAV_ITEMS.find((n) => currentPath.startsWith(n.path))?.labelKey;
-  const pageTitle = currentPageTitle ? t(currentPageTitle) : "SayIt";
 
   // ── Listen for VOCABULARY_CHANGED from HUD window ──
   useTauriEvent(VOCABULARY_CHANGED, () => {
@@ -183,7 +169,7 @@ export function DashboardApp() {
 
   const handleAutoInstallLater = useCallback(() => {
     setShowAutoInstallDialog(false);
-    // Keep ready-to-install state — sidebar still shows "Install Now"
+    // Keep ready-to-install state — icon rail still shows indicator
   }, []);
 
   const handleSidebarInstall = useCallback(() => {
@@ -191,46 +177,6 @@ export function DashboardApp() {
   }, []);
 
   // ── Manual update flow ──
-
-  const handleManualCheckResult = useCallback(
-    (result: UpdateCheckResult) => {
-      if (result.status === "up-to-date") {
-        updateFeedback.show("success", t("mainApp.update.upToDate"));
-        setUpdateState("idle");
-      } else if (result.status === "update-available") {
-        setAvailableVersion(result.version ?? "");
-        setUpdateState("idle");
-        setShowManualUpdateDialog(true);
-      } else {
-        updateFeedback.show("error", t("mainApp.update.checkFailed"));
-        setUpdateState("idle");
-      }
-    },
-    [t, updateFeedback],
-  );
-
-  const handleManualCheck = useCallback(async () => {
-    const currentState = updateStateRef.current;
-    if (currentState !== "idle" && currentState !== "ready-to-install") return;
-
-    // If update already downloaded, show dialog directly
-    if (currentState === "ready-to-install") {
-      setShowAutoInstallDialog(true);
-      return;
-    }
-
-    setUpdateState("checking");
-    try {
-      const { checkForAppUpdate } = await import("@/lib/autoUpdater");
-      const result = await checkForAppUpdate();
-      handleManualCheckResult(result);
-    } catch (err) {
-      console.error("[main-window] Manual update check failed:", err);
-      captureError(err, { source: "updater", step: "manual-check" });
-      updateFeedback.show("error", t("mainApp.update.checkError"));
-      setUpdateState("idle");
-    }
-  }, [t, updateFeedback, handleManualCheckResult]);
 
   const handleManualUpdate = useCallback(async () => {
     setShowManualUpdateDialog(false);
@@ -245,26 +191,6 @@ export function DashboardApp() {
       setAvailableVersion("");
     }
   }, [t, updateFeedback]);
-
-  // ── Sidebar footer labels ──
-
-  const updateButtonLabel = (() => {
-    switch (updateState) {
-      case "checking":
-        return t("mainApp.update.checking");
-      case "downloading":
-        return t("mainApp.update.downloading");
-      case "installing":
-        return t("mainApp.update.installing");
-      default:
-        return t("mainApp.update.checkUpdate");
-    }
-  })();
-
-  const isUpdateBusy =
-    updateState === "checking" ||
-    updateState === "downloading" ||
-    updateState === "installing";
 
   // ── Initialization (runs once) ──
   useEffect(() => {
@@ -373,99 +299,67 @@ export function DashboardApp() {
       {showOnboarding ? (
         <OnboardingView onComplete={() => setShowOnboarding(false)} />
       ) : (
-      <SidebarProvider className="h-screen !min-h-0 pt-9">
-        <Sidebar collapsible="offcanvas">
-          <SidebarHeader className="flex-row h-12 items-center gap-3 border-b border-sidebar-border px-4">
-            <img src={logoYan} alt="言" className="h-7 w-auto" />
-            <span
-              className="text-base font-semibold text-sidebar-foreground tracking-wide"
-              style={{ fontFamily: "'SF Pro Display', 'Inter', system-ui, sans-serif" }}
-            >
-              SayIt
-            </span>
-          </SidebarHeader>
+        <div className="flex h-screen pt-9">
+          {/* Icon rail */}
+          <TooltipProvider>
+            <nav className="flex w-12 shrink-0 flex-col items-center border-r border-border bg-background py-3">
+              <img src={logoYan} alt="言" className="mb-4 h-6 w-6" />
 
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {NAV_ITEMS.map((item) => (
-                    <SidebarMenuItem key={item.path}>
-                      <SidebarMenuButton
-                        isActive={currentPath.startsWith(item.path)}
-                        onClick={() => navigate(item.path)}
+              {NAV_ITEMS.map((item) => (
+                <Tooltip key={item.path}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => navigate(item.path)}
+                      className={cn(
+                        "mb-1 flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+                        currentPath.startsWith(item.path)
+                          ? "bg-accent text-accent-foreground"
+                          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                      )}
+                    >
+                      <item.icon className="h-4.5 w-4.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
+                </Tooltip>
+              ))}
+
+              <div className="mt-auto flex flex-col items-center gap-2">
+                {updateState === "ready-to-install" && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleSidebarInstall}
+                        className="relative flex h-8 w-8 items-center justify-center rounded-md text-primary hover:bg-accent/50"
                       >
-                        <item.icon />
-                        <span>{t(item.labelKey)}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
+                        <Download className="h-4 w-4" />
+                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {t("mainApp.update.installNow")}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                <span className="text-[10px] text-muted-foreground">v{APP_VERSION}</span>
+              </div>
+            </nav>
+          </TooltipProvider>
 
-          <SidebarFooter className="border-t border-sidebar-border px-4 py-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">v{__APP_VERSION__}</span>
-              {updateState !== "ready-to-install" && (
-                <Button
-                  variant="link"
-                  className="h-auto p-0 text-xs text-muted-foreground"
-                  disabled={isUpdateBusy}
-                  onClick={handleManualCheck}
-                >
-                  {updateButtonLabel}
-                </Button>
-              )}
-            </div>
-
-            {/* Persistent install prompt after auto-download */}
-            {updateState === "ready-to-install" && (
-              <div className="mt-1.5 flex items-center justify-between rounded-md bg-primary/10 px-2 py-1.5">
-                <span className="text-xs font-medium text-primary">
-                  v{availableVersion} {t("mainApp.update.ready")}
-                </span>
-                <Button
-                  size="sm"
-                  className="h-6 gap-1 px-2 text-xs"
-                  onClick={handleSidebarInstall}
-                >
-                  <Download className="h-3 w-3" />
-                  {t("mainApp.update.installNow")}
-                </Button>
+          {/* Content */}
+          <main className="flex flex-1 flex-col overflow-hidden">
+            {databaseError && (
+              <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <p className="font-medium">{t("errors.databaseInitFailed")}</p>
+                <p className="mt-1 text-xs text-destructive/80">{databaseError}</p>
               </div>
             )}
 
-            {updateFeedback.message && (
-              <p
-                className={`mt-1 text-xs ${
-                  updateFeedback.type === "success"
-                    ? "text-primary"
-                    : "text-destructive"
-                }`}
-              >
-                {updateFeedback.message}
-              </p>
-            )}
-          </SidebarFooter>
-        </Sidebar>
-
-        <SidebarInset className="overflow-hidden">
-          <SiteHeader title={pageTitle} />
-
-          {databaseError && (
-            <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              <p className="font-medium">{t("errors.databaseInitFailed")}</p>
-              <p className="mt-1 text-xs text-destructive/80">{databaseError}</p>
+            <div className="flex-1 overflow-y-auto">
+              <RouterOutlet />
             </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto">
-            <RouterOutlet />
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+          </main>
+        </div>
       )}
 
       {/* Accessibility guide placeholder */}

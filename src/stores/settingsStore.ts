@@ -53,7 +53,7 @@ import {
   type WhisperModelId,
 } from "@/lib/modelRegistry";
 
-declare const __APP_VERSION__: string;
+import { APP_VERSION } from "@/lib/version";
 
 const STORE_NAME = "settings.json";
 
@@ -611,14 +611,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         if (existingApiKey) {
           set({ showPromptUpgradeNotice: true });
         }
-        await store.set("lastSeenVersion", __APP_VERSION__);
+        await store.set("lastSeenVersion", APP_VERSION);
         await store.save();
         return;
       }
 
-      if (lastSeenVersion !== __APP_VERSION__) {
+      if (lastSeenVersion !== APP_VERSION) {
         set({ showPromptUpgradeNotice: true });
-        await store.set("lastSeenVersion", __APP_VERSION__);
+        await store.set("lastSeenVersion", APP_VERSION);
         await store.save();
       }
     } catch (err) {

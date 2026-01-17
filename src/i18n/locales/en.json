@@ -4,6 +4,21 @@
     "delete": "Delete",
     "cancel": "Cancel"
   },
+  "home": {
+    "statsBar": {
+      "todayCount": "Today",
+      "timeSaved": "Time Saved",
+      "quotaRemaining": "Quota"
+    },
+    "emptyState": {
+      "title": "Ready to go",
+      "description": "Press {hotkey} to start recording"
+    },
+    "dateGroup": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    }
+  },
   "settings": {
     "about": {
       "title": "About SayIt",
@@ -157,6 +172,12 @@
       "deleteConfirmTitle": "Delete All Recordings",
       "deleteConfirmDescription": "This will permanently delete all saved recording files. History records will be preserved, but playback will no longer be available.",
       "deleteSuccess": "Deleted {count} recording files"
+    },
+    "group": {
+      "general": "General",
+      "voice": "Voice & Audio",
+      "ai": "AI & Enhancement",
+      "about": "About"
     },
     "smartDictionary": {
       "title": "Smart Dictionary Learning",
@@ -318,7 +339,6 @@
     "nav": {
       "dashboard": "Dashboard",
       "history": "History",
-      "dictionary": "Dictionary",
       "settings": "Settings"
     },
     "update": {

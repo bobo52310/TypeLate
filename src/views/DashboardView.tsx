@@ -39,7 +39,6 @@ export default function DashboardView() {
   const recentTranscriptionList = useHistoryStore(
     (s) => s.recentTranscriptionList,
   );
-  const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
 
   const selectedWhisperModelId = useSettingsStore(
     (s) => s.selectedWhisperModelId,
@@ -60,9 +59,7 @@ export default function DashboardView() {
     return [
       {
         remaining:
-          wRpdLimit > 0
-            ? 1 - usage.whisperRequestCount / wRpdLimit
-            : 0,
+          wRpdLimit > 0 ? 1 - usage.whisperRequestCount / wRpdLimit : 0,
         label: t("dashboard.quotaWhisperRequests", {
           used: usage.whisperRequestCount,
           limit: formatNumber(wRpdLimit),
@@ -108,7 +105,7 @@ export default function DashboardView() {
     const sorted = [...quotaDimensionList].sort(
       (a, b) => a.remaining - b.remaining,
     );
-    return sorted[0].label;
+    return sorted[0]?.label ?? "";
   }, [quotaDimensionList]);
 
   const quotaBarColorClass = useMemo(() => {
@@ -145,9 +142,9 @@ export default function DashboardView() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-5">
       {/* Stats cards */}
-      <div className="mt-6 grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>
@@ -291,39 +288,8 @@ export default function DashboardView() {
         </TooltipProvider>
       </div>
 
-      {/* Daily usage trend chart */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-base">
-            {t("dashboard.usageTrend")}
-          </CardTitle>
-          <CardDescription>{t("dashboard.last30Days")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Placeholder chart -- data available via dailyUsageTrendList */}
-          {dailyUsageTrendList.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              {t("dashboard.emptyState")}
-            </p>
-          ) : (
-            <div className="flex h-32 items-end gap-1">
-              {dailyUsageTrendList.map((day, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t bg-primary/60"
-                  style={{
-                    height: `${Math.max(4, (day.count / Math.max(...dailyUsageTrendList.map((d) => d.count), 1)) * 100)}%`,
-                  }}
-                  title={`${day.date}: ${day.count}`}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Recent transcriptions */}
-      <Card className="mt-6">
+      <Card className="mt-5">
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle className="text-base">
             {t("dashboard.recentTranscriptions")}
