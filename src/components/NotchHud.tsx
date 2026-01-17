@@ -484,23 +484,32 @@ export function NotchHud({
 
     if (visualMode === "error" && canRetry) {
       return (
-        <span
+        <button
+          type="button"
           className={styles.retryIcon}
+          aria-label="Retry"
           onClick={(e) => {
             e.stopPropagation();
             onRetry();
           }}
         >
           &#x21BB;
-        </span>
+        </button>
       );
     }
 
     return null;
   };
 
+  const ariaLabel = visualMode === "recording"
+    ? `${t("voiceFlow.recording")} ${formattedElapsedTime}`
+    : message ?? undefined;
+
   return (
     <div
+      role="status"
+      aria-live="assertive"
+      aria-label={ariaLabel}
       className={cn(styles.notchWrapper, {
         [styles.notchWrapperSuccess]: visualMode === "success",
         [styles.notchWrapperLearned]: visualMode === "learned",
