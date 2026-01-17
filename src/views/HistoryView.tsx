@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +13,11 @@ import {
   Trash2,
   Play,
   Pause,
+  Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHistoryStore } from "@/stores/historyStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import type { TranscriptionRecord } from "@/types/transcription";
 import {
   formatTimestamp,
@@ -29,9 +30,53 @@ import {
 const TRANSCRIPTION_COMPLETED = "transcription:completed";
 const SEARCH_DEBOUNCE_MS = 300;
 
-export default function HistoryView() {
-  const { t } = useTranslation();
+/** Group transcriptions by date: Today, Yesterday, or formatted date */
+function groupByDate(
+  records: TranscriptionRecord[],
+  todayLabel: string,
+  yesterdayLabel: string,
+  locale: string,
+): { label: string; records: TranscriptionRecord[] }[] {
+  const groups = new Map<string, TranscriptionRecord[]>();
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
 
+  for (const record of records) {
+    const dateStr = new Date(record.timestamp).toISOString().slice(0, 10);
+    let label: string;
+    if (dateStr === todayStr) {
+      label = todayLabel;
+    } else if (dateStr === yesterdayStr) {
+      label = yesterdayLabel;
+    } else {
+      label = new Date(record.timestamp).toLocaleDateString(locale, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }
+
+    const existing = groups.get(label);
+    if (existing) {
+      existing.push(record);
+    } else {
+      groups.set(label, [record]);
+    }
+  }
+
+  return Array.from(groups.entries()).map(([label, records]) => ({
+    label,
+    records,
+  }));
+}
+
+export default function HistoryView() {
+  const { t, i18n } = useTranslation();
+
+  // History store
   const transcriptionList = useHistoryStore((s) => s.transcriptionList);
   const hasMore = useHistoryStore((s) => s.hasMore);
   const isLoading = useHistoryStore((s) => s.isLoading);
@@ -39,15 +84,13 @@ export default function HistoryView() {
   const loadMore = useHistoryStore((s) => s.loadMore);
   const setSearchQuery = useHistoryStore((s) => s.setSearchQuery);
   const deleteTranscription = useHistoryStore((s) => s.deleteTranscription);
+  // Settings store for hotkey display
+  const hotkeyConfig = useSettingsStore((s) => s.hotkeyConfig);
 
   const [searchInput, setSearchInput] = useState("");
-  const [expandedRecordId, setExpandedRecordId] = useState<string | null>(
-    null,
-  );
+  const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null);
   const [copiedRecordId, setCopiedRecordId] = useState<string | null>(null);
-  const [copiedRawRecordId, setCopiedRawRecordId] = useState<string | null>(
-    null,
-  );
+  const [copiedRawRecordId, setCopiedRawRecordId] = useState<string | null>(null);
   const [playingRecordId, setPlayingRecordId] = useState<string | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -56,6 +99,28 @@ export default function HistoryView() {
   const copiedRawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentBlobUrlRef = useRef<string | null>(null);
+
+  // Hotkey display name
+  const hotkeyDisplayName = useMemo(() => {
+    if (!hotkeyConfig) return "Fn";
+    const key = hotkeyConfig.triggerKey;
+    if (typeof key === "string") {
+      return t(`settings.hotkey.keys.${key}`, { defaultValue: key });
+    }
+    return t("settings.hotkey.customKeyDisplay", { keycode: key.custom.keycode });
+  }, [hotkeyConfig, t]);
+
+  // Date-grouped transcriptions
+  const dateGroups = useMemo(
+    () =>
+      groupByDate(
+        transcriptionList,
+        t("home.dateGroup.today"),
+        t("home.dateGroup.yesterday"),
+        i18n.language,
+      ),
+    [transcriptionList, t, i18n.language],
+  );
 
   function toggleExpand(recordId: string) {
     setExpandedRecordId((prev) => (prev === recordId ? null : recordId));
@@ -90,11 +155,9 @@ export default function HistoryView() {
       await invoke("copy_to_clipboard", { text: textToCopy });
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
       setCopiedRecordId(record.id);
-      copiedTimerRef.current = setTimeout(() => {
-        setCopiedRecordId(null);
-      }, 2500);
+      copiedTimerRef.current = setTimeout(() => setCopiedRecordId(null), 2500);
     } catch {
-      // clipboard write may fail in some contexts
+      // clipboard write may fail
     }
   }
 
@@ -103,9 +166,7 @@ export default function HistoryView() {
       await invoke("copy_to_clipboard", { text: record.rawText });
       if (copiedRawTimerRef.current) clearTimeout(copiedRawTimerRef.current);
       setCopiedRawRecordId(record.id);
-      copiedRawTimerRef.current = setTimeout(() => {
-        setCopiedRawRecordId(null);
-      }, 2500);
+      copiedRawTimerRef.current = setTimeout(() => setCopiedRawRecordId(null), 2500);
     } catch {
       // clipboard write may fail
     }
@@ -114,47 +175,29 @@ export default function HistoryView() {
   async function handleDeleteRecord(record: TranscriptionRecord) {
     try {
       await deleteTranscription(record.id);
-      if (expandedRecordId === record.id) {
-        setExpandedRecordId(null);
-      }
+      if (expandedRecordId === record.id) setExpandedRecordId(null);
     } catch {
-      // DB delete failure handled at store layer
+      // handled at store layer
     }
   }
 
   async function handlePlayRecording(record: TranscriptionRecord) {
     cleanupAudio();
-
     if (playingRecordId === record.id) {
       setPlayingRecordId(null);
       return;
     }
-
     if (!record.audioFilePath) return;
-
     setPlayingRecordId(record.id);
-
     try {
-      const raw = await invoke<number[]>("read_recording_file", {
-        id: record.id,
-      });
-
+      const raw = await invoke<number[]>("read_recording_file", { id: record.id });
       const blob = new Blob([new Uint8Array(raw)], { type: "audio/wav" });
       const blobUrl = URL.createObjectURL(blob);
       currentBlobUrlRef.current = blobUrl;
       const audio = new Audio(blobUrl);
       currentAudioRef.current = audio;
-
-      audio.addEventListener("ended", () => {
-        cleanupAudio();
-        setPlayingRecordId(null);
-      });
-
-      audio.addEventListener("error", () => {
-        cleanupAudio();
-        setPlayingRecordId(null);
-      });
-
+      audio.addEventListener("ended", () => { cleanupAudio(); setPlayingRecordId(null); });
+      audio.addEventListener("error", () => { cleanupAudio(); setPlayingRecordId(null); });
       await audio.play();
     } catch {
       cleanupAudio();
@@ -169,9 +212,7 @@ export default function HistoryView() {
     let unlisten: (() => void) | undefined;
     listen(TRANSCRIPTION_COMPLETED, () => {
       void resetAndFetch();
-    }).then((fn) => {
-      unlisten = fn;
-    });
+    }).then((fn) => { unlisten = fn; });
 
     return () => {
       unlisten?.();
@@ -182,266 +223,219 @@ export default function HistoryView() {
     };
   }, [resetAndFetch]);
 
-  // Infinite scroll observer
+  // Infinite scroll
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
-          void loadMore();
-        }
+        if (entries[0]?.isIntersecting && hasMore && !isLoading) void loadMore();
       },
       { threshold: 0.1 },
     );
-
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [hasMore, isLoading, loadMore]);
 
   return (
-    <div className="p-6">
-      {/* Search bar */}
-      <div className="relative mb-6">
-        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder={t("history.searchPlaceholder")}
-          className="w-full pl-9"
-          value={searchInput}
-          onChange={(e) => handleSearchInput(e.target.value)}
-        />
+    <div className="flex h-full flex-col">
+      {/* Search */}
+      <div className="shrink-0 px-5 pt-4 pb-3">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={t("history.searchPlaceholder")}
+            className="w-full pl-9"
+            value={searchInput}
+            onChange={(e) => handleSearchInput(e.target.value)}
+          />
+        </div>
       </div>
 
-      {/* History card */}
-      <Card>
-        <CardContent className="p-0">
-          {/* Initial loading */}
-          {isLoading && transcriptionList.length === 0 && (
-            <div className="py-12 text-center text-muted-foreground">
-              {t("history.loading")}
-            </div>
-          )}
+      {/* Transcription list */}
+      <div className="flex-1 overflow-y-auto px-5 pb-5">
+        {/* Initial loading */}
+        {isLoading && transcriptionList.length === 0 && (
+          <div className="py-16 text-center text-muted-foreground">
+            {t("history.loading")}
+          </div>
+        )}
 
-          {/* Empty state */}
-          {!isLoading && transcriptionList.length === 0 && (
-            <div className="py-12 text-center text-muted-foreground">
+        {/* Empty state */}
+        {!isLoading && transcriptionList.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/50">
+              <Mic className="h-7 w-7 text-muted-foreground/40" />
+            </div>
+            <h3 className="mt-4 text-base font-medium text-foreground">
               {searchInput.trim()
                 ? t("history.noResults", { query: searchInput.trim() })
-                : t("history.emptyState")}
-            </div>
-          )}
+                : t("home.emptyState.title")}
+            </h3>
+            {!searchInput.trim() && (
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {t("home.emptyState.description", { hotkey: hotkeyDisplayName })}
+              </p>
+            )}
+          </div>
+        )}
 
-          {/* Record list */}
-          {transcriptionList.length > 0 &&
-            transcriptionList.map((record, index) => (
-              <div key={record.id}>
-                {/* Summary row */}
-                <div
-                  className={cn(
-                    "cursor-pointer px-5 py-4 transition hover:bg-accent/50",
-                    (index < transcriptionList.length - 1 ||
-                      expandedRecordId === record.id) &&
-                      "border-b border-border",
-                  )}
-                  onClick={() => toggleExpand(record.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {formatTimestamp(record.timestamp)}
-                      </span>
-                      {record.wasEnhanced && (
-                        <Badge className="border-0 bg-emerald-500/20 text-[11px] text-emerald-400">
-                          {t("dashboard.aiEnhanced")}
-                        </Badge>
-                      )}
-                      {record.status === "failed" && (
-                        <Badge variant="destructive" className="text-[11px]">
-                          {t("history.failedBadge")}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {formatDuration(record.recordingDurationMs)}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        disabled={!record.audioFilePath}
-                        title={
-                          record.audioFilePath
-                            ? t("history.playRecording")
-                            : t("history.noRecordingFile")
-                        }
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handlePlayRecording(record);
-                        }}
-                      >
-                        {playingRecordId === record.id ? (
-                          <Pause className="h-3.5 w-3.5" />
-                        ) : (
-                          <Play className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleCopyText(record);
-                        }}
-                      >
-                        {copiedRecordId === record.id ? (
-                          <Check className="h-3.5 w-3.5 text-green-400" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                      <ChevronDown
-                        className={cn(
-                          "h-3.5 w-3.5 text-muted-foreground transition-transform",
-                          expandedRecordId === record.id && "rotate-180",
-                        )}
-                      />
-                    </div>
-                  </div>
-                  <p className="mt-1.5 truncate text-sm text-muted-foreground">
-                    {truncateText(getDisplayText(record))}
-                  </p>
-                </div>
-
-                {/* Expanded detail */}
-                {expandedRecordId === record.id && (
+        {/* Date-grouped records */}
+        {dateGroups.map((group) => (
+          <div key={group.label} className="mb-4">
+            <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {group.label}
+            </h3>
+            <div className="rounded-lg border border-border bg-card">
+              {group.records.map((record, index) => (
+                <div key={record.id}>
+                  {/* Summary row */}
                   <div
                     className={cn(
-                      "space-y-3 bg-card px-5 py-4",
-                      index < transcriptionList.length - 1 &&
-                        "border-b border-border",
+                      "group cursor-pointer px-4 py-3 transition hover:bg-accent/50",
+                      index < group.records.length - 1 && "border-b border-border",
+                      expandedRecordId === record.id && "border-b border-border bg-accent/30",
                     )}
+                    onClick={() => toggleExpand(record.id)}
                   >
-                    {/* Enhanced text */}
-                    {record.wasEnhanced && record.processedText && (
-                      <div>
-                        <p className="mb-1 text-xs font-medium text-emerald-400">
-                          {t("history.enhancedText")}
-                        </p>
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                          {record.processedText}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Raw text */}
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {t("history.rawText")}
-                        </p>
-                        <button
-                          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleCopyRawText(record);
-                          }}
-                        >
-                          {copiedRawRecordId === record.id ? (
-                            <Check className="h-3 w-3 text-green-400" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                          <span>
-                            {copiedRawRecordId === record.id
-                              ? t("history.copied")
-                              : t("history.copy")}
-                          </span>
-                        </button>
-                      </div>
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                        {record.rawText}
-                      </p>
-                    </div>
-
-                    {/* Detail info */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
-                      <span>
-                        {t("history.recordingLabel")}
-                        {formatDurationMs(record.recordingDurationMs)}
-                      </span>
-                      <span>
-                        {t("history.transcriptionLabel")}
-                        {formatDurationMs(record.transcriptionDurationMs)}
-                      </span>
-                      {record.enhancementDurationMs !== null && (
-                        <span>
-                          {t("history.aiLabel")}
-                          {formatDurationMs(record.enhancementDurationMs)}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                          {formatTimestamp(record.timestamp)}
                         </span>
-                      )}
-                      <span>
-                        {t("history.charCountLabel")}
-                        {record.charCount}
-                      </span>
-                      <span>
-                        {t("history.modeLabel")}
-                        {record.triggerMode === "hold"
-                          ? t("history.holdMode")
-                          : t("history.toggleMode")}
-                      </span>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="mt-3 flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleCopyText(record);
-                        }}
-                      >
-                        {copiedRecordId === record.id ? (
-                          <Check className="mr-1.5 h-3.5 w-3.5" />
-                        ) : (
-                          <Copy className="mr-1.5 h-3.5 w-3.5" />
+                        {record.wasEnhanced && (
+                          <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" title={t("dashboard.aiEnhanced")} />
                         )}
-                        {copiedRecordId === record.id
-                          ? t("history.copied")
-                          : t("history.copy")}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleDeleteRecord(record);
-                        }}
-                      >
-                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                        {t("history.delete")}
-                      </Button>
+                        {record.status === "failed" && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                            {t("history.failedBadge")}
+                          </Badge>
+                        )}
+                        <span className="truncate text-sm text-foreground">
+                          {truncateText(getDisplayText(record), 80)}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {formatDuration(record.recordingDurationMs)}
+                        </span>
+                        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            disabled={!record.audioFilePath}
+                            onClick={(e) => { e.stopPropagation(); void handlePlayRecording(record); }}
+                          >
+                            {playingRecordId === record.id ? (
+                              <Pause className="h-3 w-3" />
+                            ) : (
+                              <Play className="h-3 w-3" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => { e.stopPropagation(); void handleCopyText(record); }}
+                          >
+                            {copiedRecordId === record.id ? (
+                              <Check className="h-3 w-3 text-emerald-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive/70 hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); void handleDeleteRecord(record); }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <ChevronDown
+                          className={cn(
+                            "ml-1 h-3.5 w-3.5 text-muted-foreground transition-transform",
+                            expandedRecordId === record.id && "rotate-180",
+                          )}
+                        />
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
 
-          {/* Loading more indicator */}
-          {isLoading && transcriptionList.length > 0 && (
-            <div className="py-4 text-center text-sm text-muted-foreground">
-              {t("history.loadingMore")}
+                  {/* Expanded detail */}
+                  {expandedRecordId === record.id && (
+                    <div
+                      className={cn(
+                        "space-y-3 bg-muted/20 px-4 py-4",
+                        index < group.records.length - 1 && "border-b border-border",
+                      )}
+                    >
+                      {record.wasEnhanced && record.processedText && (
+                        <div>
+                          <p className="mb-1 text-xs font-medium text-emerald-500">
+                            {t("history.enhancedText")}
+                          </p>
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                            {record.processedText}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <div className="mb-1 flex items-center justify-between">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {t("history.rawText")}
+                          </p>
+                          <button
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                            onClick={(e) => { e.stopPropagation(); void handleCopyRawText(record); }}
+                          >
+                            {copiedRawRecordId === record.id ? (
+                              <Check className="h-3 w-3 text-emerald-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                            <span>
+                              {copiedRawRecordId === record.id ? t("history.copied") : t("history.copy")}
+                            </span>
+                          </button>
+                        </div>
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                          {record.rawText}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
+                        <span>{t("history.recordingLabel")} {formatDurationMs(record.recordingDurationMs)}</span>
+                        <span>{t("history.transcriptionLabel")} {formatDurationMs(record.transcriptionDurationMs)}</span>
+                        {record.enhancementDurationMs !== null && (
+                          <span>{t("history.aiLabel")} {formatDurationMs(record.enhancementDurationMs)}</span>
+                        )}
+                        <span>{t("history.charCountLabel")} {record.charCount}</span>
+                        <span>
+                          {t("history.modeLabel")}
+                          {record.triggerMode === "hold" ? t("history.holdMode") : t("history.toggleMode")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        ))}
 
-          {/* Infinite scroll sentinel */}
-          <div ref={sentinelRef} className="h-4" />
-        </CardContent>
-      </Card>
+        {/* Loading more */}
+        {isLoading && transcriptionList.length > 0 && (
+          <div className="py-4 text-center text-sm text-muted-foreground">
+            {t("history.loadingMore")}
+          </div>
+        )}
+
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="h-4" />
+      </div>
     </div>
   );
 }

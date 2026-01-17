@@ -4,6 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useVoiceFlowStore } from "@/stores/voiceFlowStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
+import { useHistoryStore } from "@/stores/historyStore";
 import { connectToDatabase } from "@/lib/database";
 import { initSentryForHud } from "@/lib/sentry";
 import { SETTINGS_UPDATED, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
@@ -71,7 +72,11 @@ export function HudApp() {
       // Show HUD briefly, then initialize voice flow
       const appWindow = getCurrentWindow();
       await appWindow.show();
-      await useVoiceFlowStore.getState().initialize();
+      await useVoiceFlowStore.getState().initialize({
+        getSettingsStore: () => useSettingsStore.getState(),
+        getHistoryStore: () => useHistoryStore.getState(),
+        getVocabularyStore: () => useVocabularyStore.getState(),
+      });
 
       // Show dashboard on startup, then hide HUD
       try {
@@ -101,7 +106,7 @@ export function HudApp() {
         status={status}
         message={message}
         recordingElapsedSeconds={recordingElapsedSeconds}
-        canRetry={canRetry()}
+        canRetry={canRetry}
         onRetry={handleRetry}
       />
     </div>
