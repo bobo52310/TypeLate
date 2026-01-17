@@ -445,7 +445,7 @@ export default function HotkeySection() {
         {feedback.message && (
           <p
             className={`text-sm ${
-              feedback.type === "success" ? "text-green-400" : "text-red-400"
+              feedback.type === "success" ? "text-primary" : "text-destructive"
             }`}
           >
             {feedback.message}
