@@ -32,7 +32,7 @@ export default function PromptSection() {
   const [isPresetDirty, setIsPresetDirty] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
-  const resetConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const resetConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     setSelectedPromptMode(promptMode as PromptMode);

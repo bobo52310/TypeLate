@@ -21,6 +21,7 @@ import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import {
   VOCABULARY_ANALYSIS_MODEL_LIST,
   findVocabularyAnalysisModelConfig,
+  type VocabularyAnalysisModelId,
 } from "@/lib/modelRegistry";
 
 export default function SmartDictionarySection() {
@@ -62,7 +63,7 @@ export default function SmartDictionarySection() {
 
   async function handleModelChange(newId: string) {
     try {
-      await saveVocabularyAnalysisModel(newId);
+      await saveVocabularyAnalysisModel(newId as VocabularyAnalysisModelId);
       feedback.show(
         "success",
         t("settings.smartDictionary.analysisModelUpdated"),

@@ -214,7 +214,7 @@ export function NotchHud({
     const pending = pendingLearnedTermListRef.current;
     if (pending.length === 0) return;
     if (isHighPriorityModeRef.current) return;
-    const nextTermList = pending[0];
+    const nextTermList = pending[0] ?? [];
     setPendingLearnedTermList((prev) => prev.slice(1));
     setLearnedDisplayText(formatLearnedText(nextTermList));
     setVisualMode("learned");
@@ -231,7 +231,7 @@ export function NotchHud({
         if (remaining.length > 0 && !isHighPriorityModeRef.current) {
           const next = remaining[0];
           setPendingLearnedTermList((prev) => prev.slice(1));
-          setLearnedDisplayText(formatLearnedText(next));
+          setLearnedDisplayText(formatLearnedText(next ?? []));
           setVisualMode("learned");
           if (useSettingsStore.getState().isSoundEffectsEnabled) {
             void invoke("play_learned_sound").catch(() => {});

@@ -178,7 +178,7 @@ export async function enhanceText(
     return { text: rawText, usage };
   }
 
-  const rawContent = data.choices[0].message.content?.trim();
+  const rawContent = data.choices[0]?.message.content?.trim();
   if (!rawContent) {
     return { text: rawText, usage };
   }
