@@ -23,8 +23,8 @@ Thank you for your interest in contributing to TypeLate. This guide covers the d
 ### Setup
 
 ```bash
-git clone https://github.com/bobo52310/SayIt.git
-cd SayIt
+git clone https://github.com/bobo52310/TypeLate.git
+cd TypeLate
 pnpm install
 pnpm tauri dev
 ```
@@ -79,7 +79,7 @@ TypeLate/
 |   |   +-- modelRegistry.ts   # AI model configuration
 |   |   +-- migrations/         # Database migration files
 |   +-- i18n/                   # Internationalization
-|   |   +-- locales/            # Translation files (en, ja, ko, zh-CN, zh-TW)
+|   |   +-- locales/            # Translation files (en, ja, ko, zh-TW)
 |   |   +-- prompts.ts          # LLM prompt templates
 |   +-- types/                  # TypeScript type definitions
 |   +-- assets/                 # Static assets
@@ -244,8 +244,7 @@ src/i18n/locales/
 +-- en.json      # English (primary)
 +-- ja.json      # Japanese
 +-- ko.json      # Korean
-+-- zh-CN.json   # Simplified Chinese
-+-- zh-TW.json   # Traditional Chinese
++-- zh-TW.json   # Traditional Chinese (繁體中文)
 ```
 
 ### Adding or Updating Translations

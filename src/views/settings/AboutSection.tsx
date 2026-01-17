@@ -7,14 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  AtSign,
-  CircleAlert,
-  Facebook,
-  Github,
-  Globe,
-  Instagram,
-} from "lucide-react";
+import { CircleAlert, Github } from "lucide-react";
 import { APP_VERSION } from "@/lib/version";
 import { getSlogans } from "@/lib/slogans";
 
@@ -51,7 +44,6 @@ export default function AboutSection() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Easter egg: slogans revealed */}
         {showEasterEgg && slogans.length > 0 && (
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
             <p className="text-xs font-medium text-primary">
@@ -71,54 +63,8 @@ export default function AboutSection() {
           </p>
           <p className="text-sm text-muted-foreground">
             {t("settings.about.author")}
-            <a
-              href="https://bobo.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground transition-colors hover:text-primary"
-            >
-              Bobo Chen
-            </a>
+            <span className="font-medium text-foreground">Bobo Chen</span>
           </p>
-        </div>
-
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          <a
-            href="https://bobo.dev"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
-          >
-            <Globe className="size-4" />
-            <span>{t("settings.about.website")}</span>
-          </a>
-          <a
-            href="https://www.facebook.com/bobo52310"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
-          >
-            <Facebook className="size-4" />
-            <span>Facebook</span>
-          </a>
-          <a
-            href="https://www.instagram.com/bobo52310"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
-          >
-            <Instagram className="size-4" />
-            <span>Instagram</span>
-          </a>
-          <a
-            href="https://www.threads.com/@bobo52310"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
-          >
-            <AtSign className="size-4" />
-            <span>Threads</span>
-          </a>
         </div>
 
         <Separator />

@@ -8,7 +8,7 @@ If you discover a security vulnerability in TypeLate, please report it responsib
 
 You can report security issues through either of the following channels:
 
-1. **GitHub Security Advisories** (preferred): Go to the [Security Advisories](https://github.com/bobo52310/SayIt/security/advisories/new) page and create a new advisory. This allows for private discussion and coordinated disclosure.
+1. **GitHub Security Advisories** (preferred): Go to the [Security Advisories](https://github.com/bobo52310/TypeLate/security/advisories/new) page and create a new advisory. This allows for private discussion and coordinated disclosure.
 
 2. **Email**: Send a detailed report to the repository maintainer via the email address listed on their GitHub profile.
 
