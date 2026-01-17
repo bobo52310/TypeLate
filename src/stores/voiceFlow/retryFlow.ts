@@ -1,5 +1,5 @@
 /**
- * Retry transcription flow — re-transcribe from a saved audio file.
+ * Retry transcription flow -- re-transcribe from a saved audio file.
  *
  * When transcription fails (empty result, hallucination, or API error),
  * the audio file is saved and the user can retry. This module handles
@@ -13,16 +13,45 @@ import { captureError } from "@/lib/sentry";
 import { enhanceText } from "@/lib/enhancer";
 import { detectHallucination } from "@/lib/hallucinationDetector";
 import type { TranscriptionResult } from "@/types/audio";
-import type { ChatUsageData, TranscriptionRecord, ApiUsageRecord } from "@/types/transcription";
-import { useVoiceFlowStore } from "../voiceFlowStore";
-import { transitionTo, playSoundIfEnabled } from "../voiceFlowStore";
+import type { ChatUsageData, TranscriptionRecord } from "@/types/transcription";
+import type { HudStatus } from "@/types";
+import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
 import { clearAutoHideTimer } from "./timers";
 import {
   buildTranscriptionRecord,
   saveApiUsageRecordList,
   setAbortController,
-  restoreSystemAudio,
 } from "./transcriptionPipeline";
+import { startCorrectionDetectionFlow } from "./correctionDetection";
+
+// ── Store actions injection (same pattern as transcriptionPipeline) ──
+
+interface VoiceFlowActions {
+  getState: () => {
+    status: HudStatus;
+    isRecording: boolean;
+    _isAborted: boolean;
+    _lastFailedTranscriptionId: string | null;
+    _lastFailedAudioFilePath: string | null;
+    _lastFailedRecordingDurationMs: number;
+    _lastFailedPeakEnergyLevel: number;
+    _lastFailedRmsEnergyLevel: number;
+  };
+  setState: (partial: Record<string, unknown>) => void;
+  transitionTo: (status: HudStatus, message?: string) => void;
+  playSoundIfEnabled: (command: string) => void;
+}
+
+let _actions: VoiceFlowActions | null = null;
+
+export function setRetryFlowActions(actions: VoiceFlowActions): void {
+  _actions = actions;
+}
+
+function actions(): VoiceFlowActions {
+  if (!_actions) throw new Error("voiceFlow: retry actions not registered");
+  return _actions;
+}
 
 // ── Helpers ──
 
@@ -42,53 +71,47 @@ function isEmptyTranscription(rawText: string): boolean {
   return !rawText || !rawText.trim();
 }
 
-// ── Settings/Store accessor helpers ──
-
-function getSettingsStore(): {
-  selectedWhisperModelId: string;
-  selectedLlmModelId: string;
-  isEnhancementThresholdEnabled: boolean;
-  enhancementThresholdCharCount: number;
-  getApiKey: () => string | null;
-  refreshApiKey: () => Promise<void>;
-  getAiPrompt: () => string;
-  getWhisperLanguageCode: () => string | null;
-} {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require("../settingsStore") as { useSettingsStore: { getState: () => ReturnType<typeof getSettingsStore> } };
-  return mod.useSettingsStore.getState();
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function getHistoryStore(): {
-  addApiUsage: (record: ApiUsageRecord) => Promise<void>;
-  updateTranscriptionOnRetrySuccess: (params: {
-    id: string;
-    rawText: string;
-    processedText: string | null;
-    transcriptionDurationMs: number;
-    enhancementDurationMs: number | null;
-    wasEnhanced: boolean;
-    charCount: number;
-  }) => Promise<void>;
-} {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require("../historyStore") as { useHistoryStore: { getState: () => ReturnType<typeof getHistoryStore> } };
-  return mod.useHistoryStore.getState();
+// ── Vocabulary weight update for retry ──
+
+function updateVocabularyWeightsAfterPaste(finalText: string): void {
+  void (async () => {
+    try {
+      const vocabularyStore = getVocabularyStore();
+      const matchedIdList: string[] = [];
+
+      for (const entry of vocabularyStore.termList) {
+        const isEnglish = /^[a-zA-Z]/.test(entry.term);
+        if (isEnglish) {
+          const regex = new RegExp(
+            "\\b" + escapeRegex(entry.term) + "\\b",
+            "i",
+          );
+          if (regex.test(finalText)) {
+            matchedIdList.push(entry.id);
+          }
+        } else {
+          if (finalText.includes(entry.term)) {
+            matchedIdList.push(entry.id);
+          }
+        }
+      }
+
+      if (matchedIdList.length > 0) {
+        await vocabularyStore.batchIncrementWeights(matchedIdList);
+      }
+    } catch (err) {
+      writeErrorLog(
+        `voiceFlowStore: retry vocabulary weight update failed: ${extractErrorMessage(err)}`,
+      );
+    }
+  })();
 }
 
-function getVocabularyStore(): {
-  termList: Array<{ id: string; term: string }>;
-  getTopTermListByWeight: (limit: number) => Promise<string[]>;
-  batchIncrementWeights: (idList: string[]) => Promise<void>;
-  isDuplicateTerm: (term: string) => boolean;
-  addAiSuggestedTerm: (term: string) => Promise<void>;
-} {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require("../vocabularyStore") as { useVocabularyStore: { getState: () => ReturnType<typeof getVocabularyStore> } };
-  return mod.useVocabularyStore.getState();
-}
-
-// ── Paste flow for retry ──
+// ── Paste flow for retry (similar to transcriptionPipeline's completePasteFlow) ──
 
 async function completePasteFlowForRetry(params: {
   text: string;
@@ -96,9 +119,10 @@ async function completePasteFlowForRetry(params: {
   record: TranscriptionRecord;
   chatUsage: ChatUsageData | null;
 }): Promise<void> {
+  const { transitionTo, playSoundIfEnabled, setState, getState } = actions();
   try {
     await invoke("paste_text", { text: params.text });
-    useVoiceFlowStore.setState({ isRecording: false });
+    setState({ isRecording: false });
     transitionTo("success", params.successMessage);
 
     // Quality monitor
@@ -111,30 +135,21 @@ async function completePasteFlowForRetry(params: {
 
     // Weight update (fire-and-forget)
     const finalText = params.record.processedText ?? params.record.rawText;
-    void updateVocabularyWeightsForRetry(finalText);
+    updateVocabularyWeightsAfterPaste(finalText);
 
     // Correction detection for retry
     const settingsStore = getSettingsStore();
     const apiKey = settingsStore.getApiKey();
     if (apiKey) {
-      const { startCorrectionDetectionFlow } = await import("./correctionDetection");
-      const vocabularyStore = getVocabularyStore();
-      const historyStore = getHistoryStore();
       startCorrectionDetectionFlow(
         params.text,
         params.record.id,
         apiKey,
-        {
-          isSmartDictionaryEnabled: true, // Must be enabled to reach here
-          selectedVocabularyAnalysisModelId: settingsStore.selectedLlmModelId,
-          selectedLlmModelId: settingsStore.selectedLlmModelId,
-        },
-        vocabularyStore,
-        historyStore,
+        () => getState().status,
       );
     }
   } catch (pasteError) {
-    useVoiceFlowStore.setState({ isRecording: false });
+    setState({ isRecording: false });
     transitionTo("error", t("voiceFlow.pasteFailed"));
     playSoundIfEnabled("play_error_sound");
     writeErrorLog(
@@ -144,51 +159,16 @@ async function completePasteFlowForRetry(params: {
   }
 }
 
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-async function updateVocabularyWeightsForRetry(finalText: string): Promise<void> {
-  try {
-    const vocabularyStore = getVocabularyStore();
-    const matchedIdList: string[] = [];
-
-    for (const entry of vocabularyStore.termList) {
-      const isEnglish = /^[a-zA-Z]/.test(entry.term);
-      if (isEnglish) {
-        const regex = new RegExp(
-          "\\b" + escapeRegex(entry.term) + "\\b",
-          "i",
-        );
-        if (regex.test(finalText)) {
-          matchedIdList.push(entry.id);
-        }
-      } else {
-        if (finalText.includes(entry.term)) {
-          matchedIdList.push(entry.id);
-        }
-      }
-    }
-
-    if (matchedIdList.length > 0) {
-      await vocabularyStore.batchIncrementWeights(matchedIdList);
-    }
-  } catch (err) {
-    writeErrorLog(
-      `voiceFlowStore: retry vocabulary weight update failed: ${extractErrorMessage(err)}`,
-    );
-  }
-}
-
 // ── Main retry flow ──
 
 export async function handleRetryTranscription(): Promise<void> {
-  const state = useVoiceFlowStore.getState();
+  const { getState, setState, transitionTo, playSoundIfEnabled } = actions();
+  const state = getState();
   if (!state._lastFailedAudioFilePath || !state._lastFailedTranscriptionId) {
     return;
   }
 
-  useVoiceFlowStore.setState({
+  setState({
     _isAborted: false,
     _isRetryAttempt: true,
   });
@@ -213,7 +193,7 @@ export async function handleRetryTranscription(): Promise<void> {
     if (!apiKey) {
       transitionTo("error", t("errors.apiKeyMissing"));
       playSoundIfEnabled("play_error_sound");
-      useVoiceFlowStore.setState({
+      setState({
         _lastFailedAudioFilePath: null,
         _isRetryAttempt: false,
       });
@@ -234,27 +214,27 @@ export async function handleRetryTranscription(): Promise<void> {
         language: settingsStore.getWhisperLanguageCode(),
       },
     );
-    if (useVoiceFlowStore.getState()._isAborted) return;
+    if (getState()._isAborted) return;
 
     writeInfoLog(`Retry transcription raw: "${result.rawText}"`);
 
     if (isEmptyTranscription(result.rawText)) {
-      // Retry also failed — no more retries
       transitionTo("error", t("voiceFlow.retryFailed"));
       playSoundIfEnabled("play_error_sound");
-      useVoiceFlowStore.setState({
+      setState({
         _lastFailedAudioFilePath: null,
         _isRetryAttempt: false,
       });
       return;
     }
 
-    // ── Retry also needs hallucination detection (using original recording energy levels) ──
+    // ── Retry hallucination detection (using original energy levels) ──
+    const retryState = getState();
     const retryHallucinationResult = detectHallucination({
       rawText: result.rawText,
       recordingDurationMs,
-      peakEnergyLevel: state._lastFailedPeakEnergyLevel,
-      rmsEnergyLevel: state._lastFailedRmsEnergyLevel,
+      peakEnergyLevel: retryState._lastFailedPeakEnergyLevel,
+      rmsEnergyLevel: retryState._lastFailedRmsEnergyLevel,
       noSpeechProbability: result.noSpeechProbability,
     });
 
@@ -264,14 +244,14 @@ export async function handleRetryTranscription(): Promise<void> {
       );
       transitionTo("error", t("voiceFlow.retryFailed"));
       playSoundIfEnabled("play_error_sound");
-      useVoiceFlowStore.setState({
+      setState({
         _lastFailedAudioFilePath: null,
         _isRetryAttempt: false,
       });
       return;
     }
 
-    // Retry success → enter AI enhancement → paste flow
+    // Retry success -- enter AI enhancement -> paste flow
     if (
       !settingsStore.isEnhancementThresholdEnabled ||
       result.rawText.length >= settingsStore.enhancementThresholdCharCount
@@ -289,7 +269,7 @@ export async function handleRetryTranscription(): Promise<void> {
           modelId: settingsStore.selectedLlmModelId,
           signal: newAbortController.signal,
         });
-        if (useVoiceFlowStore.getState()._isAborted) return;
+        if (getState()._isAborted) return;
 
         const enhancementDurationMs =
           performance.now() - enhancementStartTime;
@@ -315,7 +295,7 @@ export async function handleRetryTranscription(): Promise<void> {
           chatUsage: enhanceResult.usage,
         });
 
-        // Update DB status (UPDATE not INSERT) → record API usage after (FK dependency)
+        // Update DB status (UPDATE not INSERT)
         const historyStore = getHistoryStore();
         void historyStore
           .updateTranscriptionOnRetrySuccess({
@@ -338,7 +318,7 @@ export async function handleRetryTranscription(): Promise<void> {
             ),
           );
       } catch (enhanceError) {
-        if (useVoiceFlowStore.getState()._isAborted) return;
+        if (getState()._isAborted) return;
         const fallbackEnhancementDurationMs =
           performance.now() - enhancementStartTime;
         writeErrorLog(
@@ -432,19 +412,18 @@ export async function handleRetryTranscription(): Promise<void> {
         );
     }
 
-    // Retry success → reset all retry state
-    useVoiceFlowStore.setState({
+    // Retry success -- reset all retry state
+    setState({
       _lastFailedTranscriptionId: null,
       _lastFailedAudioFilePath: null,
       _lastFailedRecordingDurationMs: 0,
       _isRetryAttempt: false,
     });
   } catch (error) {
-    if (useVoiceFlowStore.getState()._isAborted) return;
-    // Retry also failed (API error etc.) — no more retries
+    if (getState()._isAborted) return;
     transitionTo("error", t("voiceFlow.retryFailed"));
     playSoundIfEnabled("play_error_sound");
-    useVoiceFlowStore.setState({
+    setState({
       _lastFailedAudioFilePath: null,
       _isRetryAttempt: false,
     });

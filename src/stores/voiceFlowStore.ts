@@ -38,7 +38,7 @@ import {
   resetHudWindowState,
 } from "./voiceFlow/hudWindow";
 import { handleStartRecording, handleStopRecording } from "./voiceFlow/transcriptionPipeline";
-import { handleRetryTranscriptionFlow } from "./voiceFlow/retryFlow";
+import { handleRetryTranscription as handleRetryTranscriptionFlow } from "./voiceFlow/retryFlow";
 import { registerStoreAccessors } from "./voiceFlow/storeAccessors";
 import { useSettingsStore } from "./settingsStore";
 import { useHistoryStore } from "./historyStore";
