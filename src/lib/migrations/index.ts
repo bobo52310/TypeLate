@@ -1,4 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
+import { logInfo } from "@/lib/logger";
 import { v1Initial } from "./v1-initial";
 import { v2ApiUsage } from "./v2-api-usage";
 import { v3VocabularyWeight } from "./v3-vocabulary-weight";
@@ -48,19 +49,19 @@ export async function runMigrations(db: Database): Promise<void> {
   const pending = migrations.filter((m) => m.version > currentVersion);
 
   if (pending.length === 0) {
-    console.log(
-      `[migrations] Schema is up to date at version ${currentVersion}`,
-    );
+    logInfo("migrations", `Schema is up to date at version ${currentVersion}`);
     return;
   }
 
-  console.log(
-    `[migrations] Current version: ${currentVersion}, applying ${pending.length} migration(s)`,
+  logInfo(
+    "migrations",
+    `Current version: ${currentVersion}, applying ${pending.length} migration(s)`,
   );
 
   for (const migration of pending) {
-    console.log(
-      `[migrations] Applying v${migration.version}: ${migration.description}`,
+    logInfo(
+      "migrations",
+      `Applying v${migration.version}: ${migration.description}`,
     );
 
     await migration.up(db);
@@ -70,10 +71,11 @@ export async function runMigrations(db: Database): Promise<void> {
       [migration.version],
     );
 
-    console.log(`[migrations] Completed v${migration.version}`);
+    logInfo("migrations", `Completed v${migration.version}`);
   }
 
-  console.log(
-    `[migrations] All migrations applied. Schema version: ${pending[pending.length - 1]?.version}`,
+  logInfo(
+    "migrations",
+    `All migrations applied. Schema version: ${pending[pending.length - 1]?.version}`,
   );
 }

@@ -11,6 +11,7 @@ import type { TranscriptionCompletedPayload } from "@/types/events";
 import { invoke } from "@tauri-apps/api/core";
 import { getDatabase } from "@/lib/database";
 import { extractErrorMessage } from "@/lib/errorUtils";
+import { logError } from "@/lib/logger";
 import { captureError } from "@/lib/sentry";
 import {
   emitToWindow,
@@ -329,8 +330,9 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       const rows = await db.select<RawTranscriptionRow[]>(SELECT_ALL_SQL);
       set({ transcriptionList: rows.map(mapRowToRecord) });
     } catch (err) {
-      console.error(
-        `[historyStore] fetchTranscriptionList failed: ${extractErrorMessage(err)}`,
+      logError(
+        "history",
+        `fetchTranscriptionList failed: ${extractErrorMessage(err)}`,
       );
       captureError(err, { source: "history", step: "fetch" });
       throw err;
@@ -426,8 +428,9 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         record.llmModelId,
       ]);
     } catch (err) {
-      console.error(
-        `[historyStore] addTranscription failed: ${extractErrorMessage(err)}`,
+      logError(
+        "history",
+        `addTranscription failed: ${extractErrorMessage(err)}`,
       );
       captureError(err, { source: "history", step: "add" });
       throw err;
@@ -446,8 +449,9 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       };
       await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
     } catch (emitErr) {
-      console.error(
-        "[historyStore] emitToWindow failed (INSERT succeeded):",
+      logError(
+        "history",
+        "emitToWindow failed (INSERT succeeded)",
         emitErr,
       );
       captureError(emitErr, { source: "history", step: "add-emit" });
@@ -467,8 +471,9 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         params.id,
       ]);
     } catch (err) {
-      console.error(
-        `[historyStore] updateTranscriptionOnRetrySuccess failed: ${extractErrorMessage(err)}`,
+      logError(
+        "history",
+        `updateTranscriptionOnRetrySuccess failed: ${extractErrorMessage(err)}`,
       );
       captureError(err, { source: "history", step: "update-retry-success" });
       throw err;
@@ -487,8 +492,9 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       };
       await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
     } catch (emitErr) {
-      console.error(
-        "[historyStore] emitToWindow failed (UPDATE succeeded):",
+      logError(
+        "history",
+        "emitToWindow failed (UPDATE succeeded)",
         emitErr,
       );
       captureError(emitErr, { source: "history", step: "update-retry-emit" });
@@ -609,8 +615,9 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         transcriptionList: get().transcriptionList.filter((r) => r.id !== id),
       });
     } catch (err) {
-      console.error(
-        `[historyStore] deleteTranscription failed: ${extractErrorMessage(err)}`,
+      logError(
+        "history",
+        `deleteTranscription failed: ${extractErrorMessage(err)}`,
       );
       captureError(err, { source: "history", step: "delete" });
       throw err;

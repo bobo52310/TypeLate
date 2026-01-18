@@ -1,5 +1,6 @@
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
+import { logInfo, logError } from "@/lib/logger";
 
 export interface UpdateCheckResult {
   status: "up-to-date" | "update-available" | "error";
@@ -17,17 +18,17 @@ export async function checkForAppUpdate(): Promise<UpdateCheckResult> {
   try {
     const update = await check();
     if (!update) {
-      console.log("[autoUpdater] No update available");
+      logInfo("updater", "No update available");
       pendingUpdate = null;
       return { status: "up-to-date" };
     }
 
-    console.log(`[autoUpdater] Update available: v${update.version}`);
+    logInfo("updater", `Update available: v${update.version}`);
     pendingUpdate = update;
     return { status: "update-available", version: update.version };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[autoUpdater] Update check failed:", message);
+    logError("updater", `Update check failed: ${message}`);
     return { status: "error", error: message };
   }
 }
@@ -41,9 +42,9 @@ export async function downloadUpdate(): Promise<void> {
     throw new Error("No pending update. Call checkForAppUpdate() first.");
   }
 
-  console.log("[autoUpdater] Downloading update...");
+  logInfo("updater", "Downloading update...");
   await pendingUpdate.download();
-  console.log("[autoUpdater] Download complete");
+  logInfo("updater", "Download complete");
 }
 
 /**
@@ -55,7 +56,7 @@ export async function installAndRelaunch(): Promise<void> {
     throw new Error("No pending update.");
   }
 
-  console.log("[autoUpdater] Installing update...");
+  logInfo("updater", "Installing update...");
   await pendingUpdate.install();
   await invoke("request_app_restart");
 }
@@ -68,9 +69,9 @@ export async function downloadInstallAndRelaunch(): Promise<void> {
     throw new Error("No pending update. Call checkForAppUpdate() first.");
   }
 
-  console.log("[autoUpdater] Downloading update...");
+  logInfo("updater", "Downloading update...");
   await pendingUpdate.download();
-  console.log("[autoUpdater] Download complete, installing...");
+  logInfo("updater", "Download complete, installing...");
   await pendingUpdate.install();
   await invoke("request_app_restart");
 }

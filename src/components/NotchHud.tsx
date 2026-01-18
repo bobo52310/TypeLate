@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
+import { logInfo } from "@/lib/logger";
 import type { HudStatus } from "@/types";
 import type { VocabularyLearnedPayload } from "@/types/events";
 import { useAudioWaveform } from "@/hooks/useAudioWaveform";
@@ -268,8 +269,9 @@ export function NotchHud({
 
   const handleVocabularyLearned = useCallback(
     (payload: VocabularyLearnedPayload) => {
-      console.log(
-        `[NotchHud] VOCABULARY_LEARNED received: termList=${JSON.stringify(payload.termList)}, visualMode=${visualModeRef.current}, isHighPriority=${isHighPriorityModeRef.current}`,
+      logInfo(
+        "hud",
+        `VOCABULARY_LEARNED received: termList=${JSON.stringify(payload.termList)}, visualMode=${visualModeRef.current}, isHighPriority=${isHighPriorityModeRef.current}`,
       );
       if (!payload.termList || payload.termList.length === 0) return;
 
@@ -277,14 +279,15 @@ export function NotchHud({
         isHighPriorityModeRef.current ||
         visualModeRef.current === "learned"
       ) {
-        console.log(
-          "[NotchHud] queued (high priority or already showing learned)",
+        logInfo(
+          "hud",
+          "queued (high priority or already showing learned)",
         );
         setPendingLearnedTermList((prev) => [...prev, payload.termList]);
         return;
       }
 
-      console.log("[NotchHud] showing learned notification now");
+      logInfo("hud", "showing learned notification now");
       showLearnedNotification(payload.termList);
     },
     [showLearnedNotification],
