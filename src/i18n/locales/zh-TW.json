@@ -308,6 +308,7 @@
   "errors": {
     "databaseInitFailed": "資料庫初始化失敗，歷史記錄暫時無法使用。請重新啟動應用程式。",
     "apiKeyEmpty": "API Key 不可為空白",
+    "apiKeyInvalidFormat": "API Key 應以 gsk_ 開頭",
     "promptEmpty": "Prompt 不可為空白",
     "apiKeyNotSet": "API Key 未設定",
     "enhancementTimeout": "AI 整理逾時",
