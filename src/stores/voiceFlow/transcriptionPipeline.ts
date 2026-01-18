@@ -28,6 +28,7 @@ import {
   calculateWhisperCostCeiling,
   calculateChatCostCeiling,
 } from "@/lib/apiPricing";
+import { retryWithBackoff } from "@/lib/retryWithBackoff";
 import type { StopRecordingResult, TranscriptionResult } from "@/types/audio";
 import type {
   TranscriptionRecord,
@@ -496,12 +497,15 @@ export async function handleStopRecording(): Promise<void> {
     const whisperTermList = await vocabularyStore.getTopTermListByWeight(50);
     const hasVocabulary = whisperTermList.length > 0;
 
-    const result = await invoke<TranscriptionResult>("transcribe_audio", {
-      apiKey,
-      vocabularyTermList: hasVocabulary ? whisperTermList : null,
-      modelId: settingsStore.selectedWhisperModelId,
-      language: settingsStore.getWhisperLanguageCode(),
-    });
+    const result = await retryWithBackoff(
+      () => invoke<TranscriptionResult>("transcribe_audio", {
+        apiKey,
+        vocabularyTermList: hasVocabulary ? whisperTermList : null,
+        modelId: settingsStore.selectedWhisperModelId,
+        language: settingsStore.getWhisperLanguageCode(),
+      }),
+      { maxRetries: 2, signal: abortController?.signal ?? undefined },
+    );
     if (getState()._isAborted) return;
 
     writeInfoLog(`Transcription raw: "${result.rawText}"`);
@@ -604,10 +608,9 @@ export async function handleStopRecording(): Promise<void> {
           signal: abortController?.signal,
         };
 
-        let enhanceResult = await enhanceText(
-          result.rawText,
-          apiKey,
-          enhanceOptions,
+        let enhanceResult = await retryWithBackoff(
+          () => enhanceText(result.rawText, apiKey, enhanceOptions),
+          { maxRetries: 1, signal: abortController?.signal ?? undefined },
         );
         if (getState()._isAborted) return;
 
@@ -624,10 +627,9 @@ export async function handleStopRecording(): Promise<void> {
           writeInfoLog(
             `voiceFlowStore: enhancement anomaly detected (attempt ${String(retryCount)}/${String(MAX_ENHANCEMENT_RETRY_COUNT)}), retrying`,
           );
-          enhanceResult = await enhanceText(
-            result.rawText,
-            apiKey,
-            enhanceOptions,
+          enhanceResult = await retryWithBackoff(
+            () => enhanceText(result.rawText, apiKey, enhanceOptions),
+            { maxRetries: 1, signal: abortController?.signal ?? undefined },
           );
           if (getState()._isAborted) return;
         }
