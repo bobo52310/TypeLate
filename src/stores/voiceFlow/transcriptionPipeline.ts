@@ -348,6 +348,9 @@ async function completePasteFlow(params: {
         () => actions().getState().status,
       );
     }
+
+    // Cleanup: release abort controller reference
+    abortController = null;
   } catch (pasteError) {
     actions().setState({ isRecording: false });
     failRecordingFlow(
