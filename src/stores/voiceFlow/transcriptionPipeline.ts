@@ -19,6 +19,7 @@ import {
   getTranscriptionErrorMessage,
 } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
+import { groqCircuitBreaker } from "@/lib/circuitBreaker";
 import { enhanceText } from "@/lib/enhancer";
 import { detectHallucination, detectEnhancementAnomaly } from "@/lib/hallucinationDetector";
 import { calculateWhisperCostCeiling, calculateChatCostCeiling } from "@/lib/apiPricing";
@@ -450,6 +451,16 @@ export async function handleStopRecording(): Promise<void> {
       return;
     }
 
+    // Circuit breaker: skip API call if recent failures indicate service is down
+    if (!groqCircuitBreaker.canExecute()) {
+      const cooldownSec = Math.ceil(groqCircuitBreaker.getRemainingCooldownMs() / 1000);
+      failRecordingFlow(
+        t("errors.transcription.serviceUnavailable"),
+        `voiceFlowStore: circuit breaker open (cooldown ${cooldownSec}s)`,
+      );
+      return;
+    }
+
     transitionTo("transcribing", t("voiceFlow.transcribing"));
     const settingsStore = getSettingsStore();
     let apiKey = settingsStore.getApiKey();
@@ -471,16 +482,23 @@ export async function handleStopRecording(): Promise<void> {
     const whisperTermList = await vocabularyStore.getTopTermListByWeight(50);
     const hasVocabulary = whisperTermList.length > 0;
 
-    const result = await retryWithBackoff(
-      () =>
-        invoke<TranscriptionResult>("transcribe_audio", {
-          apiKey,
-          vocabularyTermList: hasVocabulary ? whisperTermList : null,
-          modelId: settingsStore.selectedWhisperModelId,
-          language: settingsStore.getWhisperLanguageCode(),
-        }),
-      { maxRetries: 2, signal: abortController?.signal ?? undefined },
-    );
+    let result: TranscriptionResult;
+    try {
+      result = await retryWithBackoff(
+        () =>
+          invoke<TranscriptionResult>("transcribe_audio", {
+            apiKey,
+            vocabularyTermList: hasVocabulary ? whisperTermList : null,
+            modelId: settingsStore.selectedWhisperModelId,
+            language: settingsStore.getWhisperLanguageCode(),
+          }),
+        { maxRetries: 2, signal: abortController?.signal ?? undefined },
+      );
+      groqCircuitBreaker.recordSuccess();
+    } catch (apiErr) {
+      groqCircuitBreaker.recordFailure();
+      throw apiErr;
+    }
     if (getState()._isAborted) return;
 
     writeInfoLog(`Transcription raw: "${result.rawText}"`);
