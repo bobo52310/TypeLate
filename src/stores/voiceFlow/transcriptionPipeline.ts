@@ -458,6 +458,15 @@ export async function handleStopRecording(): Promise<void> {
       return;
     }
 
+    // Network pre-check: fail fast with a clear message instead of waiting for timeout
+    if (!navigator.onLine) {
+      failRecordingFlow(
+        t("errors.network"),
+        "voiceFlowStore: offline — skipping transcription",
+      );
+      return;
+    }
+
     transitionTo("transcribing", t("voiceFlow.transcribing"));
     const settingsStore = getSettingsStore();
     let apiKey = settingsStore.getApiKey();
