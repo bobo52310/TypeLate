@@ -483,9 +483,7 @@ export function NotchHud({
       return (
         <span className={styles.elapsedTimer}>
           {showSilenceHint ? (
-            <span style={{ fontSize: "10px", opacity: 0.7 }}>
-              {t("voiceFlow.recording")}
-            </span>
+            <span style={{ fontSize: "10px", opacity: 0.7 }}>{t("voiceFlow.recording")}</span>
           ) : (
             formattedElapsedTime
           )}
