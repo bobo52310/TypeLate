@@ -139,8 +139,12 @@ export default function RecordingSection() {
               id="cleanup-days"
               type="number"
               min={1}
+              max={365}
               value={cleanupDays}
-              onChange={(e) => setCleanupDays(Number(e.target.value))}
+              onChange={(e) => {
+                const parsed = Number(e.target.value);
+                if (!Number.isNaN(parsed)) setCleanupDays(parsed);
+              }}
               className="w-24"
             />
             <span className="text-sm text-muted-foreground">
