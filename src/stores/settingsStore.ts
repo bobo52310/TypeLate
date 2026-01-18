@@ -25,6 +25,7 @@ import {
   getHotkeyPresetHint,
 } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
+import { logInfo, logError } from "@/lib/logger";
 import {
   getMinimalPromptForLocale,
   getPromptForModeAndLocale,
@@ -167,7 +168,7 @@ async function syncHotkeyConfigToRust(key: TriggerKey, mode: TriggerMode) {
       triggerMode: mode,
     });
   } catch (err) {
-    console.error(
+    logError("settings",
       "[settingsStore] Failed to sync hotkey config:",
       extractErrorMessage(err),
     );
@@ -420,11 +421,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       // Sync saved config to Rust on startup
       await syncHotkeyConfigToRust(key, mode);
       isLoaded = true;
-      console.log(
-        `[settingsStore] Settings loaded: key=${JSON.stringify(key)}, mode=${mode}`,
+      logInfo("settings",
+        `Settings loaded: key=${JSON.stringify(key)}, mode=${mode}`,
       );
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] loadSettings failed:",
         extractErrorMessage(err),
       );
@@ -459,11 +460,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      console.log(
-        `[settingsStore] Hotkey config saved: key=${JSON.stringify(key)}, mode=${mode}`,
+      logInfo("settings",
+        `Hotkey config saved: key=${JSON.stringify(key)}, mode=${mode}`,
       );
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveHotkeyConfig failed:",
         extractErrorMessage(err),
       );
@@ -492,11 +493,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       // Reuse shared logic for active key + Rust sync + event broadcast
       await get().saveHotkeyConfig(customKey, mode);
 
-      console.log(
-        `[settingsStore] Custom trigger key saved: keycode=${keycode}, domCode=${domCode}, mode=${mode}`,
+      logInfo("settings",
+        `Custom trigger key saved: keycode=${keycode}, domCode=${domCode}, mode=${mode}`,
       );
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveCustomTriggerKey failed:",
         extractErrorMessage(err),
       );
@@ -535,9 +536,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      console.log("[settingsStore] API Key saved");
+      logInfo("settings", "API Key saved");
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveApiKey failed:",
         extractErrorMessage(err),
       );
@@ -552,7 +553,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const savedApiKey = await store.get<string>("groqApiKey");
       set({ apiKey: savedApiKey?.trim() ?? "" });
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] refreshApiKey failed:",
         extractErrorMessage(err),
       );
@@ -569,9 +570,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const payload: SettingsUpdatedPayload = { key: "apiKey", value: "" };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      console.log("[settingsStore] API Key deleted");
+      logInfo("settings", "API Key deleted");
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] deleteApiKey failed:",
         extractErrorMessage(err),
       );
@@ -592,10 +593,10 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: mode,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      console.log(`[settingsStore] Prompt mode saved: ${mode}`);
+      logInfo("settings", `Prompt mode saved: ${mode}`);
     } catch (err) {
       set({ promptMode: previousMode });
-      console.error(
+      logError("settings",
         "[settingsStore] savePromptMode failed:",
         extractErrorMessage(err),
       );
@@ -625,7 +626,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         await store.save();
       }
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] consumeUpgradeNotice failed:",
         extractErrorMessage(err),
       );
@@ -650,9 +651,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      console.log("[settingsStore] AI Prompt saved");
+      logInfo("settings", "AI Prompt saved");
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveAiPrompt failed:",
         extractErrorMessage(err),
       );
@@ -677,9 +678,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      console.log("[settingsStore] AI Prompt reset to minimal");
+      logInfo("settings", "AI Prompt reset to minimal");
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] resetAiPrompt failed:",
         extractErrorMessage(err),
       );
@@ -710,11 +711,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      console.log(
-        `[settingsStore] Enhancement threshold saved: enabled=${enabled}, charCount=${validatedCharCount}`,
+      logInfo("settings",
+        `Enhancement threshold saved: enabled=${enabled}, charCount=${validatedCharCount}`,
       );
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveEnhancementThreshold failed:",
         extractErrorMessage(err),
       );
@@ -734,9 +735,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: id,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      console.log(`[settingsStore] LLM model saved: ${id}`);
+      logInfo("settings", `LLM model saved: ${id}`);
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveLlmModel failed:",
         extractErrorMessage(err),
       );
@@ -756,9 +757,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: id,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      console.log(`[settingsStore] Vocabulary analysis model saved: ${id}`);
+      logInfo("settings", `Vocabulary analysis model saved: ${id}`);
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveVocabularyAnalysisModel failed:",
         extractErrorMessage(err),
       );
@@ -778,9 +779,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: id,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      console.log(`[settingsStore] Whisper model saved: ${id}`);
+      logInfo("settings", `Whisper model saved: ${id}`);
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveWhisperModel failed:",
         extractErrorMessage(err),
       );
@@ -793,7 +794,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const { isEnabled } = await import("@tauri-apps/plugin-autostart");
       set({ isAutoStartEnabled: await isEnabled() });
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] loadAutoStartStatus failed:",
         extractErrorMessage(err),
       );
@@ -812,7 +813,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         set({ isAutoStartEnabled: true });
       }
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] toggleAutoStart failed:",
         extractErrorMessage(err),
       );
@@ -836,9 +837,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: locale,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      console.log(`[settingsStore] Locale saved: ${locale}`);
+      logInfo("settings", `Locale saved: ${locale}`);
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveLocale failed:",
         extractErrorMessage(err),
       );
@@ -861,9 +862,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: locale,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      console.log(`[settingsStore] Transcription locale saved: ${locale}`);
+      logInfo("settings", `Transcription locale saved: ${locale}`);
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveTranscriptionLocale failed:",
         extractErrorMessage(err),
       );
@@ -887,9 +888,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: enabled,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      console.log(`[settingsStore] muteOnRecording saved: ${enabled}`);
+      logInfo("settings", `muteOnRecording saved: ${enabled}`);
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveMuteOnRecording failed:",
         extractErrorMessage(err),
       );
@@ -910,9 +911,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: enabled,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      console.log(`[settingsStore] soundEffectsEnabled saved: ${enabled}`);
+      logInfo("settings", `soundEffectsEnabled saved: ${enabled}`);
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveSoundEffectsEnabled failed:",
         extractErrorMessage(err),
       );
@@ -933,11 +934,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: enabled,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      console.log(
-        `[settingsStore] smartDictionaryEnabled saved: ${enabled}`,
+      logInfo("settings",
+        `smartDictionaryEnabled saved: ${enabled}`,
       );
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveSmartDictionaryEnabled failed:",
         extractErrorMessage(err),
       );
@@ -966,11 +967,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         recordingAutoCleanupDays: validatedDays,
       });
 
-      console.log(
-        `[settingsStore] Recording auto cleanup saved: enabled=${enabled}, days=${validatedDays}`,
+      logInfo("settings",
+        `Recording auto cleanup saved: enabled=${enabled}, days=${validatedDays}`,
       );
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveRecordingAutoCleanup failed:",
         extractErrorMessage(err),
       );
@@ -996,11 +997,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      console.log(
-        `[settingsStore] Audio input device saved: "${deviceName || "(system default)"}"`,
+      logInfo("settings",
+        `Audio input device saved: "${deviceName || "(system default)"}"`,
       );
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] saveAudioInputDevice failed:",
         extractErrorMessage(err),
       );
@@ -1121,7 +1122,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         selectedAudioInputDeviceName: savedAudioDevice ?? "",
       });
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] refreshCrossWindowSettings failed:",
         extractErrorMessage(err),
       );
@@ -1140,12 +1141,12 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         await store.set("hasInitAutoStart", true);
         await store.save();
         set({ isAutoStartEnabled: true });
-        console.log("[settingsStore] Auto-start enabled on first launch");
+        logInfo("settings", "Auto-start enabled on first launch");
       } else {
         await get().loadAutoStartStatus();
       }
     } catch (err) {
-      console.error(
+      logError("settings",
         "[settingsStore] initializeAutoStart failed:",
         extractErrorMessage(err),
       );
