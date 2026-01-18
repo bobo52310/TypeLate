@@ -101,10 +101,12 @@ export default function EnhancementSection() {
               id="threshold-char-count"
               type="number"
               min={1}
+              max={1000}
               value={thresholdCharCount}
-              onChange={(e) =>
-                setThresholdCharCount(Number(e.target.value))
-              }
+              onChange={(e) => {
+                const parsed = Number(e.target.value);
+                if (!Number.isNaN(parsed)) setThresholdCharCount(parsed);
+              }}
               className="w-24"
             />
             <Button
