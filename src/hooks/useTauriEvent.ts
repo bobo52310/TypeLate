@@ -33,6 +33,46 @@ export function useTauriEvent<T>(eventName: string, handler: (payload: T) => voi
   }, [eventName]);
 }
 
+/**
+ * Debounced variant of useTauriEvent — coalesces rapid-fire events
+ * into a single handler call after the debounce window.
+ * Useful for cross-window sync events (settings, vocabulary).
+ */
+export function useDebouncedTauriEvent<T>(
+  eventName: string,
+  handler: (payload: T) => void,
+  delayMs = 150,
+): void {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
+  useEffect(() => {
+    let unlisten: UnlistenFn | undefined;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    listen<T>(eventName, (event) => {
+      if (cancelled) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (!cancelled) handlerRef.current(event.payload);
+      }, delayMs);
+    }).then((fn) => {
+      if (cancelled) {
+        fn();
+      } else {
+        unlisten = fn;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      unlisten?.();
+    };
+  }, [eventName, delayMs]);
+}
+
 // Rust → Frontend events
 export const HOTKEY_PRESSED = "hotkey:pressed" as const;
 export const HOTKEY_RELEASED = "hotkey:released" as const;
