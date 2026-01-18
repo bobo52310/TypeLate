@@ -519,6 +519,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (trimmedKey === "") {
       throw new Error(i18n.t("errors.apiKeyEmpty"));
     }
+    if (!trimmedKey.startsWith("gsk_")) {
+      throw new Error(i18n.t("errors.apiKeyInvalidFormat", { defaultValue: "API Key should start with gsk_" }));
+    }
 
     try {
       const store = await load(STORE_NAME);

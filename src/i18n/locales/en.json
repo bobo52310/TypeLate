@@ -308,6 +308,7 @@
   "errors": {
     "databaseInitFailed": "Database initialization failed. History is temporarily unavailable. Please restart the app.",
     "apiKeyEmpty": "API Key cannot be empty",
+    "apiKeyInvalidFormat": "API Key should start with gsk_",
     "promptEmpty": "Prompt cannot be empty",
     "apiKeyNotSet": "API Key not set",
     "enhancementTimeout": "AI enhancement timed out",
