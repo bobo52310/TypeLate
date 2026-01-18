@@ -38,6 +38,16 @@ const COLLAPSE_ANIMATION_DURATION_MS = 400;
 const LEARNED_DISPLAY_DURATION_MS = 2000;
 const MAX_DISPLAY_TERM_COUNT = 3;
 
+// Pre-computed static styles for waveform bar elements (avoid recreating each frame)
+const WAVEFORM_BAR_STYLES: React.CSSProperties[] = Array.from(
+  { length: WAVEFORM_ELEMENT_COUNT },
+  (_, i) => ({
+    height: `var(--bar-h-${i}, ${MIN_BAR_HEIGHT}px)`,
+    width: "4px",
+    borderRadius: "2px",
+  }),
+);
+
 // --- Notch shape ---
 
 interface NotchShapeParams {
@@ -172,23 +182,16 @@ export function NotchHud({
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
   }, [recordingElapsedSeconds]);
 
-  const barStyleList = useMemo(() => {
-    const styleList: React.CSSProperties[] = [];
+  // Use CSS custom properties on the container to avoid per-element style object allocation at 60fps
+  const waveformContainerStyle = useMemo(() => {
+    if (visualMode !== "recording") return undefined;
+    const vars: Record<string, string> = {};
     for (let i = 0; i < WAVEFORM_ELEMENT_COUNT; i++) {
-      if (visualMode === "recording") {
-        const level = waveformLevelList[i] ?? 0;
-        const height =
-          MIN_BAR_HEIGHT + level * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT);
-        styleList.push({
-          height: `${Math.round(height)}px`,
-          width: "4px",
-          borderRadius: "2px",
-        });
-      } else {
-        styleList.push({});
-      }
+      const level = waveformLevelList[i] ?? 0;
+      const height = MIN_BAR_HEIGHT + level * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT);
+      vars[`--bar-h-${i}`] = `${Math.round(height)}px`;
     }
-    return styleList;
+    return vars as React.CSSProperties;
   }, [visualMode, waveformLevelList]);
 
   const waveformElementClass = getWaveformElementClass(visualMode);
@@ -430,12 +433,12 @@ export function NotchHud({
 
     return (
       <>
-        <div className={styles.waveformContainer}>
-          {barStyleList.map((barStyle, index) => (
+        <div className={styles.waveformContainer} style={waveformContainerStyle}>
+          {WAVEFORM_BAR_STYLES.map((barStyle, index) => (
             <span
               key={index}
               className={cn(styles.waveformElement, waveformElementClass)}
-              style={barStyle}
+              style={visualMode === "recording" ? barStyle : undefined}
             />
           ))}
         </div>
