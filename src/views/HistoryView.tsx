@@ -15,6 +15,7 @@ import {
   Play,
   Square,
   Mic,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { captureError } from "@/lib/sentry";
@@ -118,6 +119,7 @@ export default function HistoryView() {
   const loadMore = useHistoryStore((s) => s.loadMore);
   const setSearchQuery = useHistoryStore((s) => s.setSearchQuery);
   const deleteTranscription = useHistoryStore((s) => s.deleteTranscription);
+  const exportAllTranscriptions = useHistoryStore((s) => s.exportAllTranscriptions);
   const hotkeyConfig = useSettingsStore((s) => s.hotkeyConfig);
 
   const [searchInput, setSearchInput] = useState("");
@@ -126,6 +128,7 @@ export default function HistoryView() {
   const [copiedRawRecordId, setCopiedRawRecordId] = useState<string | null>(null);
   const [playingRecordId, setPlayingRecordId] = useState<string | null>(null);
   const [playbackErrorId, setPlaybackErrorId] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<"idle" | "exporting" | "done">("idle");
 
   // Random slogan for empty state (stable per mount)
   const [slogan] = useState(() => getRandomSlogan());
@@ -265,6 +268,32 @@ export default function HistoryView() {
     }
   }
 
+  async function handleExport() {
+    setExportStatus("exporting");
+    try {
+      const allRecords = await exportAllTranscriptions();
+      const exportData = allRecords.map((r) => ({
+        id: r.id,
+        timestamp: r.timestamp,
+        date: new Date(r.timestamp).toISOString(),
+        rawText: r.rawText,
+        processedText: r.processedText,
+        charCount: r.charCount,
+        recordingDurationMs: r.recordingDurationMs,
+        wasEnhanced: r.wasEnhanced,
+        whisperModelId: r.whisperModelId,
+        llmModelId: r.llmModelId,
+      }));
+      const json = JSON.stringify(exportData, null, 2);
+      await invoke("copy_to_clipboard", { text: json });
+      setExportStatus("done");
+      setTimeout(() => setExportStatus("idle"), 2500);
+    } catch (err) {
+      captureError(err, { source: "history", action: "export" });
+      setExportStatus("idle");
+    }
+  }
+
   useEffect(() => {
     void resetAndFetch();
     let unlisten: (() => void) | undefined;
@@ -298,17 +327,35 @@ export default function HistoryView() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Search */}
+      {/* Search + Export */}
       <div className="shrink-0 px-5 pt-4 pb-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder={t("history.searchPlaceholder")}
-            className="w-full pl-9 h-8 text-sm"
-            value={searchInput}
-            onChange={(e) => handleSearchInput(e.target.value)}
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder={t("history.searchPlaceholder")}
+              className="w-full pl-9 h-8 text-sm"
+              value={searchInput}
+              onChange={(e) => handleSearchInput(e.target.value)}
+            />
+          </div>
+          {transcriptionList.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 px-2 text-xs text-muted-foreground"
+              disabled={exportStatus === "exporting"}
+              onClick={() => void handleExport()}
+            >
+              {exportStatus === "done" ? (
+                <Check className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              {exportStatus === "done" ? t("history.copied") : "JSON"}
+            </Button>
+          )}
         </div>
       </div>
 

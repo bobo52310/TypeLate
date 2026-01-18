@@ -229,6 +229,7 @@ interface HistoryState {
   clearAudioFilePathByIdList: (idList: string[]) => Promise<void>;
   deleteTranscription: (id: string) => Promise<void>;
   deleteAllRecordingFiles: () => Promise<number>;
+  exportAllTranscriptions: () => Promise<TranscriptionRecord[]>;
 }
 
 async function fetchDailyQuotaUsage(): Promise<DailyQuotaUsage> {
@@ -620,5 +621,11 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     const deletedCount = await invoke<number>("delete_all_recordings");
     await get().clearAllAudioFilePath();
     return deletedCount;
+  },
+
+  exportAllTranscriptions: async () => {
+    const db = getDatabase();
+    const rows = await db.select<RawTranscriptionRow[]>(SELECT_ALL_SQL);
+    return rows.map(mapRowToRecord);
   },
 }));
