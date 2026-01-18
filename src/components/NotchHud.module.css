@@ -89,12 +89,24 @@
   height: 6px;
   border-radius: 50%;
 }
-.waveformMorphing:nth-child(1) { transition-delay: 0ms; }
-.waveformMorphing:nth-child(2) { transition-delay: 50ms; }
-.waveformMorphing:nth-child(3) { transition-delay: 100ms; }
-.waveformMorphing:nth-child(4) { transition-delay: 150ms; }
-.waveformMorphing:nth-child(5) { transition-delay: 200ms; }
-.waveformMorphing:nth-child(6) { transition-delay: 250ms; }
+.waveformMorphing:nth-child(1) {
+  transition-delay: 0ms;
+}
+.waveformMorphing:nth-child(2) {
+  transition-delay: 50ms;
+}
+.waveformMorphing:nth-child(3) {
+  transition-delay: 100ms;
+}
+.waveformMorphing:nth-child(4) {
+  transition-delay: 150ms;
+}
+.waveformMorphing:nth-child(5) {
+  transition-delay: 200ms;
+}
+.waveformMorphing:nth-child(6) {
+  transition-delay: 250ms;
+}
 
 /* ---- Gap 3: Transcribing dots sliding window ---- */
 .waveformDot {
@@ -105,20 +117,42 @@
   border: 1.5px solid rgba(255, 255, 255, 0.4);
   animation: dotSlide 1.5s ease-in-out infinite;
 }
-.waveformDot:nth-child(1) { animation-delay: 0s; }
-.waveformDot:nth-child(2) { animation-delay: 0.3s; }
-.waveformDot:nth-child(3) { animation-delay: 0.6s; }
-.waveformDot:nth-child(4) { animation-delay: 0.9s; }
-.waveformDot:nth-child(5) { animation-delay: 1.2s; }
+.waveformDot:nth-child(1) {
+  animation-delay: 0s;
+}
+.waveformDot:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.waveformDot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+.waveformDot:nth-child(4) {
+  animation-delay: 0.9s;
+}
+.waveformDot:nth-child(5) {
+  animation-delay: 1.2s;
+}
 .waveformDot:nth-child(6) {
   display: none;
 }
 
 @keyframes dotSlide {
-  0%     { background: white; border-color: white; }
-  50%    { background: white; border-color: white; }
-  50.01% { background: transparent; border-color: rgba(255, 255, 255, 0.4); }
-  100%   { background: transparent; border-color: rgba(255, 255, 255, 0.4); }
+  0% {
+    background: white;
+    border-color: white;
+  }
+  50% {
+    background: white;
+    border-color: white;
+  }
+  50.01% {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+  100% {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.4);
+  }
 }
 
 /* ---- Success: converge + SVG checkmark ---- */
@@ -128,16 +162,34 @@
   border-radius: 50%;
   animation: dotConverge 0.35s ease-in forwards;
 }
-.waveformConverge:nth-child(1) { --converge-offset: -12px; }
-.waveformConverge:nth-child(2) { --converge-offset: -7px; }
-.waveformConverge:nth-child(3) { --converge-offset: -3px; }
-.waveformConverge:nth-child(4) { --converge-offset: 3px; }
-.waveformConverge:nth-child(5) { --converge-offset: 7px; }
-.waveformConverge:nth-child(6) { --converge-offset: 12px; }
+.waveformConverge:nth-child(1) {
+  --converge-offset: -12px;
+}
+.waveformConverge:nth-child(2) {
+  --converge-offset: -7px;
+}
+.waveformConverge:nth-child(3) {
+  --converge-offset: -3px;
+}
+.waveformConverge:nth-child(4) {
+  --converge-offset: 3px;
+}
+.waveformConverge:nth-child(5) {
+  --converge-offset: 7px;
+}
+.waveformConverge:nth-child(6) {
+  --converge-offset: 12px;
+}
 
 @keyframes dotConverge {
-  from { transform: translateX(var(--converge-offset)) scale(1); opacity: 1; }
-  to   { transform: translateX(0) scale(0); opacity: 0; }
+  from {
+    transform: translateX(var(--converge-offset)) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(0) scale(0);
+    opacity: 0;
+  }
 }
 
 /* Gap 5: SVG checkmark stroke animation */
@@ -151,53 +203,42 @@
   animation: drawCheck 0.3s ease-out 0.35s forwards;
 }
 @keyframes drawCheck {
-  to { stroke-dashoffset: 0; }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /* ---- Success: green glow from notch edge ---- */
 .notchWrapperSuccess {
-  filter:
-    drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))
-    drop-shadow(0 0 10px rgba(34, 197, 94, 0.5))
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 10px rgba(34, 197, 94, 0.5))
     drop-shadow(0 0 25px rgba(34, 197, 94, 0.2));
   animation: successGlow 0.8s ease-out forwards;
 }
 
 @keyframes successGlow {
   0% {
-    filter:
-      drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))
-      drop-shadow(0 0 12px rgba(34, 197, 94, 0.6))
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 12px rgba(34, 197, 94, 0.6))
       drop-shadow(0 0 30px rgba(34, 197, 94, 0.3));
   }
   100% {
-    filter:
-      drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))
-      drop-shadow(0 0 2px rgba(34, 197, 94, 0));
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 2px rgba(34, 197, 94, 0));
   }
 }
 
-
 /* ---- Learned: blue glow + text ---- */
 .notchWrapperLearned {
-  filter:
-    drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))
-    drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))
     drop-shadow(0 0 25px rgba(59, 130, 246, 0.2));
   animation: learnedGlow 2s ease-out forwards;
 }
 
 @keyframes learnedGlow {
   0% {
-    filter:
-      drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))
-      drop-shadow(0 0 12px rgba(59, 130, 246, 0.6))
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 12px rgba(59, 130, 246, 0.6))
       drop-shadow(0 0 30px rgba(59, 130, 246, 0.3));
   }
   100% {
-    filter:
-      drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))
-      drop-shadow(0 0 2px rgba(59, 130, 246, 0));
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 2px rgba(59, 130, 246, 0));
   }
 }
 
@@ -206,8 +247,14 @@
 }
 
 @keyframes learnedIconFadeIn {
-  from { opacity: 0; transform: scale(0.5); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .learnedLabel {
@@ -236,8 +283,14 @@
 }
 
 @keyframes learnedTextFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ---- Cancelled: X icon + label ---- */
@@ -246,8 +299,14 @@
 }
 
 @keyframes cancelledIconFadeIn {
-  from { opacity: 0; transform: scale(0.5); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .cancelledLabel {
@@ -259,8 +318,14 @@
 }
 
 @keyframes cancelledTextFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ---- Error: scatter + shake ---- */
@@ -271,12 +336,24 @@
   background: #f97316;
   animation: dotScatter 0.4s ease-out forwards;
 }
-.waveformScatter:nth-child(1) { --scatter-offset: -6; }
-.waveformScatter:nth-child(2) { --scatter-offset: -3; }
-.waveformScatter:nth-child(3) { --scatter-offset: 0; }
-.waveformScatter:nth-child(4) { --scatter-offset: 3; }
-.waveformScatter:nth-child(5) { --scatter-offset: 6; }
-.waveformScatter:nth-child(6) { --scatter-offset: 9; }
+.waveformScatter:nth-child(1) {
+  --scatter-offset: -6;
+}
+.waveformScatter:nth-child(2) {
+  --scatter-offset: -3;
+}
+.waveformScatter:nth-child(3) {
+  --scatter-offset: 0;
+}
+.waveformScatter:nth-child(4) {
+  --scatter-offset: 3;
+}
+.waveformScatter:nth-child(5) {
+  --scatter-offset: 6;
+}
+.waveformScatter:nth-child(6) {
+  --scatter-offset: 9;
+}
 
 @keyframes dotScatter {
   from {
@@ -294,17 +371,27 @@
 }
 
 @keyframes notchShake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-4px); }
-  40% { transform: translateX(4px); }
-  60% { transform: translateX(-3px); }
-  80% { transform: translateX(2px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
 }
-
 
 /* ---- Gap 7: Timer font ---- */
 .elapsedTimer {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   color: rgba(255, 255, 255, 0.6);
   font-size: 12px;
   font-weight: 500;
@@ -340,8 +427,14 @@
 }
 
 @keyframes errorMessageFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ---- Retry Icon ---- */

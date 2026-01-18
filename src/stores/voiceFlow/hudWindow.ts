@@ -33,14 +33,10 @@ export async function repositionHudToCurrentMonitor(): Promise<void> {
   if (isRepositioning) return;
   isRepositioning = true;
   try {
-    const position = await invoke<HudTargetPosition>(
-      "get_hud_target_position",
-    );
+    const position = await invoke<HudTargetPosition>("get_hud_target_position");
     if (position.monitorKey !== lastMonitorKey) {
       lastMonitorKey = position.monitorKey;
-      await getAppWindow().setPosition(
-        new LogicalPosition(position.x, position.y),
-      );
+      await getAppWindow().setPosition(new LogicalPosition(position.x, position.y));
     }
   } catch {
     // Monitor repositioning failure is low priority -- silent

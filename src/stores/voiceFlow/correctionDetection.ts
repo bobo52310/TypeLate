@@ -19,19 +19,9 @@ import { analyzeCorrections } from "@/lib/vocabularyAnalyzer";
 import { extractErrorMessage } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
 import { calculateChatCostCeiling } from "@/lib/apiPricing";
-import {
-  CORRECTION_MONITOR_RESULT,
-  VOCABULARY_LEARNED,
-} from "@/hooks/useTauriEvent";
-import type {
-  CorrectionMonitorResultPayload,
-  VocabularyLearnedPayload,
-} from "@/types/events";
-import {
-  getSettingsStore,
-  getHistoryStore,
-  getVocabularyStore,
-} from "./storeAccessors";
+import { CORRECTION_MONITOR_RESULT, VOCABULARY_LEARNED } from "@/hooks/useTauriEvent";
+import type { CorrectionMonitorResultPayload, VocabularyLearnedPayload } from "@/types/events";
+import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
 import { getAppWindow, hideHud } from "./hudWindow";
 import { clearLearnedHideTimer, setLearnedHideTimer } from "./timers";
 
@@ -98,9 +88,7 @@ export function startCorrectionDetectionFlow(
       correctionSnapshotTimer = setInterval(() => {
         void (async () => {
           try {
-            const text = await invoke<string | null>(
-              "read_focused_text_field",
-            );
+            const text = await invoke<string | null>("read_focused_text_field");
             if (text) {
               latestSnapshot = text;
               consecutiveSnapshotErrors = 0;
@@ -128,9 +116,7 @@ export function startCorrectionDetectionFlow(
               const result = event.payload;
 
               if (!result.anyKeyPressed) {
-                writeInfoLog(
-                  "[correction] no key pressed -- skipping analysis",
-                );
+                writeInfoLog("[correction] no key pressed -- skipping analysis");
                 return;
               }
 
@@ -142,9 +128,7 @@ export function startCorrectionDetectionFlow(
 
               if (result.enterPressed) {
                 try {
-                  const freshText = await invoke<string | null>(
-                    "read_focused_text_field",
-                  );
+                  const freshText = await invoke<string | null>("read_focused_text_field");
                   if (freshText && freshText.trim()) {
                     fieldText = freshText;
                   } else {
@@ -155,24 +139,18 @@ export function startCorrectionDetectionFlow(
                 }
               } else {
                 try {
-                  fieldText = await invoke<string | null>(
-                    "read_focused_text_field",
-                  );
+                  fieldText = await invoke<string | null>("read_focused_text_field");
                 } catch {
                   fieldText = latestSnapshot;
                 }
               }
 
               if (!fieldText || !fieldText.trim()) {
-                writeInfoLog(
-                  "[correction] field text is null or empty -- skipping analysis",
-                );
+                writeInfoLog("[correction] field text is null or empty -- skipping analysis");
                 return;
               }
               if (fieldText.includes(pastedText)) {
-                writeInfoLog(
-                  "[correction] text unchanged -- skipping analysis",
-                );
+                writeInfoLog("[correction] text unchanged -- skipping analysis");
                 return;
               }
 
@@ -192,18 +170,11 @@ export function startCorrectionDetectionFlow(
                 `[correction] text modified (overlap=${String(Math.round(overlapRatio * 100))}%) -- sending to AI analysis\n  original:  ${pastedText.slice(0, 80)}\n  corrected: ${fieldText.slice(0, 80)}`,
               );
 
-              const analysisResult = await analyzeCorrections(
-                pastedText,
-                fieldText,
-                apiKey,
-                {
-                  modelId: settingsStore.selectedVocabularyAnalysisModelId,
-                },
-              );
+              const analysisResult = await analyzeCorrections(pastedText, fieldText, apiKey, {
+                modelId: settingsStore.selectedVocabularyAnalysisModelId,
+              });
 
-              writeInfoLog(
-                `[correction] AI raw: ${analysisResult.rawResponse}`,
-              );
+              writeInfoLog(`[correction] AI raw: ${analysisResult.rawResponse}`);
               writeInfoLog(
                 `[correction] AI result: ${JSON.stringify(analysisResult.suggestedTermList)} (tokens: ${String(analysisResult.usage?.totalTokens ?? "??")})`,
               );
@@ -216,9 +187,7 @@ export function startCorrectionDetectionFlow(
               for (const term of analysisResult.suggestedTermList) {
                 if (vocabularyStore.isDuplicateTerm(term)) {
                   const existingEntry = vocabularyStore.termList.find(
-                    (e) =>
-                      e.term.trim().toLowerCase() ===
-                      term.trim().toLowerCase(),
+                    (e) => e.term.trim().toLowerCase() === term.trim().toLowerCase(),
                   );
                   if (existingEntry) {
                     void vocabularyStore
@@ -272,9 +241,7 @@ export function startCorrectionDetectionFlow(
                   await emit(VOCABULARY_LEARNED, {
                     termList: newTermList,
                   } satisfies VocabularyLearnedPayload);
-                  writeInfoLog(
-                    "voiceFlowStore: VOCABULARY_LEARNED emitted successfully",
-                  );
+                  writeInfoLog("voiceFlowStore: VOCABULARY_LEARNED emitted successfully");
 
                   // HUD window was hidden after idle -- re-show for notification
                   clearLearnedHideTimer();
@@ -311,9 +278,7 @@ export function startCorrectionDetectionFlow(
     } catch (err) {
       stopCorrectionSnapshotPolling();
       cleanupCorrectionMonitorListener();
-      writeErrorLog(
-        `voiceFlowStore: correction detection failed: ${extractErrorMessage(err)}`,
-      );
+      writeErrorLog(`voiceFlowStore: correction detection failed: ${extractErrorMessage(err)}`);
       captureError(err, {
         source: "voice-flow",
         step: "correction-detection",

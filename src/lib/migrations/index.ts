@@ -59,17 +59,13 @@ export async function runMigrations(db: Database): Promise<void> {
   );
 
   for (const migration of pending) {
-    logInfo(
-      "migrations",
-      `Applying v${migration.version}: ${migration.description}`,
-    );
+    logInfo("migrations", `Applying v${migration.version}: ${migration.description}`);
 
     await migration.up(db);
 
-    await db.execute(
-      "INSERT OR REPLACE INTO schema_version (version) VALUES ($1);",
-      [migration.version],
-    );
+    await db.execute("INSERT OR REPLACE INTO schema_version (version) VALUES ($1);", [
+      migration.version,
+    ]);
 
     logInfo("migrations", `Completed v${migration.version}`);
   }

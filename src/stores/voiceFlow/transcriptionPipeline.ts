@@ -20,21 +20,11 @@ import {
 } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
 import { enhanceText } from "@/lib/enhancer";
-import {
-  detectHallucination,
-  detectEnhancementAnomaly,
-} from "@/lib/hallucinationDetector";
-import {
-  calculateWhisperCostCeiling,
-  calculateChatCostCeiling,
-} from "@/lib/apiPricing";
+import { detectHallucination, detectEnhancementAnomaly } from "@/lib/hallucinationDetector";
+import { calculateWhisperCostCeiling, calculateChatCostCeiling } from "@/lib/apiPricing";
 import { retryWithBackoff } from "@/lib/retryWithBackoff";
 import type { StopRecordingResult, TranscriptionResult } from "@/types/audio";
-import type {
-  TranscriptionRecord,
-  ChatUsageData,
-  ApiUsageRecord,
-} from "@/types/transcription";
+import type { TranscriptionRecord, ChatUsageData, ApiUsageRecord } from "@/types/transcription";
 import type { HudStatus } from "@/types";
 import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
 import {
@@ -131,9 +121,7 @@ export async function restoreSystemAudio(): Promise<void> {
   try {
     await invoke("restore_system_audio");
   } catch (err) {
-    writeErrorLog(
-      `voiceFlowStore: restore_system_audio failed: ${extractErrorMessage(err)}`,
-    );
+    writeErrorLog(`voiceFlowStore: restore_system_audio failed: ${extractErrorMessage(err)}`);
     captureError(err, { source: "voice-flow", step: "restore-audio" });
   }
 }
@@ -142,9 +130,7 @@ export async function restoreSystemAudio(): Promise<void> {
 
 function startQualityMonitorAfterPaste(): void {
   void invoke("start_quality_monitor").catch((err: unknown) => {
-    writeErrorLog(
-      `voiceFlowStore: start_quality_monitor failed: ${extractErrorMessage(err)}`,
-    );
+    writeErrorLog(`voiceFlowStore: start_quality_monitor failed: ${extractErrorMessage(err)}`);
     captureError(err, { source: "voice-flow", step: "quality-monitor" });
   });
 }
@@ -171,9 +157,7 @@ export function buildTranscriptionRecord(params: {
     recordingDurationMs: Math.round(params.recordingDurationMs),
     transcriptionDurationMs: Math.round(params.transcriptionDurationMs),
     enhancementDurationMs:
-      params.enhancementDurationMs !== null
-        ? Math.round(params.enhancementDurationMs)
-        : null,
+      params.enhancementDurationMs !== null ? Math.round(params.enhancementDurationMs) : null,
     charCount: params.rawText.length,
     triggerMode: settingsStore.triggerMode(),
     wasEnhanced: params.wasEnhanced,
@@ -188,16 +172,12 @@ export function buildTranscriptionRecord(params: {
 
 // ── Save helpers ──
 
-async function saveTranscriptionRecord(
-  record: TranscriptionRecord,
-): Promise<void> {
+async function saveTranscriptionRecord(record: TranscriptionRecord): Promise<void> {
   const historyStore = getHistoryStore();
   try {
     await historyStore.addTranscription(record);
   } catch (err) {
-    writeErrorLog(
-      `voiceFlowStore: addTranscription failed: ${extractErrorMessage(err)}`,
-    );
+    writeErrorLog(`voiceFlowStore: addTranscription failed: ${extractErrorMessage(err)}`);
     captureError(err, { source: "voice-flow", step: "save-transcription" });
   }
 }
@@ -270,10 +250,7 @@ function updateVocabularyWeightsAfterPaste(finalText: string): void {
       for (const entry of vocabularyStore.termList) {
         const isEnglish = /^[a-zA-Z]/.test(entry.term);
         if (isEnglish) {
-          const regex = new RegExp(
-            "\\b" + escapeRegex(entry.term) + "\\b",
-            "i",
-          );
+          const regex = new RegExp("\\b" + escapeRegex(entry.term) + "\\b", "i");
           if (regex.test(finalText)) {
             matchedIdList.push(entry.id);
           }
@@ -291,9 +268,7 @@ function updateVocabularyWeightsAfterPaste(finalText: string): void {
         );
       }
     } catch (err) {
-      writeErrorLog(
-        `voiceFlowStore: vocabulary weight update failed: ${extractErrorMessage(err)}`,
-      );
+      writeErrorLog(`voiceFlowStore: vocabulary weight update failed: ${extractErrorMessage(err)}`);
       captureError(err, {
         source: "voice-flow",
         step: "vocabulary-weight-update",
@@ -317,9 +292,8 @@ async function completePasteFlow(params: {
     actions().setState({ isRecording: false });
 
     // Show text preview in success message (truncate to ~30 chars)
-    const preview = params.text.trim().length > 30
-      ? params.text.trim().slice(0, 30) + "…"
-      : params.text.trim();
+    const preview =
+      params.text.trim().length > 30 ? params.text.trim().slice(0, 30) + "…" : params.text.trim();
     const successWithPreview = preview
       ? `${params.successMessage} · ${preview}`
       : params.successMessage;
@@ -472,10 +446,7 @@ export async function handleStopRecording(): Promise<void> {
 
     // Network pre-check: fail fast with a clear message instead of waiting for timeout
     if (!navigator.onLine) {
-      failRecordingFlow(
-        t("errors.network"),
-        "voiceFlowStore: offline — skipping transcription",
-      );
+      failRecordingFlow(t("errors.network"), "voiceFlowStore: offline — skipping transcription");
       return;
     }
 
@@ -501,12 +472,13 @@ export async function handleStopRecording(): Promise<void> {
     const hasVocabulary = whisperTermList.length > 0;
 
     const result = await retryWithBackoff(
-      () => invoke<TranscriptionResult>("transcribe_audio", {
-        apiKey,
-        vocabularyTermList: hasVocabulary ? whisperTermList : null,
-        modelId: settingsStore.selectedWhisperModelId,
-        language: settingsStore.getWhisperLanguageCode(),
-      }),
+      () =>
+        invoke<TranscriptionResult>("transcribe_audio", {
+          apiKey,
+          vocabularyTermList: hasVocabulary ? whisperTermList : null,
+          modelId: settingsStore.selectedWhisperModelId,
+          language: settingsStore.getWhisperLanguageCode(),
+        }),
       { maxRetries: 2, signal: abortController?.signal ?? undefined },
     );
     if (getState()._isAborted) return;
@@ -601,12 +573,10 @@ export async function handleStopRecording(): Promise<void> {
       const enhancementStartTime = performance.now();
 
       try {
-        const enhancementTermList =
-          await vocabularyStore.getTopTermListByWeight(50);
+        const enhancementTermList = await vocabularyStore.getTopTermListByWeight(50);
         const enhanceOptions = {
           systemPrompt: settingsStore.getAiPrompt(),
-          vocabularyTermList:
-            enhancementTermList.length > 0 ? enhancementTermList : undefined,
+          vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
           modelId: settingsStore.selectedLlmModelId,
           signal: abortController?.signal,
         };
@@ -648,8 +618,7 @@ export async function handleStopRecording(): Promise<void> {
           enhanceResult = { ...enhanceResult, text: result.rawText };
         }
 
-        const enhancementDurationMs =
-          performance.now() - enhancementStartTime;
+        const enhancementDurationMs = performance.now() - enhancementStartTime;
 
         const record = buildTranscriptionRecord({
           id: transcriptionId,
@@ -677,12 +646,9 @@ export async function handleStopRecording(): Promise<void> {
         );
       } catch (enhanceError) {
         if (getState()._isAborted) return;
-        const fallbackEnhancementDurationMs =
-          performance.now() - enhancementStartTime;
+        const fallbackEnhancementDurationMs = performance.now() - enhancementStartTime;
         const enhanceErrorDetail = getEnhancementErrorMessage(enhanceError);
-        writeErrorLog(
-          `voiceFlowStore: AI enhancement failed: ${enhanceErrorDetail}`,
-        );
+        writeErrorLog(`voiceFlowStore: AI enhancement failed: ${enhanceErrorDetail}`);
         captureError(enhanceError, {
           source: "voice-flow",
           step: "enhancement",

@@ -81,9 +81,7 @@ function isTermTooShort(term: string): boolean {
 }
 
 function isValidSuggestedTerm(item: unknown): item is string {
-  return (
-    typeof item === "string" && item.trim().length > 0 && !isTermTooShort(item)
-  );
+  return typeof item === "string" && item.trim().length > 0 && !isTermTooShort(item);
 }
 
 function parseSuggestedTermList(content: string): string[] {

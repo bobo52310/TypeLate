@@ -54,8 +54,7 @@ export const HOTKEY_ERROR_CODES = {
   HOOK_INSTALL_FAILED: "hook_install_failed",
 } as const;
 
-export type HotkeyErrorCode =
-  (typeof HOTKEY_ERROR_CODES)[keyof typeof HOTKEY_ERROR_CODES];
+export type HotkeyErrorCode = (typeof HOTKEY_ERROR_CODES)[keyof typeof HOTKEY_ERROR_CODES];
 
 export interface HotkeyErrorPayload {
   error: HotkeyErrorCode;

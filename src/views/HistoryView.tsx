@@ -22,12 +22,7 @@ import { captureError } from "@/lib/sentry";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import type { TranscriptionRecord } from "@/types/transcription";
-import {
-  truncateText,
-  getDisplayText,
-  formatDuration,
-  formatDurationMs,
-} from "@/lib/formatUtils";
+import { truncateText, getDisplayText, formatDuration, formatDurationMs } from "@/lib/formatUtils";
 
 const TRANSCRIPTION_COMPLETED = "transcription:completed";
 const SEARCH_DEBOUNCE_MS = 300;
@@ -256,8 +251,14 @@ export default function HistoryView() {
       currentBlobUrlRef.current = blobUrl;
       const audio = new Audio(blobUrl);
       currentAudioRef.current = audio;
-      audio.addEventListener("ended", () => { cleanupAudio(); setPlayingRecordId(null); });
-      audio.addEventListener("error", () => { cleanupAudio(); setPlayingRecordId(null); });
+      audio.addEventListener("ended", () => {
+        cleanupAudio();
+        setPlayingRecordId(null);
+      });
+      audio.addEventListener("error", () => {
+        cleanupAudio();
+        setPlayingRecordId(null);
+      });
       await audio.play();
     } catch (err) {
       captureError(err, { source: "history", action: "play-recording" });
@@ -299,7 +300,9 @@ export default function HistoryView() {
     let unlisten: (() => void) | undefined;
     listen(TRANSCRIPTION_COMPLETED, () => {
       void resetAndFetch();
-    }).then((fn) => { unlisten = fn; });
+    }).then((fn) => {
+      unlisten = fn;
+    });
     return () => {
       unlisten?.();
       cleanupAudio();
@@ -411,9 +414,7 @@ export default function HistoryView() {
                     key={record.id}
                     className={cn(
                       "rounded-lg border transition-colors",
-                      expanded
-                        ? "border-border bg-card"
-                        : "border-transparent hover:bg-accent/40",
+                      expanded ? "border-border bg-card" : "border-transparent hover:bg-accent/40",
                     )}
                   >
                     {/* Row */}
@@ -426,14 +427,15 @@ export default function HistoryView() {
                         <button
                           className={cn(
                             "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
-                            playing
-                              ? "bg-primary/15"
-                              : "bg-muted hover:bg-muted/80",
+                            playing ? "bg-primary/15" : "bg-muted hover:bg-muted/80",
                             !record.audioFilePath && "opacity-30",
                           )}
                           disabled={!record.audioFilePath}
                           aria-label={t("history.playRecording")}
-                          onClick={(e) => { e.stopPropagation(); void handlePlayRecording(record); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handlePlayRecording(record);
+                          }}
                         >
                           {playing ? (
                             <PlaybackWaveform />
@@ -455,10 +457,16 @@ export default function HistoryView() {
                             {truncateText(getDisplayText(record), 60)}
                           </span>
                           {record.wasEnhanced && (
-                            <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title={t("dashboard.aiEnhanced")} />
+                            <span
+                              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+                              title={t("dashboard.aiEnhanced")}
+                            />
                           )}
                           {record.status === "failed" && (
-                            <Badge variant="destructive" className="text-[9px] px-1 py-0 leading-tight">
+                            <Badge
+                              variant="destructive"
+                              className="text-[9px] px-1 py-0 leading-tight"
+                            >
                               {t("history.failedBadge")}
                             </Badge>
                           )}
@@ -470,7 +478,9 @@ export default function HistoryView() {
                           {record.charCount > 0 && (
                             <>
                               <span>·</span>
-                              <span>{record.charCount} {t("dashboard.characterUnit")}</span>
+                              <span>
+                                {record.charCount} {t("dashboard.characterUnit")}
+                              </span>
                             </>
                           )}
                         </div>
@@ -483,7 +493,10 @@ export default function HistoryView() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={(e) => { e.stopPropagation(); void handlePlayRecording(record); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handlePlayRecording(record);
+                            }}
                           >
                             <Square className="h-2.5 w-2.5 fill-current" />
                           </Button>
@@ -492,7 +505,10 @@ export default function HistoryView() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={(e) => { e.stopPropagation(); void handleCopyText(record); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleCopyText(record);
+                          }}
                         >
                           {copiedRecordId === record.id ? (
                             <Check className="h-3 w-3 text-primary" />
@@ -532,7 +548,10 @@ export default function HistoryView() {
                             </p>
                             <button
                               className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-                              onClick={(e) => { e.stopPropagation(); void handleCopyRawText(record); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleCopyRawText(record);
+                              }}
                             >
                               {copiedRawRecordId === record.id ? (
                                 <Check className="h-2.5 w-2.5 text-primary" />
@@ -540,7 +559,9 @@ export default function HistoryView() {
                                 <Copy className="h-2.5 w-2.5" />
                               )}
                               <span>
-                                {copiedRawRecordId === record.id ? t("history.copied") : t("history.copy")}
+                                {copiedRawRecordId === record.id
+                                  ? t("history.copied")
+                                  : t("history.copy")}
                               </span>
                             </button>
                           </div>
@@ -551,17 +572,30 @@ export default function HistoryView() {
 
                         {/* Metadata */}
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2.5 text-[11px] text-muted-foreground">
-                          <span>{t("history.recordingLabel")} {formatDurationMs(record.recordingDurationMs)}</span>
-                          <span>{t("history.transcriptionLabel")} {formatDurationMs(record.transcriptionDurationMs)}</span>
+                          <span>
+                            {t("history.recordingLabel")}{" "}
+                            {formatDurationMs(record.recordingDurationMs)}
+                          </span>
+                          <span>
+                            {t("history.transcriptionLabel")}{" "}
+                            {formatDurationMs(record.transcriptionDurationMs)}
+                          </span>
                           {record.enhancementDurationMs !== null && (
-                            <span>{t("history.aiLabel")} {formatDurationMs(record.enhancementDurationMs)}</span>
+                            <span>
+                              {t("history.aiLabel")}{" "}
+                              {formatDurationMs(record.enhancementDurationMs)}
+                            </span>
                           )}
                           <span>
                             {t("history.modeLabel")}
-                            {record.triggerMode === "hold" ? t("history.holdMode") : t("history.toggleMode")}
+                            {record.triggerMode === "hold"
+                              ? t("history.holdMode")
+                              : t("history.toggleMode")}
                           </span>
                           {record.whisperModelId && (
-                            <span>{t("history.whisperModel", { model: record.whisperModelId })}</span>
+                            <span>
+                              {t("history.whisperModel", { model: record.whisperModelId })}
+                            </span>
                           )}
                           {record.llmModelId && (
                             <span>{t("history.llmModel", { model: record.llmModelId })}</span>
@@ -576,10 +610,15 @@ export default function HistoryView() {
                                   ? "animate-pulse"
                                   : "text-destructive hover:text-destructive",
                               )}
-                              onClick={(e) => { e.stopPropagation(); requestDeleteRecord(record); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                requestDeleteRecord(record);
+                              }}
                             >
                               <Trash2 className="h-3 w-3" />
-                              {confirmDeleteId === record.id ? t("settings.apiKey.confirmDelete") : t("history.delete")}
+                              {confirmDeleteId === record.id
+                                ? t("settings.apiKey.confirmDelete")
+                                : t("history.delete")}
                             </Button>
                           </div>
                         </div>

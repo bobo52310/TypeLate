@@ -13,10 +13,7 @@ import { getDatabase } from "@/lib/database";
 import { extractErrorMessage } from "@/lib/errorUtils";
 import { logError } from "@/lib/logger";
 import { captureError } from "@/lib/sentry";
-import {
-  emitToWindow,
-  TRANSCRIPTION_COMPLETED,
-} from "@/hooks/useTauriEvent";
+import { emitToWindow, TRANSCRIPTION_COMPLETED } from "@/hooks/useTauriEvent";
 
 const PAGE_SIZE = 20;
 
@@ -330,10 +327,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       const rows = await db.select<RawTranscriptionRow[]>(SELECT_ALL_SQL);
       set({ transcriptionList: rows.map(mapRowToRecord) });
     } catch (err) {
-      logError(
-        "history",
-        `fetchTranscriptionList failed: ${extractErrorMessage(err)}`,
-      );
+      logError("history", `fetchTranscriptionList failed: ${extractErrorMessage(err)}`);
       captureError(err, { source: "history", step: "fetch" });
       throw err;
     } finally {
@@ -341,27 +335,16 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     }
   },
 
-  searchTranscriptionList: async (
-    query: string,
-    limit = PAGE_SIZE,
-    offset = 0,
-  ) => {
+  searchTranscriptionList: async (query: string, limit = PAGE_SIZE, offset = 0) => {
     const db = getDatabase();
     let rows: RawTranscriptionRow[];
 
     if (query.trim()) {
       const escaped = query.trim().replace(/[%_\\]/g, "\\$&");
       const pattern = `%${escaped}%`;
-      rows = await db.select<RawTranscriptionRow[]>(SEARCH_PAGED_SQL, [
-        pattern,
-        limit,
-        offset,
-      ]);
+      rows = await db.select<RawTranscriptionRow[]>(SEARCH_PAGED_SQL, [pattern, limit, offset]);
     } else {
-      rows = await db.select<RawTranscriptionRow[]>(SELECT_PAGED_SQL, [
-        limit,
-        offset,
-      ]);
+      rows = await db.select<RawTranscriptionRow[]>(SELECT_PAGED_SQL, [limit, offset]);
     }
 
     return rows.map(mapRowToRecord);
@@ -371,11 +354,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     set({ isLoading: true });
     try {
       set({ currentOffset: 0, hasMore: true });
-      const results = await get().searchTranscriptionList(
-        get().searchQuery,
-        PAGE_SIZE,
-        0,
-      );
+      const results = await get().searchTranscriptionList(get().searchQuery, PAGE_SIZE, 0);
       set({
         transcriptionList: results,
         currentOffset: results.length,
@@ -392,11 +371,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     set({ isLoading: true });
     try {
       const { searchQuery, currentOffset, transcriptionList } = get();
-      const results = await get().searchTranscriptionList(
-        searchQuery,
-        PAGE_SIZE,
-        currentOffset,
-      );
+      const results = await get().searchTranscriptionList(searchQuery, PAGE_SIZE, currentOffset);
       set({
         transcriptionList: [...transcriptionList, ...results],
         currentOffset: currentOffset + results.length,
@@ -428,10 +403,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         record.llmModelId,
       ]);
     } catch (err) {
-      logError(
-        "history",
-        `addTranscription failed: ${extractErrorMessage(err)}`,
-      );
+      logError("history", `addTranscription failed: ${extractErrorMessage(err)}`);
       captureError(err, { source: "history", step: "add" });
       throw err;
     }
@@ -449,11 +421,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       };
       await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
     } catch (emitErr) {
-      logError(
-        "history",
-        "emitToWindow failed (INSERT succeeded)",
-        emitErr,
-      );
+      logError("history", "emitToWindow failed (INSERT succeeded)", emitErr);
       captureError(emitErr, { source: "history", step: "add-emit" });
     }
   },
@@ -471,10 +439,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         params.id,
       ]);
     } catch (err) {
-      logError(
-        "history",
-        `updateTranscriptionOnRetrySuccess failed: ${extractErrorMessage(err)}`,
-      );
+      logError("history", `updateTranscriptionOnRetrySuccess failed: ${extractErrorMessage(err)}`);
       captureError(err, { source: "history", step: "update-retry-success" });
       throw err;
     }
@@ -492,11 +457,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       };
       await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
     } catch (emitErr) {
-      logError(
-        "history",
-        "emitToWindow failed (UPDATE succeeded)",
-        emitErr,
-      );
+      logError("history", "emitToWindow failed (UPDATE succeeded)", emitErr);
       captureError(emitErr, { source: "history", step: "update-retry-emit" });
     }
   },
@@ -537,9 +498,8 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       totalRecordingDurationMs: row.total_recording_duration_ms,
       estimatedTimeSavedMs: Math.max(
         0,
-        Math.round(
-          (row.total_characters / ASSUMED_TYPING_SPEED_CHARS_PER_MIN) * 60000,
-        ) - row.total_recording_duration_ms,
+        Math.round((row.total_characters / ASSUMED_TYPING_SPEED_CHARS_PER_MIN) * 60000) -
+          row.total_recording_duration_ms,
       ),
       dailyQuotaUsage,
     };
@@ -547,9 +507,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
 
   fetchRecentTranscriptionList: async (limit = 10) => {
     const db = getDatabase();
-    const rows = await db.select<RawTranscriptionRow[]>(SELECT_RECENT_SQL, [
-      limit,
-    ]);
+    const rows = await db.select<RawTranscriptionRow[]>(SELECT_RECENT_SQL, [limit]);
     return rows.map(mapRowToRecord);
   },
 
@@ -615,10 +573,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         transcriptionList: get().transcriptionList.filter((r) => r.id !== id),
       });
     } catch (err) {
-      logError(
-        "history",
-        `deleteTranscription failed: ${extractErrorMessage(err)}`,
-      );
+      logError("history", `deleteTranscription failed: ${extractErrorMessage(err)}`);
       captureError(err, { source: "history", step: "delete" });
       throw err;
     }

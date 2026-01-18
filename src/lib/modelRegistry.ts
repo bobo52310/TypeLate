@@ -8,9 +8,7 @@ export type LlmModelId =
 
 // ── 字典分析模型 ─────────────────────────────────────────
 
-export type VocabularyAnalysisModelId =
-  | "llama-3.3-70b-versatile"
-  | "moonshotai/kimi-k2-instruct";
+export type VocabularyAnalysisModelId = "llama-3.3-70b-versatile" | "moonshotai/kimi-k2-instruct";
 
 interface BaseModelConfig {
   displayName: string;
@@ -171,9 +169,7 @@ export function findVocabularyAnalysisModelConfig(
   return VOCABULARY_ANALYSIS_MODEL_LIST.find((m) => m.id === id);
 }
 
-export function findWhisperModelConfig(
-  id: string,
-): WhisperModelConfig | undefined {
+export function findWhisperModelConfig(id: string): WhisperModelConfig | undefined {
   return WHISPER_MODEL_LIST.find((m) => m.id === id);
 }
 
@@ -205,10 +201,7 @@ export function getEffectiveVocabularyAnalysisModelId(
 /**
  * 安全取得 Whisper 模型 ID：若 savedId 不在 registry 則 fallback 到預設。
  */
-export function getEffectiveWhisperModelId(
-  savedId: string | null,
-): WhisperModelId {
-  if (savedId && findWhisperModelConfig(savedId))
-    return savedId as WhisperModelId;
+export function getEffectiveWhisperModelId(savedId: string | null): WhisperModelId {
+  if (savedId && findWhisperModelConfig(savedId)) return savedId as WhisperModelId;
   return DEFAULT_WHISPER_MODEL_ID;
 }

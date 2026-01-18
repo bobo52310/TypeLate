@@ -34,27 +34,21 @@ describe("retryWithBackoff", () => {
   it("does not retry on 401 client errors", async () => {
     const fn = vi.fn().mockRejectedValue(new Error("Groq API error (401)"));
 
-    await expect(
-      retryWithBackoff(fn, { maxRetries: 2, baseDelayMs: 10 }),
-    ).rejects.toThrow("401");
+    await expect(retryWithBackoff(fn, { maxRetries: 2, baseDelayMs: 10 })).rejects.toThrow("401");
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it("does not retry on 400 client errors", async () => {
     const fn = vi.fn().mockRejectedValue(new Error("Groq API error (400)"));
 
-    await expect(
-      retryWithBackoff(fn, { maxRetries: 2, baseDelayMs: 10 }),
-    ).rejects.toThrow("400");
+    await expect(retryWithBackoff(fn, { maxRetries: 2, baseDelayMs: 10 })).rejects.toThrow("400");
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it("gives up after max retries", async () => {
     const fn = vi.fn().mockRejectedValue(new Error("Groq API error (500)"));
 
-    await expect(
-      retryWithBackoff(fn, { maxRetries: 2, baseDelayMs: 10 }),
-    ).rejects.toThrow("500");
+    await expect(retryWithBackoff(fn, { maxRetries: 2, baseDelayMs: 10 })).rejects.toThrow("500");
     expect(fn).toHaveBeenCalledTimes(3); // initial + 2 retries
   });
 
@@ -72,9 +66,9 @@ describe("retryWithBackoff", () => {
   it("does not retry on AbortError", async () => {
     const fn = vi.fn().mockRejectedValue(new DOMException("Aborted", "AbortError"));
 
-    await expect(
-      retryWithBackoff(fn, { maxRetries: 2, baseDelayMs: 10 }),
-    ).rejects.toThrow("Aborted");
+    await expect(retryWithBackoff(fn, { maxRetries: 2, baseDelayMs: 10 })).rejects.toThrow(
+      "Aborted",
+    );
     expect(fn).toHaveBeenCalledTimes(1);
   });
 });

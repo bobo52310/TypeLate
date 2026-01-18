@@ -4,6 +4,7 @@ import {
   getKeyDisplayName,
   isDangerousKey,
   isPresetEquivalentKey,
+  getDangerousKeyWarning,
 } from "@/lib/keycodeMap";
 
 describe("getPlatformKeycode", () => {
@@ -91,5 +92,34 @@ describe("isPresetEquivalentKey", () => {
     expect(isPresetEquivalentKey("KeyA")).toBe(false);
     expect(isPresetEquivalentKey("Space")).toBe(false);
     expect(isPresetEquivalentKey("F5")).toBe(false);
+  });
+});
+
+describe("getDangerousKeyWarning", () => {
+  it("returns null for non-dangerous keys", () => {
+    expect(getDangerousKeyWarning("KeyA")).toBeNull();
+    expect(getDangerousKeyWarning("F5")).toBeNull();
+  });
+
+  it("returns null for Escape (handled separately)", () => {
+    expect(getDangerousKeyWarning("Escape")).toBeNull();
+  });
+
+  it("returns a warning string for CapsLock", () => {
+    const warning = getDangerousKeyWarning("CapsLock");
+    expect(warning).toBeTruthy();
+    expect(typeof warning).toBe("string");
+  });
+
+  it("returns a warning string for Space", () => {
+    const warning = getDangerousKeyWarning("Space");
+    expect(warning).toBeTruthy();
+    expect(typeof warning).toBe("string");
+  });
+
+  it("returns a warning string for Tab", () => {
+    const warning = getDangerousKeyWarning("Tab");
+    expect(warning).toBeTruthy();
+    expect(typeof warning).toBe("string");
   });
 });

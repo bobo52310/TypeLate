@@ -3,13 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const OnboardingView = lazy(() => import("@/views/OnboardingView"));
-import {
-  Download,
-  FileText,
-  LayoutDashboard,
-  Settings,
-  type LucideIcon,
-} from "lucide-react";
+import { Download, FileText, LayoutDashboard, Settings, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -259,16 +253,10 @@ export function DashboardApp() {
       const isMacOS = IS_MAC;
       if (isMacOS) {
         try {
-          const hasPermission = await invoke<boolean>(
-            "check_accessibility_permission_command",
-          );
+          const hasPermission = await invoke<boolean>("check_accessibility_permission_command");
           setShowAccessibilityGuide(!hasPermission);
         } catch (error) {
-          logError(
-            "dashboard",
-            "Failed to check accessibility permission",
-            error,
-          );
+          logError("dashboard", "Failed to check accessibility permission", error);
           captureError(error, {
             source: "accessibility",
             step: "check-permission",
@@ -298,12 +286,10 @@ export function DashboardApp() {
   useEffect(() => {
     if (!isRecordingAutoCleanupEnabled || recordingAutoCleanupDays <= 0) return;
 
-    invoke("cleanup_old_recordings", { days: recordingAutoCleanupDays }).catch(
-      (err) => {
-        logError("dashboard", "Recording cleanup failed", err);
-        captureError(err, { source: "recording-cleanup" });
-      },
-    );
+    invoke("cleanup_old_recordings", { days: recordingAutoCleanupDays }).catch((err) => {
+      logError("dashboard", "Recording cleanup failed", err);
+      captureError(err, { source: "recording-cleanup" });
+    });
   }, [isRecordingAutoCleanupEnabled, recordingAutoCleanupDays]);
 
   // ── Render ──
@@ -334,103 +320,104 @@ export function DashboardApp() {
       {showOnboarding ? (
         <OnboardingView onComplete={() => setShowOnboarding(false)} />
       ) : (
-      <SidebarProvider className="h-screen !min-h-0 pt-9">
-        <Sidebar collapsible="offcanvas">
-          <SidebarHeader
-            className="flex-row h-12 items-center gap-3 border-b border-sidebar-border px-4 cursor-default"
-            title={sidebarSlogan}
-          >
-            <img src={logoTypeLate} alt="TypeLate" className="h-7 w-7 rounded" />
-            <span
-              className="text-base font-semibold text-sidebar-foreground tracking-wide"
-              style={{ fontFamily: "'SF Pro Display', 'Inter', system-ui, sans-serif" }}
+        <SidebarProvider className="h-screen !min-h-0 pt-9">
+          <Sidebar collapsible="offcanvas">
+            <SidebarHeader
+              className="flex-row h-12 items-center gap-3 border-b border-sidebar-border px-4 cursor-default"
+              title={sidebarSlogan}
             >
-              TypeLate
-            </span>
-          </SidebarHeader>
+              <img src={logoTypeLate} alt="TypeLate" className="h-7 w-7 rounded" />
+              <span
+                className="text-base font-semibold text-sidebar-foreground tracking-wide"
+                style={{ fontFamily: "'SF Pro Display', 'Inter', system-ui, sans-serif" }}
+              >
+                TypeLate
+              </span>
+            </SidebarHeader>
 
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu role="navigation" aria-label="Main navigation">
-                  {NAV_ITEMS.map((item, index) => (
-                    <SidebarMenuItem key={item.path}>
-                      <SidebarMenuButton
-                        isActive={currentPath.startsWith(item.path)}
-                        onClick={() => navigate(item.path)}
-                        onKeyDown={(e) => {
-                          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                            e.preventDefault();
-                            const next = e.key === "ArrowDown"
-                              ? (index + 1) % NAV_ITEMS.length
-                              : (index - 1 + NAV_ITEMS.length) % NAV_ITEMS.length;
-                            const buttons = e.currentTarget.closest("[role=navigation]")?.querySelectorAll("button");
-                            (buttons?.[next] as HTMLElement | undefined)?.focus();
-                          }
-                        }}
-                      >
-                        <item.icon />
-                        <span>{t(item.labelKey)}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarGroupContent>
+                  <SidebarMenu role="navigation" aria-label="Main navigation">
+                    {NAV_ITEMS.map((item, index) => (
+                      <SidebarMenuItem key={item.path}>
+                        <SidebarMenuButton
+                          isActive={currentPath.startsWith(item.path)}
+                          onClick={() => navigate(item.path)}
+                          onKeyDown={(e) => {
+                            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                              e.preventDefault();
+                              const next =
+                                e.key === "ArrowDown"
+                                  ? (index + 1) % NAV_ITEMS.length
+                                  : (index - 1 + NAV_ITEMS.length) % NAV_ITEMS.length;
+                              const buttons = e.currentTarget
+                                .closest("[role=navigation]")
+                                ?.querySelectorAll("button");
+                              (buttons?.[next] as HTMLElement | undefined)?.focus();
+                            }
+                          }}
+                        >
+                          <item.icon />
+                          <span>{t(item.labelKey)}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </SidebarContent>
 
-          <SidebarFooter className="border-t border-sidebar-border px-4 py-2">
-            {easterEggSlogan && (
-              <div className="mb-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-center">
-                <p className="text-xs italic text-primary">&ldquo;{easterEggSlogan}&rdquo;</p>
+            <SidebarFooter className="border-t border-sidebar-border px-4 py-2">
+              {easterEggSlogan && (
+                <div className="mb-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-center">
+                  <p className="text-xs italic text-primary">&ldquo;{easterEggSlogan}&rdquo;</p>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={handleVersionClick}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors select-none"
+                >
+                  v{APP_VERSION}
+                </button>
+                {updateState === "ready-to-install" && (
+                  <Button
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-xs"
+                    onClick={handleSidebarInstall}
+                  >
+                    <Download className="h-3 w-3" />
+                    {t("mainApp.update.installNow")}
+                  </Button>
+                )}
+              </div>
+
+              {updateFeedback.message && (
+                <p
+                  className={`mt-1 text-xs ${
+                    updateFeedback.type === "success" ? "text-primary" : "text-destructive"
+                  }`}
+                >
+                  {updateFeedback.message}
+                </p>
+              )}
+            </SidebarFooter>
+          </Sidebar>
+
+          <SidebarInset className="overflow-hidden">
+            {databaseError && (
+              <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <p className="font-medium">{t("errors.databaseInitFailed")}</p>
+                <p className="mt-1 text-xs text-destructive/80">{databaseError}</p>
               </div>
             )}
-            <div className="flex items-center justify-between">
-              <button
-                onClick={handleVersionClick}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors select-none"
-              >
-                v{APP_VERSION}
-              </button>
-              {updateState === "ready-to-install" && (
-                <Button
-                  size="sm"
-                  className="h-6 gap-1 px-2 text-xs"
-                  onClick={handleSidebarInstall}
-                >
-                  <Download className="h-3 w-3" />
-                  {t("mainApp.update.installNow")}
-                </Button>
-              )}
+
+            <div id="main-content" className="flex-1 overflow-y-auto">
+              <RouterOutlet />
             </div>
-
-            {updateFeedback.message && (
-              <p
-                className={`mt-1 text-xs ${
-                  updateFeedback.type === "success"
-                    ? "text-primary"
-                    : "text-destructive"
-                }`}
-              >
-                {updateFeedback.message}
-              </p>
-            )}
-          </SidebarFooter>
-        </Sidebar>
-
-        <SidebarInset className="overflow-hidden">
-          {databaseError && (
-            <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              <p className="font-medium">{t("errors.databaseInitFailed")}</p>
-              <p className="mt-1 text-xs text-destructive/80">{databaseError}</p>
-            </div>
-          )}
-
-          <div id="main-content" className="flex-1 overflow-y-auto">
-            <RouterOutlet />
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+          </SidebarInset>
+        </SidebarProvider>
       )}
 
       {/* macOS Accessibility permission guide */}
@@ -443,9 +430,7 @@ export function DashboardApp() {
       <AlertDialog open={showAutoInstallDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("mainApp.update.autoInstallTitle")}
-            </AlertDialogTitle>
+            <AlertDialogTitle>{t("mainApp.update.autoInstallTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {t("mainApp.update.autoInstallDescription", {
                 version: availableVersion,
@@ -467,9 +452,7 @@ export function DashboardApp() {
       <AlertDialog open={showUpgradeNoticeDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("mainApp.upgradeNotice.title")}
-            </AlertDialogTitle>
+            <AlertDialogTitle>{t("mainApp.upgradeNotice.title")}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div>
                 <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
@@ -494,9 +477,7 @@ export function DashboardApp() {
       <AlertDialog open={showManualUpdateDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("mainApp.update.newVersionTitle")}
-            </AlertDialogTitle>
+            <AlertDialogTitle>{t("mainApp.update.newVersionTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {t("mainApp.update.newVersionDescription", {
                 version: availableVersion,

@@ -105,9 +105,7 @@ export function NotchHud({
   const { t } = useTranslation();
 
   const [visualMode, setVisualMode] = useState<VisualMode>("hidden");
-  const [pendingLearnedTermList, setPendingLearnedTermList] = useState<
-    string[][]
-  >([]);
+  const [pendingLearnedTermList, setPendingLearnedTermList] = useState<string[][]>([]);
   const [learnedDisplayText, setLearnedDisplayText] = useState("");
 
   // Refs to access latest state inside timers/callbacks without re-subscribing
@@ -121,8 +119,7 @@ export function NotchHud({
   const collapsingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const learnedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { waveformLevelList, startWaveformAnimation, stopWaveformAnimation } =
-    useAudioWaveform();
+  const { waveformLevelList, startWaveformAnimation, stopWaveformAnimation } = useAudioWaveform();
 
   // --- Timer helpers ---
 
@@ -165,8 +162,7 @@ export function NotchHud({
   isHighPriorityModeRef.current = isHighPriorityMode;
 
   const notchStyle = useMemo(() => {
-    let params =
-      NOTCH_SHAPE_OVERRIDES[visualMode] ?? DEFAULT_NOTCH_SHAPE;
+    let params = NOTCH_SHAPE_OVERRIDES[visualMode] ?? DEFAULT_NOTCH_SHAPE;
     if (isExpandedMode) {
       params = { ...params, height: ERROR_WITH_MESSAGE_HEIGHT };
     }
@@ -224,7 +220,9 @@ export function NotchHud({
     setLearnedDisplayText(formatLearnedText(nextTermList));
     setVisualMode("learned");
     if (useSettingsStore.getState().isSoundEffectsEnabled) {
-      void invoke("play_learned_sound").catch(() => { /* non-critical sound */ });
+      void invoke("play_learned_sound").catch(() => {
+        /* non-critical sound */
+      });
     }
     clearLearnedTimer();
     learnedTimerRef.current = setTimeout(() => {
@@ -239,7 +237,9 @@ export function NotchHud({
           setLearnedDisplayText(formatLearnedText(next ?? []));
           setVisualMode("learned");
           if (useSettingsStore.getState().isSoundEffectsEnabled) {
-            void invoke("play_learned_sound").catch(() => { /* non-critical sound */ });
+            void invoke("play_learned_sound").catch(() => {
+              /* non-critical sound */
+            });
           }
         }
       }, COLLAPSE_ANIMATION_DURATION_MS);
@@ -251,7 +251,9 @@ export function NotchHud({
       setLearnedDisplayText(formatLearnedText(termList));
       setVisualMode("learned");
       if (useSettingsStore.getState().isSoundEffectsEnabled) {
-        void invoke("play_learned_sound").catch(() => { /* non-critical sound */ });
+        void invoke("play_learned_sound").catch(() => {
+          /* non-critical sound */
+        });
       }
       clearLearnedTimer();
       learnedTimerRef.current = setTimeout(() => {
@@ -275,14 +277,8 @@ export function NotchHud({
       );
       if (!payload.termList || payload.termList.length === 0) return;
 
-      if (
-        isHighPriorityModeRef.current ||
-        visualModeRef.current === "learned"
-      ) {
-        logInfo(
-          "hud",
-          "queued (high priority or already showing learned)",
-        );
+      if (isHighPriorityModeRef.current || visualModeRef.current === "learned") {
+        logInfo("hud", "queued (high priority or already showing learned)");
         setPendingLearnedTermList((prev) => [...prev, payload.termList]);
         return;
       }
@@ -293,10 +289,7 @@ export function NotchHud({
     [showLearnedNotification],
   );
 
-  useTauriEvent<VocabularyLearnedPayload>(
-    VOCABULARY_LEARNED,
-    handleVocabularyLearned,
-  );
+  useTauriEvent<VocabularyLearnedPayload>(VOCABULARY_LEARNED, handleVocabularyLearned);
 
   // --- Status watcher (replaces Vue watch) ---
 
@@ -334,10 +327,7 @@ export function NotchHud({
 
     if (status === "transcribing" || status === "enhancing") {
       stopWaveformAnimation();
-      if (
-        visualModeRef.current === "recording" ||
-        visualModeRef.current === "morphing"
-      ) {
+      if (visualModeRef.current === "recording" || visualModeRef.current === "morphing") {
         setVisualMode("morphing");
         morphingTimerRef.current = setTimeout(() => {
           setVisualMode("transcribing");
@@ -384,12 +374,7 @@ export function NotchHud({
       clearLearnedTimer();
       stopWaveformAnimation();
     };
-  }, [
-    clearMorphingTimer,
-    clearCollapsingTimer,
-    clearLearnedTimer,
-    stopWaveformAnimation,
-  ]);
+  }, [clearMorphingTimer, clearCollapsingTimer, clearLearnedTimer, stopWaveformAnimation]);
 
   // --- Render ---
 
@@ -446,12 +431,7 @@ export function NotchHud({
           ))}
         </div>
         {visualMode === "success" && (
-          <svg
-            className={styles.checkmarkSvg}
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-          >
+          <svg className={styles.checkmarkSvg} width="18" height="18" viewBox="0 0 24 24">
             <path
               d="M4 12l6 6L20 6"
               fill="none"
@@ -468,25 +448,15 @@ export function NotchHud({
 
   const renderRightContent = () => {
     if (visualMode === "cancelled") {
-      return (
-        <span className={styles.cancelledLabel}>
-          {t("voiceFlow.cancelled")}
-        </span>
-      );
+      return <span className={styles.cancelledLabel}>{t("voiceFlow.cancelled")}</span>;
     }
 
     if (visualMode === "learned") {
-      return (
-        <span className={styles.learnedLabel}>
-          {t("voiceFlow.vocabularyLearnedLabel")}
-        </span>
-      );
+      return <span className={styles.learnedLabel}>{t("voiceFlow.vocabularyLearnedLabel")}</span>;
     }
 
     if (visualMode === "recording") {
-      return (
-        <span className={styles.elapsedTimer}>{formattedElapsedTime}</span>
-      );
+      return <span className={styles.elapsedTimer}>{formattedElapsedTime}</span>;
     }
 
     if (visualMode === "error" && canRetry) {
@@ -508,9 +478,10 @@ export function NotchHud({
     return null;
   };
 
-  const ariaLabel = visualMode === "recording"
-    ? `${t("voiceFlow.recording")} ${formattedElapsedTime}`
-    : message ?? undefined;
+  const ariaLabel =
+    visualMode === "recording"
+      ? `${t("voiceFlow.recording")} ${formattedElapsedTime}`
+      : (message ?? undefined);
 
   return (
     <div

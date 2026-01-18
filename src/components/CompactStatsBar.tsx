@@ -1,11 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useHistoryStore } from "@/stores/historyStore";
 import { formatDurationFromMs } from "@/lib/formatUtils";
 import { useQuotaInfo } from "@/hooks/useQuotaInfo";
@@ -48,7 +43,9 @@ export function CompactStatsBar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2 cursor-default">
-              <span className="text-xs text-muted-foreground">{t("home.statsBar.quotaRemaining")}</span>
+              <span className="text-xs text-muted-foreground">
+                {t("home.statsBar.quotaRemaining")}
+              </span>
               <div className="flex items-center gap-1.5">
                 <div className="h-1.5 w-16 rounded-full bg-muted">
                   <div
@@ -70,7 +67,9 @@ export function CompactStatsBar() {
               {quotaInfo.dimensions.map((dim, idx) => (
                 <div key={idx} className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{dim.label}</span>
-                  <span className="font-medium">{Math.round(Math.max(0, dim.remaining) * 100)}%</span>
+                  <span className="font-medium">
+                    {Math.round(Math.max(0, dim.remaining) * 100)}%
+                  </span>
                 </div>
               ))}
             </div>

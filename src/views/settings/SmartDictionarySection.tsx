@@ -1,11 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -28,23 +23,15 @@ export default function SmartDictionarySection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
-  const isSmartDictionaryEnabled = useSettingsStore(
-    (s) => s.isSmartDictionaryEnabled,
-  );
+  const isSmartDictionaryEnabled = useSettingsStore((s) => s.isSmartDictionaryEnabled);
   const selectedVocabularyAnalysisModelId = useSettingsStore(
     (s) => s.selectedVocabularyAnalysisModelId,
   );
-  const saveSmartDictionaryEnabled = useSettingsStore(
-    (s) => s.saveSmartDictionaryEnabled,
-  );
-  const saveVocabularyAnalysisModel = useSettingsStore(
-    (s) => s.saveVocabularyAnalysisModel,
-  );
+  const saveSmartDictionaryEnabled = useSettingsStore((s) => s.saveSmartDictionaryEnabled);
+  const saveVocabularyAnalysisModel = useSettingsStore((s) => s.saveVocabularyAnalysisModel);
 
   const vocabularyAnalysisModelDescription = useMemo(() => {
-    const config = findVocabularyAnalysisModelConfig(
-      selectedVocabularyAnalysisModelId,
-    );
+    const config = findVocabularyAnalysisModelConfig(selectedVocabularyAnalysisModelId);
     if (!config) return "";
     return `${config.speedTps} TPS · $${config.inputCostPerMillion}/$${config.outputCostPerMillion} per M tokens`;
   }, [selectedVocabularyAnalysisModelId]);
@@ -54,34 +41,23 @@ export default function SmartDictionarySection() {
       await saveSmartDictionaryEnabled(newValue);
       feedback.show("success", t("common.save"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
   async function handleModelChange(newId: string) {
     try {
       await saveVocabularyAnalysisModel(newId as VocabularyAnalysisModelId);
-      feedback.show(
-        "success",
-        t("settings.smartDictionary.analysisModelUpdated"),
-      );
+      feedback.show("success", t("settings.smartDictionary.analysisModelUpdated"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
   return (
     <Card>
       <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">
-          {t("settings.smartDictionary.title")}
-        </CardTitle>
+        <CardTitle className="text-base">{t("settings.smartDictionary.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -89,9 +65,7 @@ export default function SmartDictionarySection() {
         </p>
 
         <div className="flex items-center justify-between">
-          <Label htmlFor="smart-dictionary-toggle">
-            {t("settings.smartDictionary.title")}
-          </Label>
+          <Label htmlFor="smart-dictionary-toggle">{t("settings.smartDictionary.title")}</Label>
           <Switch
             id="smart-dictionary-toggle"
             checked={isSmartDictionaryEnabled}
@@ -109,10 +83,7 @@ export default function SmartDictionarySection() {
               value={selectedVocabularyAnalysisModelId}
               onValueChange={(val) => void handleModelChange(val)}
             >
-              <SelectTrigger
-                id="vocabulary-analysis-model"
-                className="w-full"
-              >
+              <SelectTrigger id="vocabulary-analysis-model" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -131,22 +102,16 @@ export default function SmartDictionarySection() {
             <p className="text-xs text-muted-foreground">
               {t("settings.smartDictionary.analysisModelDescription")}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {vocabularyAnalysisModelDescription}
-            </p>
+            <p className="text-xs text-muted-foreground">{vocabularyAnalysisModelDescription}</p>
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground">
-          {t("settings.smartDictionary.privacyNote")}
-        </p>
+        <p className="text-xs text-muted-foreground">{t("settings.smartDictionary.privacyNote")}</p>
 
         {feedback.message && (
           <p
             className={`text-sm ${
-              feedback.type === "success"
-                ? "text-primary"
-                : "text-destructive"
+              feedback.type === "success" ? "text-primary" : "text-destructive"
             }`}
           >
             {feedback.message}

@@ -1,8 +1,2 @@
-export {
-  createTranscriptionRecord,
-  type TranscriptionRecord,
-} from "./transcription-factory";
-export {
-  createVocabularyEntry,
-  type VocabularyEntry,
-} from "./vocabulary-factory";
+export { createTranscriptionRecord, type TranscriptionRecord } from "./transcription-factory";
+export { createVocabularyEntry, type VocabularyEntry } from "./vocabulary-factory";

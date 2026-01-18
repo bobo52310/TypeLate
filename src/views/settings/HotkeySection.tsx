@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -42,27 +37,17 @@ export default function HotkeySection() {
   const hotkeyConfig = useSettingsStore((s) => s.hotkeyConfig);
   const triggerMode = useSettingsStore((s) => s.triggerMode());
   const customTriggerKey = useSettingsStore((s) => s.customTriggerKey);
-  const customTriggerKeyDomCode = useSettingsStore(
-    (s) => s.customTriggerKeyDomCode,
-  );
+  const customTriggerKeyDomCode = useSettingsStore((s) => s.customTriggerKeyDomCode);
   const saveHotkeyConfig = useSettingsStore((s) => s.saveHotkeyConfig);
   const saveCustomTriggerKey = useSettingsStore((s) => s.saveCustomTriggerKey);
   const switchToCustomMode = useSettingsStore((s) => s.switchToCustomMode);
   const switchToPresetMode = useSettingsStore((s) => s.switchToPresetMode);
   const getKeyDisplayName = useSettingsStore((s) => s.getKeyDisplayName);
   const getPlatformKeycode = useSettingsStore((s) => s.getPlatformKeycode);
-  const isPresetEquivalentKey = useSettingsStore(
-    (s) => s.isPresetEquivalentKey,
-  );
-  const getDangerousKeyWarning = useSettingsStore(
-    (s) => s.getDangerousKeyWarning,
-  );
-  const getEscapeReservedMessage = useSettingsStore(
-    (s) => s.getEscapeReservedMessage,
-  );
-  const getHotkeyUnsupportedKeyMessage = useSettingsStore(
-    (s) => s.getHotkeyUnsupportedKeyMessage,
-  );
+  const isPresetEquivalentKey = useSettingsStore((s) => s.isPresetEquivalentKey);
+  const getDangerousKeyWarning = useSettingsStore((s) => s.getDangerousKeyWarning);
+  const getEscapeReservedMessage = useSettingsStore((s) => s.getEscapeReservedMessage);
+  const getHotkeyUnsupportedKeyMessage = useSettingsStore((s) => s.getHotkeyUnsupportedKeyMessage);
   const getHotkeyPresetHint = useSettingsStore((s) => s.getHotkeyPresetHint);
   const getHotkeyRecordingTimeoutMessage = useSettingsStore(
     (s) => s.getHotkeyRecordingTimeoutMessage,
@@ -76,9 +61,7 @@ export default function HotkeySection() {
   const [recordingHint, setRecordingHint] = useState("");
   const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const triggerKeyOptions = useMemo<
-    { value: PresetTriggerKey; label: string }[]
-  >(
+  const triggerKeyOptions = useMemo<{ value: PresetTriggerKey; label: string }[]>(
     () =>
       isMac
         ? [
@@ -189,10 +172,7 @@ export default function HotkeySection() {
           }),
         );
       } catch (err) {
-        feedback.show(
-          "error",
-          err instanceof Error ? err.message : String(err),
-        );
+        feedback.show("error", err instanceof Error ? err.message : String(err));
       }
     },
     [
@@ -231,10 +211,7 @@ export default function HotkeySection() {
     setIsCustomMode(true);
     if (hasCustomKey) {
       switchToCustomMode(triggerMode).catch((err: unknown) => {
-        feedback.show(
-          "error",
-          err instanceof Error ? err.message : String(err),
-        );
+        feedback.show("error", err instanceof Error ? err.message : String(err));
       });
     }
   }
@@ -244,14 +221,9 @@ export default function HotkeySection() {
     stopKeyRecording();
     setRecordingWarning("");
     setRecordingHint("");
-    switchToPresetMode(currentPresetKey, triggerMode).catch(
-      (err: unknown) => {
-        feedback.show(
-          "error",
-          err instanceof Error ? err.message : String(err),
-        );
-      },
-    );
+    switchToPresetMode(currentPresetKey, triggerMode).catch((err: unknown) => {
+      feedback.show("error", err instanceof Error ? err.message : String(err));
+    });
   }
 
   async function handleTriggerKeyChange(newKey: string) {
@@ -259,24 +231,17 @@ export default function HotkeySection() {
       await saveHotkeyConfig(newKey as PresetTriggerKey, triggerMode);
       feedback.show("success", t("settings.hotkey.updated"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
   async function handleTriggerModeChange(newMode: TriggerMode) {
-    const currentKey =
-      hotkeyConfig?.triggerKey ?? (isMac ? "fn" : "rightAlt");
+    const currentKey = hotkeyConfig?.triggerKey ?? (isMac ? "fn" : "rightAlt");
     try {
       await saveHotkeyConfig(currentKey, newMode);
       feedback.show("success", t("settings.hotkey.modeUpdated"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -298,9 +263,7 @@ export default function HotkeySection() {
   return (
     <Card>
       <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">
-          {t("settings.hotkey.title")}
-        </CardTitle>
+        <CardTitle className="text-base">{t("settings.hotkey.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Preset / Custom mode toggle */}
@@ -337,9 +300,7 @@ export default function HotkeySection() {
         {/* Preset mode: Select dropdown */}
         {!isCustomMode && (
           <div className="flex items-center justify-between">
-            <Label htmlFor="trigger-key">
-              {t("settings.hotkey.triggerKey")}
-            </Label>
+            <Label htmlFor="trigger-key">{t("settings.hotkey.triggerKey")}</Label>
             <Select
               value={currentPresetKey}
               onValueChange={(val) => void handleTriggerKeyChange(val)}
@@ -377,37 +338,23 @@ export default function HotkeySection() {
                   variant={isRecording ? "destructive" : "outline"}
                   size="sm"
                   className={cn(isRecording && "animate-pulse")}
-                  onClick={() =>
-                    isRecording ? stopKeyRecording() : startRecording()
-                  }
+                  onClick={() => (isRecording ? stopKeyRecording() : startRecording())}
                 >
-                  {isRecording
-                    ? t("settings.hotkey.pressKey")
-                    : t("settings.hotkey.record")}
+                  {isRecording ? t("settings.hotkey.pressKey") : t("settings.hotkey.record")}
                 </Button>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t("settings.hotkey.systemKeyHint")}
-            </p>
+            <p className="text-xs text-muted-foreground">{t("settings.hotkey.systemKeyHint")}</p>
 
-            {recordingWarning && (
-              <p className="text-sm text-destructive">{recordingWarning}</p>
-            )}
+            {recordingWarning && <p className="text-sm text-destructive">{recordingWarning}</p>}
 
-            {recordingHint && (
-              <p className="text-sm text-muted-foreground">
-                {recordingHint}
-              </p>
-            )}
+            {recordingHint && <p className="text-sm text-muted-foreground">{recordingHint}</p>}
           </div>
         )}
 
         {/* Trigger mode */}
         <div className="flex items-center justify-between">
-          <Label htmlFor="trigger-mode">
-            {t("settings.hotkey.triggerMode")}
-          </Label>
+          <Label htmlFor="trigger-mode">{t("settings.hotkey.triggerMode")}</Label>
           <div className="flex overflow-hidden rounded-lg border border-border">
             <button
               type="button"

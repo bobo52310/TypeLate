@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -31,14 +26,10 @@ export default function AppSection() {
   const autoStartFeedback = useFeedbackMessage();
 
   const selectedLocale = useSettingsStore((s) => s.selectedLocale);
-  const selectedTranscriptionLocale = useSettingsStore(
-    (s) => s.selectedTranscriptionLocale,
-  );
+  const selectedTranscriptionLocale = useSettingsStore((s) => s.selectedTranscriptionLocale);
   const isAutoStartEnabled = useSettingsStore((s) => s.isAutoStartEnabled);
   const saveLocale = useSettingsStore((s) => s.saveLocale);
-  const saveTranscriptionLocale = useSettingsStore(
-    (s) => s.saveTranscriptionLocale,
-  );
+  const saveTranscriptionLocale = useSettingsStore((s) => s.saveTranscriptionLocale);
   const toggleAutoStart = useSettingsStore((s) => s.toggleAutoStart);
   const loadAutoStartStatus = useSettingsStore((s) => s.loadAutoStartStatus);
 
@@ -53,25 +44,16 @@ export default function AppSection() {
       await saveLocale(newLocale as SupportedLocale);
       localeFeedback.show("success", t("settings.app.languageUpdated"));
     } catch (err) {
-      localeFeedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      localeFeedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
   async function handleTranscriptionLocaleChange(newLocale: string) {
     try {
       await saveTranscriptionLocale(newLocale as TranscriptionLocale);
-      transcriptionLocaleFeedback.show(
-        "success",
-        t("settings.app.transcriptionLanguageUpdated"),
-      );
+      transcriptionLocaleFeedback.show("success", t("settings.app.transcriptionLanguageUpdated"));
     } catch (err) {
-      transcriptionLocaleFeedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      transcriptionLocaleFeedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -86,10 +68,7 @@ export default function AppSection() {
           : t("settings.app.autoStartEnabled"),
       );
     } catch (err) {
-      autoStartFeedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      autoStartFeedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
       setIsTogglingAutoStart(false);
     }
@@ -98,20 +77,13 @@ export default function AppSection() {
   return (
     <Card>
       <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">
-          {t("settings.app.title")}
-        </CardTitle>
+        <CardTitle className="text-base">{t("settings.app.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* UI Language */}
         <div className="flex items-center justify-between">
-          <Label htmlFor="locale-select">
-            {t("settings.app.language")}
-          </Label>
-          <Select
-            value={selectedLocale}
-            onValueChange={(val) => void handleLocaleChange(val)}
-          >
+          <Label htmlFor="locale-select">{t("settings.app.language")}</Label>
+          <Select value={selectedLocale} onValueChange={(val) => void handleLocaleChange(val)}>
             <SelectTrigger id="locale-select" className="w-48">
               <SelectValue />
             </SelectTrigger>
@@ -128,9 +100,7 @@ export default function AppSection() {
         {localeFeedback.message && (
           <p
             className={`text-sm ${
-              localeFeedback.type === "success"
-                ? "text-primary"
-                : "text-destructive"
+              localeFeedback.type === "success" ? "text-primary" : "text-destructive"
             }`}
           >
             {localeFeedback.message}
@@ -149,22 +119,15 @@ export default function AppSection() {
           </div>
           <Select
             value={selectedTranscriptionLocale}
-            onValueChange={(val) =>
-              void handleTranscriptionLocaleChange(val)
-            }
+            onValueChange={(val) => void handleTranscriptionLocaleChange(val)}
           >
-            <SelectTrigger
-              id="transcription-locale-select"
-              className="w-48"
-            >
+            <SelectTrigger id="transcription-locale-select" className="w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {TRANSCRIPTION_LANGUAGE_OPTIONS.map((opt) => (
                 <SelectItem key={opt.locale} value={opt.locale}>
-                  {opt.locale === "auto"
-                    ? t("settings.app.autoDetect")
-                    : opt.displayName}
+                  {opt.locale === "auto" ? t("settings.app.autoDetect") : opt.displayName}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -174,9 +137,7 @@ export default function AppSection() {
         {transcriptionLocaleFeedback.message && (
           <p
             className={`text-sm ${
-              transcriptionLocaleFeedback.type === "success"
-                ? "text-primary"
-                : "text-destructive"
+              transcriptionLocaleFeedback.type === "success" ? "text-primary" : "text-destructive"
             }`}
           >
             {transcriptionLocaleFeedback.message}
@@ -188,9 +149,7 @@ export default function AppSection() {
         {/* Auto start */}
         <div className="flex items-center justify-between">
           <div>
-            <Label htmlFor="auto-start">
-              {t("settings.app.autoStart")}
-            </Label>
+            <Label htmlFor="auto-start">{t("settings.app.autoStart")}</Label>
             <p className="text-sm text-muted-foreground">
               {t("settings.app.autoStartDescription")}
             </p>
@@ -206,9 +165,7 @@ export default function AppSection() {
         {autoStartFeedback.message && (
           <p
             className={`text-sm ${
-              autoStartFeedback.type === "success"
-                ? "text-primary"
-                : "text-destructive"
+              autoStartFeedback.type === "success" ? "text-primary" : "text-destructive"
             }`}
           >
             {autoStartFeedback.message}

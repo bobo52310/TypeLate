@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  calculateWhisperCostCeiling,
-  calculateChatCostCeiling,
-} from "@/lib/apiPricing";
+import { calculateWhisperCostCeiling, calculateChatCostCeiling } from "@/lib/apiPricing";
 
 describe("calculateWhisperCostCeiling", () => {
   it("returns a positive number for valid audio", () => {

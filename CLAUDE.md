@@ -48,43 +48,43 @@
 
 ### Tauri Commands (Frontend → Rust)
 
-| Command | Plugin | Purpose |
-|---------|--------|---------|
-| `debug_log` | lib.rs | Log to Rust console |
-| `update_hotkey_config` | lib.rs | Update hotkey settings |
-| `get_hud_target_position` | lib.rs | Get HUD screen position |
-| `paste_text` | clipboard_paste | Write + simulate Ctrl/Cmd+V |
-| `copy_to_clipboard` | clipboard_paste | Write to clipboard |
-| `start_recording` | audio_recorder | Start mic capture |
-| `stop_recording` | audio_recorder | Stop + return WAV buffer |
-| `transcribe_audio` | transcription | Send WAV to Groq Whisper |
-| `retranscribe_from_file` | transcription | Re-transcribe saved audio |
-| `play_start_sound` / `play_stop_sound` / `play_error_sound` / `play_learned_sound` | sound_feedback | System sounds |
-| `mute_system_audio` / `restore_system_audio` | audio_control | Mute during recording |
-| `start_quality_monitor` / `start_correction_monitor` | keyboard_monitor | Post-paste monitoring |
-| `read_focused_text_field` | text_field_reader | Read AX text field |
-| `check_accessibility_permission_command` | hotkey_listener | macOS permission check |
-| `list_audio_input_devices` | audio_recorder | Enumerate mic devices |
+| Command                                                                            | Plugin            | Purpose                     |
+| ---------------------------------------------------------------------------------- | ----------------- | --------------------------- |
+| `debug_log`                                                                        | lib.rs            | Log to Rust console         |
+| `update_hotkey_config`                                                             | lib.rs            | Update hotkey settings      |
+| `get_hud_target_position`                                                          | lib.rs            | Get HUD screen position     |
+| `paste_text`                                                                       | clipboard_paste   | Write + simulate Ctrl/Cmd+V |
+| `copy_to_clipboard`                                                                | clipboard_paste   | Write to clipboard          |
+| `start_recording`                                                                  | audio_recorder    | Start mic capture           |
+| `stop_recording`                                                                   | audio_recorder    | Stop + return WAV buffer    |
+| `transcribe_audio`                                                                 | transcription     | Send WAV to Groq Whisper    |
+| `retranscribe_from_file`                                                           | transcription     | Re-transcribe saved audio   |
+| `play_start_sound` / `play_stop_sound` / `play_error_sound` / `play_learned_sound` | sound_feedback    | System sounds               |
+| `mute_system_audio` / `restore_system_audio`                                       | audio_control     | Mute during recording       |
+| `start_quality_monitor` / `start_correction_monitor`                               | keyboard_monitor  | Post-paste monitoring       |
+| `read_focused_text_field`                                                          | text_field_reader | Read AX text field          |
+| `check_accessibility_permission_command`                                           | hotkey_listener   | macOS permission check      |
+| `list_audio_input_devices`                                                         | audio_recorder    | Enumerate mic devices       |
 
 ### Rust → Frontend Events
 
-| Event | Payload | Source |
-|-------|---------|--------|
-| `hotkey:pressed` / `hotkey:released` / `hotkey:toggled` | `HotkeyEventPayload` | hotkey_listener |
-| `hotkey:error` | `HotkeyErrorPayload` | hotkey_listener |
-| `quality-monitor:result` | `QualityMonitorResultPayload` | keyboard_monitor |
-| `correction-monitor:result` | `CorrectionMonitorResultPayload` | keyboard_monitor |
-| `audio:waveform` | `WaveformPayload { levels: [f32; 6] }` | audio_recorder |
+| Event                                                   | Payload                                | Source           |
+| ------------------------------------------------------- | -------------------------------------- | ---------------- |
+| `hotkey:pressed` / `hotkey:released` / `hotkey:toggled` | `HotkeyEventPayload`                   | hotkey_listener  |
+| `hotkey:error`                                          | `HotkeyErrorPayload`                   | hotkey_listener  |
+| `quality-monitor:result`                                | `QualityMonitorResultPayload`          | keyboard_monitor |
+| `correction-monitor:result`                             | `CorrectionMonitorResultPayload`       | keyboard_monitor |
+| `audio:waveform`                                        | `WaveformPayload { levels: [f32; 6] }` | audio_recorder   |
 
 ### Cross-Window Events (Frontend only)
 
-| Event | Direction | Purpose |
-|-------|-----------|---------|
-| `voice-flow:state-changed` | HUD → Dashboard | Sync recording status |
-| `transcription:completed` | HUD → Dashboard | Notify new transcription |
-| `settings:updated` | Dashboard → HUD | Sync settings changes |
-| `vocabulary:changed` | Dashboard → HUD | Sync vocabulary changes |
-| `vocabulary:learned` | HUD → HUD (NotchHud) | Show learned notification |
+| Event                      | Direction            | Purpose                   |
+| -------------------------- | -------------------- | ------------------------- |
+| `voice-flow:state-changed` | HUD → Dashboard      | Sync recording status     |
+| `transcription:completed`  | HUD → Dashboard      | Notify new transcription  |
+| `settings:updated`         | Dashboard → HUD      | Sync settings changes     |
+| `vocabulary:changed`       | Dashboard → HUD      | Sync vocabulary changes   |
+| `vocabulary:learned`       | HUD → HUD (NotchHud) | Show learned notification |
 
 ## Code Conventions
 
@@ -99,12 +99,12 @@
 
 ## Type Naming
 
-| Suffix | Usage | Example |
-|--------|-------|---------|
-| `*Payload` | Tauri event payload | `VoiceFlowStateChangedPayload` |
-| `*Record` | SQLite row (camelCase) | `TranscriptionRecord` |
-| `*Config` | Settings object | `HotkeyConfig` |
-| `*Entry` | List item | `VocabularyEntry` |
+| Suffix     | Usage                  | Example                        |
+| ---------- | ---------------------- | ------------------------------ |
+| `*Payload` | Tauri event payload    | `VoiceFlowStateChangedPayload` |
+| `*Record`  | SQLite row (camelCase) | `TranscriptionRecord`          |
+| `*Config`  | Settings object        | `HotkeyConfig`                 |
+| `*Entry`   | List item              | `VocabularyEntry`              |
 
 ## SQLite Rules
 
@@ -116,10 +116,10 @@
 
 ## Commands
 
-| Command | Purpose |
-|---------|---------|
-| `pnpm tauri dev` | Development mode |
-| `pnpm build` | Frontend build (tsc + vite) |
-| `pnpm test` | Run Vitest |
-| `pnpm lint` | ESLint check |
-| `pnpm format` | Prettier format |
+| Command          | Purpose                     |
+| ---------------- | --------------------------- |
+| `pnpm tauri dev` | Development mode            |
+| `pnpm build`     | Frontend build (tsc + vite) |
+| `pnpm test`      | Run Vitest                  |
+| `pnpm lint`      | ESLint check                |
+| `pnpm format`    | Prettier format             |

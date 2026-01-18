@@ -38,10 +38,7 @@ export async function initializeDatabase(): Promise<Database> {
  * 若 Dashboard 正在用舊 Pool 跑 migration，transaction context 會遺失，
  * 導致 DROP TABLE 等破壞性操作失去 rollback 保護。
  */
-export async function connectToDatabase(
-  maxRetries = 100,
-  retryDelayMs = 100,
-): Promise<Database> {
+export async function connectToDatabase(maxRetries = 100, retryDelayMs = 100): Promise<Database> {
   if (db) return db;
 
   for (let i = 0; i < maxRetries; i++) {
@@ -81,9 +78,7 @@ async function doInitializeDatabase(): Promise<Database> {
   if (!(await tableExists(connection, "api_usage"))) {
     // 可能有殘留的 api_usage_new（上次 migration 建了但沒 RENAME 成功）
     if (await tableExists(connection, "api_usage_new")) {
-      await connection.execute(
-        "ALTER TABLE api_usage_new RENAME TO api_usage;",
-      );
+      await connection.execute("ALTER TABLE api_usage_new RENAME TO api_usage;");
       logInfo("database", "Recovery: renamed api_usage_new → api_usage");
     } else {
       await connection.execute(`
@@ -121,9 +116,7 @@ async function doInitializeDatabase(): Promise<Database> {
 
 export function getDatabase(): Database {
   if (!db) {
-    throw new Error(
-      "[database] Database not initialized. Call initializeDatabase() first.",
-    );
+    throw new Error("[database] Database not initialized. Call initializeDatabase() first.");
   }
   return db;
 }

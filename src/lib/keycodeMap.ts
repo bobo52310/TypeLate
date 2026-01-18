@@ -1,7 +1,4 @@
-import {
-  getHotkeyConflictWarning,
-  getHotkeyCapslockWarning,
-} from "./errorUtils";
+import { getHotkeyConflictWarning, getHotkeyCapslockWarning } from "./errorUtils";
 import i18n from "../i18n";
 
 /**
@@ -455,13 +452,8 @@ function isMacPlatform(userAgent?: string): boolean {
   return ua.includes("Mac");
 }
 
-export function getPlatformKeycode(
-  domCode: string,
-  userAgent?: string,
-): number | null {
-  const map = isMacPlatform(userAgent)
-    ? DOM_CODE_TO_MAC_KEYCODE
-    : DOM_CODE_TO_WINDOWS_VK_CODE;
+export function getPlatformKeycode(domCode: string, userAgent?: string): number | null {
+  const map = isMacPlatform(userAgent) ? DOM_CODE_TO_MAC_KEYCODE : DOM_CODE_TO_WINDOWS_VK_CODE;
   return map[domCode] ?? null;
 }
 

@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,9 +23,7 @@ export default function ApiKeySection() {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const deleteConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const apiKeyStatusLabel = hasApiKey
-    ? t("settings.apiKey.set")
-    : t("settings.apiKey.notSet");
+  const apiKeyStatusLabel = hasApiKey ? t("settings.apiKey.set") : t("settings.apiKey.notSet");
   const apiKeyStatusClass = hasApiKey
     ? "bg-primary/20 text-primary"
     : "bg-destructive/20 text-destructive";
@@ -55,10 +48,7 @@ export default function ApiKeySection() {
       setIsApiKeyVisible(false);
       feedback.show("success", t("settings.apiKey.saved"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -85,10 +75,7 @@ export default function ApiKeySection() {
       setIsApiKeyVisible(false);
       feedback.show("success", t("settings.apiKey.deleted"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -99,9 +86,7 @@ export default function ApiKeySection() {
       <CardHeader className="flex-row items-center justify-between border-b border-border">
         <div className="flex items-center gap-2">
           <CardTitle className="text-base">Groq API Key</CardTitle>
-          <Badge className={cn("border-0", apiKeyStatusClass)}>
-            {apiKeyStatusLabel}
-          </Badge>
+          <Badge className={cn("border-0", apiKeyStatusClass)}>{apiKeyStatusLabel}</Badge>
         </div>
         <a
           href="https://console.groq.com/keys"
@@ -139,15 +124,10 @@ export default function ApiKeySection() {
               className="shrink-0"
               onClick={() => setIsApiKeyVisible(!isApiKeyVisible)}
             >
-              {isApiKeyVisible
-                ? t("settings.apiKey.hide")
-                : t("settings.apiKey.show")}
+              {isApiKeyVisible ? t("settings.apiKey.hide") : t("settings.apiKey.show")}
             </Button>
           </div>
-          <Button
-            disabled={isSubmitting}
-            onClick={() => void handleSaveApiKey()}
-          >
+          <Button disabled={isSubmitting} onClick={() => void handleSaveApiKey()}>
             {t("common.save")}
           </Button>
         </div>
@@ -156,9 +136,7 @@ export default function ApiKeySection() {
           {feedback.message && (
             <p
               className={`text-sm ${
-                feedback.type === "success"
-                  ? "text-primary"
-                  : "text-destructive"
+                feedback.type === "success" ? "text-primary" : "text-destructive"
               }`}
             >
               {feedback.message}

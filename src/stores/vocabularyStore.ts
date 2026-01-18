@@ -63,18 +63,14 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
   // -- Derived getters --
   termCount: () => get().termList.length,
 
-  manualTermList: () =>
-    get().termList.filter((entry) => entry.source === "manual"),
+  manualTermList: () => get().termList.filter((entry) => entry.source === "manual"),
 
-  aiSuggestedTermList: () =>
-    get().termList.filter((entry) => entry.source === "ai"),
+  aiSuggestedTermList: () => get().termList.filter((entry) => entry.source === "ai"),
 
   // -- Actions --
   isDuplicateTerm: (term: string) => {
     const normalizedInput = term.trim().toLowerCase();
-    return get().termList.some(
-      (entry) => entry.term.trim().toLowerCase() === normalizedInput,
-    );
+    return get().termList.some((entry) => entry.term.trim().toLowerCase() === normalizedInput);
   },
 
   fetchTermList: async () => {
@@ -86,10 +82,7 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
       );
       set({ termList: rows.map(mapRowToEntry) });
     } catch (error) {
-      logError(
-        "vocabulary",
-        `fetchTermList failed: ${extractErrorMessage(error)}`,
-      );
+      logError("vocabulary", `fetchTermList failed: ${extractErrorMessage(error)}`);
       captureError(error, { source: "vocabulary", step: "fetch" });
       throw error;
     } finally {
@@ -108,10 +101,10 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
     const id = crypto.randomUUID();
     try {
       const db = getDatabase();
-      await db.execute(
-        "INSERT INTO vocabulary (id, term, source) VALUES ($1, $2, 'manual')",
-        [id, trimmedTerm],
-      );
+      await db.execute("INSERT INTO vocabulary (id, term, source) VALUES ($1, $2, 'manual')", [
+        id,
+        trimmedTerm,
+      ]);
       await get().fetchTermList();
       void emitEvent(VOCABULARY_CHANGED, {
         action: "added",
@@ -141,10 +134,7 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
         term: entry.term,
       } satisfies VocabularyChangedPayload);
     } catch (error) {
-      logError(
-        "vocabulary",
-        `removeTerm failed: ${extractErrorMessage(error)}`,
-      );
+      logError("vocabulary", `removeTerm failed: ${extractErrorMessage(error)}`);
       captureError(error, { source: "vocabulary", step: "remove" });
       throw error;
     }
@@ -157,10 +147,10 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
     const id = crypto.randomUUID();
     try {
       const db = getDatabase();
-      await db.execute(
-        "INSERT INTO vocabulary (id, term, source) VALUES ($1, $2, 'ai')",
-        [id, trimmedTerm],
-      );
+      await db.execute("INSERT INTO vocabulary (id, term, source) VALUES ($1, $2, 'ai')", [
+        id,
+        trimmedTerm,
+      ]);
       await get().fetchTermList();
       void emitEvent(VOCABULARY_CHANGED, {
         action: "added",
@@ -183,17 +173,11 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
     try {
       const db = getDatabase();
       for (const id of termIdList) {
-        await db.execute(
-          "UPDATE vocabulary SET weight = weight + 1 WHERE id = $1",
-          [id],
-        );
+        await db.execute("UPDATE vocabulary SET weight = weight + 1 WHERE id = $1", [id]);
       }
       await get().fetchTermList();
     } catch (error) {
-      logError(
-        "vocabulary",
-        `batchIncrementWeights failed: ${extractErrorMessage(error)}`,
-      );
+      logError("vocabulary", `batchIncrementWeights failed: ${extractErrorMessage(error)}`);
       captureError(error, { source: "vocabulary", step: "increment-weights" });
       throw error;
     }
@@ -218,10 +202,10 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
         );
       }
       for (const { id, weight } of toUpdate) {
-        await db.execute(
-          "UPDATE vocabulary SET weight = $1 WHERE id = $2 AND weight < $1",
-          [weight, id],
-        );
+        await db.execute("UPDATE vocabulary SET weight = $1 WHERE id = $2 AND weight < $1", [
+          weight,
+          id,
+        ]);
       }
       await get().fetchTermList();
       if (toInsert.length > 0) {
@@ -231,10 +215,7 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
         } satisfies VocabularyChangedPayload);
       }
     } catch (error) {
-      logError(
-        "vocabulary",
-        `syncImportBatch failed: ${extractErrorMessage(error)}`,
-      );
+      logError("vocabulary", `syncImportBatch failed: ${extractErrorMessage(error)}`);
       captureError(error, { source: "vocabulary", step: "sync-import" });
       throw error;
     }
@@ -249,10 +230,7 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
       );
       return rows.map((row) => row.term);
     } catch (error) {
-      logError(
-        "vocabulary",
-        `getTopTermListByWeight failed: ${extractErrorMessage(error)}`,
-      );
+      logError("vocabulary", `getTopTermListByWeight failed: ${extractErrorMessage(error)}`);
       captureError(error, { source: "vocabulary", step: "top-by-weight" });
       return [];
     }

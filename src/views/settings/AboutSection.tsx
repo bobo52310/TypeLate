@@ -1,11 +1,6 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CircleAlert, Download, Github, RefreshCw } from "lucide-react";
@@ -73,9 +68,7 @@ export default function AboutSection() {
     <Card>
       <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">
-            {t("settings.about.title")}
-          </CardTitle>
+          <CardTitle className="text-base">{t("settings.about.title")}</CardTitle>
           <button
             onClick={handleVersionClick}
             className="rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground select-none"
@@ -87,9 +80,7 @@ export default function AboutSection() {
       <CardContent className="space-y-4">
         {showEasterEgg && slogans.length > 0 && (
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
-            <p className="text-xs font-medium text-primary">
-              {"\u{1F389}"} TypeLate
-            </p>
+            <p className="text-xs font-medium text-primary">{"\u{1F389}"} TypeLate</p>
             {slogans.map((slogan, i) => (
               <p key={i} className="text-sm italic text-foreground/80">
                 &ldquo;{slogan}&rdquo;
@@ -99,9 +90,7 @@ export default function AboutSection() {
         )}
 
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">
-            {t("settings.about.description")}
-          </p>
+          <p className="text-sm text-muted-foreground">{t("settings.about.description")}</p>
           <p className="text-sm text-muted-foreground">
             {t("settings.about.author")}
             <span className="font-medium text-foreground">Bobo Chen</span>
@@ -118,11 +107,7 @@ export default function AboutSection() {
               : `v${APP_VERSION}`}
           </div>
           {updateState === "ready" ? (
-            <Button
-              size="sm"
-              className="gap-1.5"
-              onClick={() => void handleStartUpdate()}
-            >
+            <Button size="sm" className="gap-1.5" onClick={() => void handleStartUpdate()}>
               <Download className="h-3.5 w-3.5" />
               {t("mainApp.update.installNow")}
             </Button>
@@ -134,7 +119,9 @@ export default function AboutSection() {
               disabled={updateState === "checking" || updateState === "downloading"}
               onClick={() => void handleCheckForUpdate()}
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${updateState === "checking" ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${updateState === "checking" ? "animate-spin" : ""}`}
+              />
               {updateState === "checking"
                 ? t("mainApp.update.checking")
                 : updateState === "downloading"

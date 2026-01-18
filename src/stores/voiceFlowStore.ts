@@ -16,10 +16,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, emit, type UnlistenFn } from "@tauri-apps/api/event";
 import { Window } from "@tauri-apps/api/window";
 import i18n from "@/i18n";
-import {
-  extractErrorMessage,
-  getHotkeyErrorMessage,
-} from "@/lib/errorUtils";
+import { extractErrorMessage, getHotkeyErrorMessage } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
 import type { HudStatus } from "@/types";
 import type {
@@ -157,9 +154,7 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
 
   const state = useVoiceFlowStore.getState();
   const canRetryNext =
-    nextStatus === "error" &&
-    state._lastFailedAudioFilePath !== null &&
-    !state._isRetryAttempt;
+    nextStatus === "error" && state._lastFailedAudioFilePath !== null && !state._isRetryAttempt;
 
   useVoiceFlowStore.setState({
     status: nextStatus,
@@ -178,24 +173,16 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
     stopMonitorPolling();
     setCollapseHideTimer(() => {
       hideHud().catch((err: unknown) => {
-        writeErrorLog(
-          `voiceFlowStore: hideHud failed: ${extractErrorMessage(err)}`,
-        );
+        writeErrorLog(`voiceFlowStore: hideHud failed: ${extractErrorMessage(err)}`);
         captureError(err, { source: "voice-flow", step: "hideHud" });
       });
     });
     return;
   }
 
-  if (
-    nextStatus === "recording" ||
-    nextStatus === "transcribing" ||
-    nextStatus === "enhancing"
-  ) {
+  if (nextStatus === "recording" || nextStatus === "transcribing" || nextStatus === "enhancing") {
     showHud().catch((err: unknown) => {
-      writeErrorLog(
-        `voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`,
-      );
+      writeErrorLog(`voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`);
       captureError(err, { source: "voice-flow", step: "showHud" });
     });
     return;
@@ -203,9 +190,7 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
 
   if (nextStatus === "success") {
     showHud().catch((err: unknown) => {
-      writeErrorLog(
-        `voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`,
-      );
+      writeErrorLog(`voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`);
       captureError(err, { source: "voice-flow", step: "showHud" });
     });
     setAutoHideTimer(() => {
@@ -216,9 +201,7 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
 
   if (nextStatus === "cancelled") {
     showHud().catch((err: unknown) => {
-      writeErrorLog(
-        `voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`,
-      );
+      writeErrorLog(`voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`);
       captureError(err, { source: "voice-flow", step: "showHud" });
     });
     setAutoHideTimer(() => {
@@ -231,9 +214,7 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
     showHud()
       .then(() => enableCursorEvents())
       .catch((err: unknown) => {
-        writeErrorLog(
-          `voiceFlowStore: showHud/enableCursor failed: ${extractErrorMessage(err)}`,
-        );
+        writeErrorLog(`voiceFlowStore: showHud/enableCursor failed: ${extractErrorMessage(err)}`);
         captureError(err, {
           source: "voice-flow",
           step: "showHud-enableCursor",
@@ -260,11 +241,7 @@ export function playSoundIfEnabled(command: string): void {
   }
 }
 
-export function failRecordingFlow(
-  errorMessage: string,
-  logMessage: string,
-  error?: unknown,
-): void {
+export function failRecordingFlow(errorMessage: string, logMessage: string, error?: unknown): void {
   clearDelayedMuteTimer();
   void restoreSystemAudio();
   useVoiceFlowStore.setState({ isRecording: false });
@@ -358,8 +335,7 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
     // Inject action references into sub-modules
     const sharedActions = {
       getState: () => get(),
-      setState: (partial: Record<string, unknown>) =>
-        set(partial as Partial<VoiceFlowState>),
+      setState: (partial: Record<string, unknown>) => set(partial as Partial<VoiceFlowState>),
       transitionTo,
       playSoundIfEnabled,
       failRecordingFlow,
@@ -371,9 +347,7 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
     try {
       await stores.getSettingsStore().loadSettings();
     } catch (err) {
-      writeErrorLog(
-        `voiceFlowStore: loadSettings failed: ${extractErrorMessage(err)}`,
-      );
+      writeErrorLog(`voiceFlowStore: loadSettings failed: ${extractErrorMessage(err)}`);
     }
 
     // Set up Tauri event listeners
@@ -396,20 +370,15 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
           void handleStopRecording();
         }
       }),
-      listen<QualityMonitorResultPayload>(
-        QUALITY_MONITOR_RESULT,
-        (event) => {
-          set({ lastWasModified: event.payload.wasModified });
-          writeInfoLog(
-            `voiceFlowStore: quality monitor result: wasModified=${String(event.payload.wasModified)}`,
-          );
-        },
-      ),
+      listen<QualityMonitorResultPayload>(QUALITY_MONITOR_RESULT, (event) => {
+        set({ lastWasModified: event.payload.wasModified });
+        writeInfoLog(
+          `voiceFlowStore: quality monitor result: wasModified=${String(event.payload.wasModified)}`,
+        );
+      }),
       listen<HotkeyErrorPayload>(HOTKEY_ERROR, (event) => {
         const hudMessage = getHotkeyErrorMessage(event.payload.error);
-        if (
-          event.payload.error === HOTKEY_ERROR_CODES.ACCESSIBILITY_PERMISSION
-        ) {
+        if (event.payload.error === HOTKEY_ERROR_CODES.ACCESSIBILITY_PERMISSION) {
           void (async () => {
             try {
               const mainWindow = await Window.getByLabel("main-window");
@@ -425,9 +394,7 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
         }
         transitionTo("error", hudMessage);
         playSoundIfEnabled("play_error_sound");
-        writeErrorLog(
-          `voiceFlowStore: hotkey error: ${event.payload.message}`,
-        );
+        writeErrorLog(`voiceFlowStore: hotkey error: ${event.payload.message}`);
       }),
     ]);
     unlistenFunctions.push(...listeners);

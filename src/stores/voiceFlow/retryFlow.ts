@@ -86,10 +86,7 @@ function updateVocabularyWeightsAfterPaste(finalText: string): void {
       for (const entry of vocabularyStore.termList) {
         const isEnglish = /^[a-zA-Z]/.test(entry.term);
         if (isEnglish) {
-          const regex = new RegExp(
-            "\\b" + escapeRegex(entry.term) + "\\b",
-            "i",
-          );
+          const regex = new RegExp("\\b" + escapeRegex(entry.term) + "\\b", "i");
           if (regex.test(finalText)) {
             matchedIdList.push(entry.id);
           }
@@ -127,9 +124,7 @@ async function completePasteFlowForRetry(params: {
 
     // Quality monitor
     void invoke("start_quality_monitor").catch((err: unknown) => {
-      writeErrorLog(
-        `voiceFlowStore: start_quality_monitor failed: ${extractErrorMessage(err)}`,
-      );
+      writeErrorLog(`voiceFlowStore: start_quality_monitor failed: ${extractErrorMessage(err)}`);
       captureError(err, { source: "voice-flow", step: "quality-monitor" });
     });
 
@@ -141,20 +136,13 @@ async function completePasteFlowForRetry(params: {
     const settingsStore = getSettingsStore();
     const apiKey = settingsStore.getApiKey();
     if (apiKey) {
-      startCorrectionDetectionFlow(
-        params.text,
-        params.record.id,
-        apiKey,
-        () => getState().status,
-      );
+      startCorrectionDetectionFlow(params.text, params.record.id, apiKey, () => getState().status);
     }
   } catch (pasteError) {
     setState({ isRecording: false });
     transitionTo("error", t("voiceFlow.pasteFailed"));
     playSoundIfEnabled("play_error_sound");
-    writeErrorLog(
-      `voiceFlowStore: paste_text failed: ${extractErrorMessage(pasteError)}`,
-    );
+    writeErrorLog(`voiceFlowStore: paste_text failed: ${extractErrorMessage(pasteError)}`);
     captureError(pasteError, { source: "voice-flow", step: "paste" });
   }
 }
@@ -204,16 +192,13 @@ export async function handleRetryTranscription(): Promise<void> {
     const whisperTermList = await vocabularyStore.getTopTermListByWeight(50);
     const hasVocabulary = whisperTermList.length > 0;
 
-    const result = await invoke<TranscriptionResult>(
-      "retranscribe_from_file",
-      {
-        filePath,
-        apiKey,
-        vocabularyTermList: hasVocabulary ? whisperTermList : null,
-        modelId: settingsStore.selectedWhisperModelId,
-        language: settingsStore.getWhisperLanguageCode(),
-      },
-    );
+    const result = await invoke<TranscriptionResult>("retranscribe_from_file", {
+      filePath,
+      apiKey,
+      vocabularyTermList: hasVocabulary ? whisperTermList : null,
+      modelId: settingsStore.selectedWhisperModelId,
+      language: settingsStore.getWhisperLanguageCode(),
+    });
     if (getState()._isAborted) return;
 
     writeInfoLog(`Retry transcription raw: "${result.rawText}"`);
@@ -260,19 +245,16 @@ export async function handleRetryTranscription(): Promise<void> {
       const enhancementStartTime = performance.now();
 
       try {
-        const enhancementTermList =
-          await vocabularyStore.getTopTermListByWeight(50);
+        const enhancementTermList = await vocabularyStore.getTopTermListByWeight(50);
         const enhanceResult = await enhanceText(result.rawText, apiKey, {
           systemPrompt: settingsStore.getAiPrompt(),
-          vocabularyTermList:
-            enhancementTermList.length > 0 ? enhancementTermList : undefined,
+          vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
           modelId: settingsStore.selectedLlmModelId,
           signal: newAbortController.signal,
         });
         if (getState()._isAborted) return;
 
-        const enhancementDurationMs =
-          performance.now() - enhancementStartTime;
+        const enhancementDurationMs = performance.now() - enhancementStartTime;
 
         const record = buildTranscriptionRecord({
           id: transcriptionId,
@@ -302,9 +284,7 @@ export async function handleRetryTranscription(): Promise<void> {
             id: transcriptionId,
             rawText: result.rawText,
             processedText: enhanceResult.text,
-            transcriptionDurationMs: Math.round(
-              result.transcriptionDurationMs,
-            ),
+            transcriptionDurationMs: Math.round(result.transcriptionDurationMs),
             enhancementDurationMs: Math.round(enhancementDurationMs),
             wasEnhanced: true,
             charCount: result.rawText.length,
@@ -319,8 +299,7 @@ export async function handleRetryTranscription(): Promise<void> {
           );
       } catch (enhanceError) {
         if (getState()._isAborted) return;
-        const fallbackEnhancementDurationMs =
-          performance.now() - enhancementStartTime;
+        const fallbackEnhancementDurationMs = performance.now() - enhancementStartTime;
         writeErrorLog(
           `voiceFlowStore: retry AI enhancement failed: ${getEnhancementErrorMessage(enhanceError)}`,
         );
@@ -354,9 +333,7 @@ export async function handleRetryTranscription(): Promise<void> {
             id: transcriptionId,
             rawText: result.rawText,
             processedText: null,
-            transcriptionDurationMs: Math.round(
-              result.transcriptionDurationMs,
-            ),
+            transcriptionDurationMs: Math.round(result.transcriptionDurationMs),
             enhancementDurationMs: Math.round(fallbackEnhancementDurationMs),
             wasEnhanced: false,
             charCount: result.rawText.length,
@@ -427,9 +404,7 @@ export async function handleRetryTranscription(): Promise<void> {
       _lastFailedAudioFilePath: null,
       _isRetryAttempt: false,
     });
-    writeErrorLog(
-      `voiceFlowStore: retry transcription failed: ${extractErrorMessage(error)}`,
-    );
+    writeErrorLog(`voiceFlowStore: retry transcription failed: ${extractErrorMessage(error)}`);
     captureError(error, {
       source: "voice-flow",
       step: "retry-transcription",
