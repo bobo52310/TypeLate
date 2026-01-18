@@ -73,6 +73,18 @@ export function DashboardApp() {
   const { t } = useTranslation();
   const { currentPath, navigate } = useHashRouter();
 
+  // Keyboard shortcut: Cmd+, (macOS) / Ctrl+, (Windows) → open settings
+  useEffect(() => {
+    function handleKeydown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        navigate("/settings");
+      }
+    }
+    document.addEventListener("keydown", handleKeydown);
+    return () => document.removeEventListener("keydown", handleKeydown);
+  }, [navigate]);
+
   // Sidebar logo hover slogan (stable per mount)
   const [sidebarSlogan] = useState(() => getRandomSlogan());
 
