@@ -36,40 +36,30 @@ export function HudApp() {
     void (async () => {
       logInfo("HudApp", "Mounted, initializing voice flow...");
 
-      // Initialize DB (for vocabulary store)
-      let isDatabaseReady = false;
-      try {
-        await connectToDatabase();
-        isDatabaseReady = true;
-      } catch (err) {
+      // Phase 1: Run DB, settings, and event listeners in parallel
+      // Settings + voice flow init is the critical path for hotkey readiness
+      const dbPromise = connectToDatabase().catch((err) => {
         logError("HudApp", "Database init failed", err);
-      }
-
-      // Load vocabulary (for transcriber + enhancer)
-      if (isDatabaseReady) {
-        try {
-          await useVocabularyStore.getState().fetchTermList();
-        } catch (err) {
-          logError("HudApp", "Vocabulary fetch failed", err);
-        }
-      }
-
-      // Listen for settings changes (sync from Dashboard → HUD)
-      const unlistenSettings = await listen(SETTINGS_UPDATED, () => {
-        void useSettingsStore.getState().refreshCrossWindowSettings();
+        return null;
       });
-      unlistenFns.push(unlistenSettings);
 
-      // Listen for vocabulary changes (sync from Dashboard → HUD)
-      const unlistenVocabulary = await listen(VOCABULARY_CHANGED, () => {
-        void useVocabularyStore.getState().fetchTermList();
+      const settingsPromise = useSettingsStore.getState().loadSettings();
+
+      const listenersPromise = Promise.all([
+        listen(SETTINGS_UPDATED, () => {
+          void useSettingsStore.getState().refreshCrossWindowSettings();
+        }),
+        listen(VOCABULARY_CHANGED, () => {
+          void useVocabularyStore.getState().fetchTermList();
+        }),
+      ]).then(([unlistenSettings, unlistenVocabulary]) => {
+        unlistenFns.push(unlistenSettings, unlistenVocabulary);
       });
-      unlistenFns.push(unlistenVocabulary);
 
-      // Load settings
-      await useSettingsStore.getState().loadSettings();
+      // Wait for settings (critical path) and listeners
+      await Promise.all([settingsPromise, listenersPromise]);
 
-      // Show HUD briefly, then initialize voice flow
+      // Phase 2: Initialize voice flow (needs settings loaded)
       const appWindow = getCurrentWindow();
       await appWindow.show();
       await useVoiceFlowStore.getState().initialize({
@@ -78,7 +68,7 @@ export function HudApp() {
         getVocabularyStore: () => useVocabularyStore.getState(),
       });
 
-      // Show dashboard on startup, then hide HUD
+      // Phase 3: Show dashboard, hide HUD
       try {
         const mainWindow = await Window.getByLabel("main-window");
         if (mainWindow) {
@@ -88,8 +78,16 @@ export function HudApp() {
       } catch (err) {
         logError("HudApp", "Show main-window failed", err);
       }
-
       await appWindow.hide();
+
+      // Phase 4: Deferred — vocabulary fetch after DB is ready (non-blocking)
+      dbPromise.then((result) => {
+        if (result !== null) {
+          void useVocabularyStore.getState().fetchTermList().catch((err) => {
+            logError("HudApp", "Vocabulary fetch failed", err);
+          });
+        }
+      });
     })();
 
     return () => {
