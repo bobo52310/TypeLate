@@ -1,11 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,9 +25,7 @@ export default function ModelSection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
-  const selectedWhisperModelId = useSettingsStore(
-    (s) => s.selectedWhisperModelId,
-  );
+  const selectedWhisperModelId = useSettingsStore((s) => s.selectedWhisperModelId);
   const selectedLlmModelId = useSettingsStore((s) => s.selectedLlmModelId);
   const saveWhisperModel = useSettingsStore((s) => s.saveWhisperModel);
   const saveLlmModel = useSettingsStore((s) => s.saveLlmModel);
@@ -54,10 +47,7 @@ export default function ModelSection() {
       await saveWhisperModel(newId as WhisperModelId);
       feedback.show("success", t("settings.model.whisperUpdated"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -66,19 +56,14 @@ export default function ModelSection() {
       await saveLlmModel(newId as LlmModelId);
       feedback.show("success", t("settings.model.llmUpdated"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
   return (
     <Card>
       <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">
-          {t("settings.model.title")}
-        </CardTitle>
+        <CardTitle className="text-base">{t("settings.model.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -87,9 +72,7 @@ export default function ModelSection() {
 
         {/* Whisper model */}
         <div className="space-y-2">
-          <Label htmlFor="whisper-model">
-            {t("settings.model.whisperLabel")}
-          </Label>
+          <Label htmlFor="whisper-model">{t("settings.model.whisperLabel")}</Label>
           <Select
             value={selectedWhisperModelId}
             onValueChange={(val) => void handleWhisperModelChange(val)}
@@ -112,16 +95,12 @@ export default function ModelSection() {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            {whisperModelDescription}
-          </p>
+          <p className="text-xs text-muted-foreground">{whisperModelDescription}</p>
         </div>
 
         {/* LLM model */}
         <div className="space-y-2">
-          <Label htmlFor="llm-model">
-            {t("settings.model.llmLabel")}
-          </Label>
+          <Label htmlFor="llm-model">{t("settings.model.llmLabel")}</Label>
           <Select
             value={selectedLlmModelId}
             onValueChange={(val) => void handleLlmModelChange(val)}
@@ -142,17 +121,13 @@ export default function ModelSection() {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            {llmModelDescription}
-          </p>
+          <p className="text-xs text-muted-foreground">{llmModelDescription}</p>
         </div>
 
         {feedback.message && (
           <p
             className={`text-sm ${
-              feedback.type === "success"
-                ? "text-primary"
-                : "text-destructive"
+              feedback.type === "success" ? "text-primary" : "text-destructive"
             }`}
           >
             {feedback.message}

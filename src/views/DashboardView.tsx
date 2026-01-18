@@ -3,21 +3,10 @@ import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
 import { KeyRound, MessageCircle } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
@@ -37,9 +26,7 @@ export default function DashboardView() {
   const { t } = useTranslation();
   const refreshDashboard = useHistoryStore((s) => s.refreshDashboard);
   const dashboardStats = useHistoryStore((s) => s.dashboardStats);
-  const recentTranscriptionList = useHistoryStore(
-    (s) => s.recentTranscriptionList,
-  );
+  const recentTranscriptionList = useHistoryStore((s) => s.recentTranscriptionList);
   const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
 
   const hasApiKey = useSettingsStore((s) => s.hasApiKey);
@@ -52,16 +39,11 @@ export default function DashboardView() {
 
   const avgCharacters = useMemo(() => {
     if (dashboardStats.totalTranscriptions <= 0) return 0;
-    return Math.round(
-      dashboardStats.totalCharacters / dashboardStats.totalTranscriptions,
-    );
+    return Math.round(dashboardStats.totalCharacters / dashboardStats.totalTranscriptions);
   }, [dashboardStats]);
 
   const estimatedTypingTimeMs = useMemo(() => {
-    return (
-      dashboardStats.estimatedTimeSavedMs +
-      dashboardStats.totalRecordingDurationMs
-    );
+    return dashboardStats.estimatedTimeSavedMs + dashboardStats.totalRecordingDurationMs;
   }, [dashboardStats.estimatedTimeSavedMs, dashboardStats.totalRecordingDurationMs]);
 
   const speedMultiplier = useMemo(() => {
@@ -163,9 +145,7 @@ export default function DashboardView() {
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-muted/50 px-4 py-3">
                 <p className="text-2xl font-bold text-foreground">
-                  {formatDurationFromMs(
-                    dashboardStats.totalRecordingDurationMs,
-                  )}
+                  {formatDurationFromMs(dashboardStats.totalRecordingDurationMs)}
                 </p>
                 <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {t("dashboard.speakingTime")}
@@ -197,51 +177,40 @@ export default function DashboardView() {
       <div className="grid grid-cols-3 gap-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>
-              {t("dashboard.totalCharacters")}
-            </CardDescription>
+            <CardDescription>{t("dashboard.totalCharacters")}</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-foreground">
-              {formatNumber(dashboardStats.totalCharacters)}{" "}
-              {t("dashboard.characterUnit")}
+              {formatNumber(dashboardStats.totalCharacters)} {t("dashboard.characterUnit")}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>
-              {t("dashboard.totalTranscriptions")}
-            </CardDescription>
+            <CardDescription>{t("dashboard.totalTranscriptions")}</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-foreground">
-              {formatNumber(dashboardStats.totalTranscriptions)}{" "}
-              {t("dashboard.transcriptionUnit")}
+              {formatNumber(dashboardStats.totalTranscriptions)} {t("dashboard.transcriptionUnit")}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>
-              {t("dashboard.charsPerMinute")}
-            </CardDescription>
+            <CardDescription>{t("dashboard.charsPerMinute")}</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-foreground">
-              {formatNumber(charsPerMinute)}{" "}
-              {t("dashboard.charsPerMinuteUnit")}
+              {formatNumber(charsPerMinute)} {t("dashboard.charsPerMinuteUnit")}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>
-              {t("dashboard.avgCharacters")}
-            </CardDescription>
+            <CardDescription>{t("dashboard.avgCharacters")}</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-foreground">
@@ -255,9 +224,7 @@ export default function DashboardView() {
             <TooltipTrigger asChild>
               <Card className="cursor-default">
                 <CardHeader className="pb-2">
-                  <CardDescription>
-                    {t("dashboard.dailyQuota")}
-                  </CardDescription>
+                  <CardDescription>{t("dashboard.dailyQuota")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-foreground">
@@ -282,16 +249,12 @@ export default function DashboardView() {
               side="bottom"
               sideOffset={6}
             >
-              <p className="mb-2 text-xs font-medium">
-                {t("dashboard.dailyQuotaDetail")}
-              </p>
+              <p className="mb-2 text-xs font-medium">{t("dashboard.dailyQuotaDetail")}</p>
               <div className="space-y-2">
                 {quotaDimensionList.map((dim, idx) => (
                   <div key={idx}>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">
-                        {dim.label}
-                      </span>
+                      <span className="text-muted-foreground">{dim.label}</span>
                       <span className="font-medium">
                         {Math.round(Math.max(0, dim.remaining) * 100)}%
                       </span>
@@ -307,17 +270,13 @@ export default function DashboardView() {
                   </div>
                 ))}
               </div>
-              {dashboardStats.dailyQuotaUsage
-                .vocabularyAnalysisRequestCount > 0 && (
+              {dashboardStats.dailyQuotaUsage.vocabularyAnalysisRequestCount > 0 && (
                 <div className="mt-2 border-t border-border pt-2">
                   <span className="text-xs text-muted-foreground">
                     {t("dashboard.vocabularyAnalysisUsage", {
-                      requests:
-                        dashboardStats.dailyQuotaUsage
-                          .vocabularyAnalysisRequestCount,
+                      requests: dashboardStats.dailyQuotaUsage.vocabularyAnalysisRequestCount,
                       tokens: formatNumber(
-                        dashboardStats.dailyQuotaUsage
-                          .vocabularyAnalysisTotalTokens,
+                        dashboardStats.dailyQuotaUsage.vocabularyAnalysisTotalTokens,
                       ),
                     })}
                   </span>
@@ -336,12 +295,8 @@ export default function DashboardView() {
               <MessageCircle className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-medium">
-                {t("dashboard.communityTitle")}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t("dashboard.communityDescription")}
-              </p>
+              <p className="text-sm font-medium">{t("dashboard.communityTitle")}</p>
+              <p className="text-xs text-muted-foreground">{t("dashboard.communityDescription")}</p>
             </div>
           </CardContent>
         </Card>
@@ -351,9 +306,7 @@ export default function DashboardView() {
       <Card className="mt-5">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">
-              {t("dashboard.usageTrend")}
-            </CardTitle>
+            <CardTitle className="text-base">{t("dashboard.usageTrend")}</CardTitle>
             <CardDescription>{t("dashboard.last30Days")}</CardDescription>
           </div>
         </CardHeader>
@@ -366,18 +319,11 @@ export default function DashboardView() {
             <div>
               <div className="flex h-40 items-end gap-[3px]">
                 {dailyUsageTrendList.map((day, i) => {
-                  const maxCount = Math.max(
-                    ...dailyUsageTrendList.map((d) => d.count),
-                    1,
-                  );
+                  const maxCount = Math.max(...dailyUsageTrendList.map((d) => d.count), 1);
                   const heightPct = day.count === 0 ? 0 : Math.max(6, (day.count / maxCount) * 100);
                   const isToday = i === dailyUsageTrendList.length - 1;
                   return (
-                    <div
-                      key={i}
-                      className="group relative flex-1"
-                      style={{ height: "100%" }}
-                    >
+                    <div key={i} className="group relative flex-1" style={{ height: "100%" }}>
                       {/* Hover tooltip: count prominent, date below */}
                       <div className="pointer-events-none absolute -top-12 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center rounded-md border border-border bg-popover px-2.5 py-1.5 shadow-md group-hover:flex whitespace-nowrap">
                         <span className="text-sm font-bold tabular-nums text-popover-foreground">
@@ -390,9 +336,7 @@ export default function DashboardView() {
                       {/* Bar */}
                       <div
                         className={`absolute bottom-0 w-full rounded-t transition-colors ${
-                          isToday
-                            ? "bg-primary"
-                            : "bg-primary/40 group-hover:bg-primary/70"
+                          isToday ? "bg-primary" : "bg-primary/40 group-hover:bg-primary/70"
                         }`}
                         style={{ height: `${heightPct}%` }}
                       />
@@ -404,10 +348,14 @@ export default function DashboardView() {
               <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
                 <span>{dailyUsageTrendList[0]?.date.slice(5).replace("-", "/")}</span>
                 <span>
-                  {dailyUsageTrendList[Math.floor(dailyUsageTrendList.length / 2)]?.date.slice(5).replace("-", "/")}
+                  {dailyUsageTrendList[Math.floor(dailyUsageTrendList.length / 2)]?.date
+                    .slice(5)
+                    .replace("-", "/")}
                 </span>
                 <span>
-                  {dailyUsageTrendList[dailyUsageTrendList.length - 1]?.date.slice(5).replace("-", "/")}
+                  {dailyUsageTrendList[dailyUsageTrendList.length - 1]?.date
+                    .slice(5)
+                    .replace("-", "/")}
                 </span>
               </div>
             </div>
@@ -418,9 +366,7 @@ export default function DashboardView() {
       {/* Recent transcriptions */}
       <Card className="mt-5">
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle className="text-base">
-            {t("dashboard.recentTranscriptions")}
-          </CardTitle>
+          <CardTitle className="text-base">{t("dashboard.recentTranscriptions")}</CardTitle>
           {recentTranscriptionList.length > 0 && (
             <Button variant="link" onClick={navigateToHistory}>
               {t("dashboard.viewAll")}

@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -26,8 +21,7 @@ export default function PromptSection() {
   const savePromptMode = useSettingsStore((s) => s.savePromptMode);
   const resetAiPrompt = useSettingsStore((s) => s.resetAiPrompt);
 
-  const [selectedPromptMode, setSelectedPromptMode] =
-    useState<PromptMode>("minimal");
+  const [selectedPromptMode, setSelectedPromptMode] = useState<PromptMode>("minimal");
   const [promptInput, setPromptInput] = useState("");
   const [isPresetDirty, setIsPresetDirty] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,10 +48,7 @@ export default function PromptSection() {
       setIsPresetDirty(false);
     } catch (err) {
       setSelectedPromptMode(previousMode);
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -69,8 +60,7 @@ export default function PromptSection() {
   }
 
   async function handleSavePrompt() {
-    const wasModeSwitch =
-      selectedPromptMode !== "custom" && isPresetDirty;
+    const wasModeSwitch = selectedPromptMode !== "custom" && isPresetDirty;
     const previousMode = selectedPromptMode;
     try {
       setIsSubmitting(true);
@@ -90,10 +80,7 @@ export default function PromptSection() {
         }
         setSelectedPromptMode(previousMode);
       }
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -121,10 +108,7 @@ export default function PromptSection() {
       setIsPresetDirty(false);
       feedback.show("success", t("settings.prompt.resetDone"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -151,14 +135,10 @@ export default function PromptSection() {
   return (
     <Card>
       <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">
-          {t("settings.prompt.title")}
-        </CardTitle>
+        <CardTitle className="text-base">{t("settings.prompt.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          {t("settings.prompt.description")}
-        </p>
+        <p className="text-sm text-muted-foreground">{t("settings.prompt.description")}</p>
 
         {/* Mode selector */}
         <div className="space-y-2">
@@ -185,12 +165,8 @@ export default function PromptSection() {
                   className="!size-0 !border-0 !shadow-none overflow-hidden"
                 />
                 <div>
-                  <span className="text-sm font-medium">
-                    {t(mode.labelKey)}
-                  </span>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    {t(mode.descKey)}
-                  </p>
+                  <span className="text-sm font-medium">{t(mode.labelKey)}</span>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{t(mode.descKey)}</p>
                 </div>
               </Label>
             ))}
@@ -205,10 +181,7 @@ export default function PromptSection() {
 
         <div className="flex justify-end gap-2">
           <Button
-            disabled={
-              isSubmitting ||
-              (selectedPromptMode !== "custom" && !isPresetDirty)
-            }
+            disabled={isSubmitting || (selectedPromptMode !== "custom" && !isPresetDirty)}
             onClick={() => void handleSavePrompt()}
           >
             {t("common.save")}
@@ -216,24 +189,19 @@ export default function PromptSection() {
           <Button
             variant="outline"
             className={cn(
-              isConfirmingReset &&
-                "border-destructive text-destructive hover:bg-destructive/10",
+              isConfirmingReset && "border-destructive text-destructive hover:bg-destructive/10",
             )}
             disabled={isSubmitting}
             onClick={requestResetPrompt}
           >
-            {isConfirmingReset
-              ? t("settings.prompt.confirmReset")
-              : t("settings.prompt.reset")}
+            {isConfirmingReset ? t("settings.prompt.confirmReset") : t("settings.prompt.reset")}
           </Button>
         </div>
 
         {feedback.message && (
           <p
             className={`text-sm ${
-              feedback.type === "success"
-                ? "text-primary"
-                : "text-destructive"
+              feedback.type === "success" ? "text-primary" : "text-destructive"
             }`}
           >
             {feedback.message}

@@ -20,7 +20,13 @@ import {
   Sparkles,
 } from "lucide-react";
 
-type OnboardingStep = "welcome" | "api-key-intro" | "api-key-paste" | "hotkey" | "mic-test" | "done";
+type OnboardingStep =
+  | "welcome"
+  | "api-key-intro"
+  | "api-key-paste"
+  | "hotkey"
+  | "mic-test"
+  | "done";
 
 interface OnboardingViewProps {
   onComplete: () => void;
@@ -88,7 +94,8 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
     onComplete();
   }, [onComplete]);
 
-  const currentStepNum = step === "api-key-intro" || step === "api-key-paste" ? 1 : step === "hotkey" ? 2 : 3;
+  const currentStepNum =
+    step === "api-key-intro" || step === "api-key-paste" ? 1 : step === "hotkey" ? 2 : 3;
   const showStepIndicator = !["welcome", "done"].includes(step);
 
   return (
@@ -113,21 +120,21 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
             {/* Logo */}
             <div className="relative">
               <div className="absolute inset-0 animate-pulse rounded-3xl bg-primary/20 blur-xl" />
-              <img src={logoTypeLate} alt="TypeLate" className="relative h-20 w-20 rounded-2xl drop-shadow-lg" />
+              <img
+                src={logoTypeLate}
+                alt="TypeLate"
+                className="relative h-20 w-20 rounded-2xl drop-shadow-lg"
+              />
             </div>
 
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                TypeLate
-              </h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">TypeLate</h1>
               <p className="mt-3 text-base text-muted-foreground">
                 {t("onboarding.welcomeDescription", "Voice-to-text, right where you type.")}
               </p>
               {/* Slogan */}
               {slogan && (
-                <p className="mt-2 text-sm italic text-primary/70">
-                  &ldquo;{slogan}&rdquo;
-                </p>
+                <p className="mt-2 text-sm italic text-primary/70">&ldquo;{slogan}&rdquo;</p>
               )}
             </div>
 
@@ -171,7 +178,10 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                   {[
                     t("onboarding.apiKeyStep1", "Click the button below to open Groq Console"),
                     t("onboarding.apiKeyStep2", "Sign up or log in (Google account works)"),
-                    t("onboarding.apiKeyStep3", 'Click "Create API Key", copy the key starting with gsk_'),
+                    t(
+                      "onboarding.apiKeyStep3",
+                      'Click "Create API Key", copy the key starting with gsk_',
+                    ),
                     t("onboarding.apiKeyStep4", "Come back here and paste it in the next step"),
                   ].map((text, i) => (
                     <div key={i} className="flex items-start gap-3">
@@ -183,15 +193,20 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                   ))}
                 </div>
 
-                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleOpenGroqConsole}>
+                <Button
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                  onClick={handleOpenGroqConsole}
+                >
                   <ExternalLink className="mr-2 h-4 w-4" />
                   {t("onboarding.openGroqConsole", "Open Groq Console")}
                 </Button>
 
                 <p className="text-center text-xs text-muted-foreground">
-                  {t("onboarding.alreadyHaveKey", "Already have a key?")}
-                  {" "}
-                  <button className="text-primary hover:underline" onClick={() => setStep("api-key-paste")}>
+                  {t("onboarding.alreadyHaveKey", "Already have a key?")}{" "}
+                  <button
+                    className="text-primary hover:underline"
+                    onClick={() => setStep("api-key-paste")}
+                  >
                     {t("onboarding.pasteItNow", "Paste it now")}
                   </button>
                 </p>
@@ -210,7 +225,10 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                       {t("onboarding.pasteKeyTitle", "Paste your API Key")}
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                      {t("onboarding.pasteKeyDescription", "Paste the key you copied from Groq Console")}
+                      {t(
+                        "onboarding.pasteKeyDescription",
+                        "Paste the key you copied from Groq Console",
+                      )}
                     </p>
                   </div>
                 </div>
@@ -220,7 +238,9 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                   placeholder="gsk_..."
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void handleSaveApiKey(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void handleSaveApiKey();
+                  }}
                   className="border-border/50"
                   autoFocus
                 />
@@ -241,9 +261,11 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                 </div>
 
                 <p className="text-center text-xs text-muted-foreground">
-                  {t("onboarding.needKey", "Don't have a key yet?")}
-                  {" "}
-                  <button className="text-primary hover:underline" onClick={() => setStep("api-key-intro")}>
+                  {t("onboarding.needKey", "Don't have a key yet?")}{" "}
+                  <button
+                    className="text-primary hover:underline"
+                    onClick={() => setStep("api-key-intro")}
+                  >
                     {t("onboarding.getOneNow", "Get one now")}
                   </button>
                 </p>
@@ -262,7 +284,10 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                       {t("onboarding.hotkeyTitle", "Step 2: Hotkey")}
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                      {t("onboarding.hotkeyDescription", "Press and hold the hotkey to record, release to transcribe.")}
+                      {t(
+                        "onboarding.hotkeyDescription",
+                        "Press and hold the hotkey to record, release to transcribe.",
+                      )}
                     </p>
                   </div>
                 </div>
@@ -299,7 +324,10 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                       {t("onboarding.micTitle", "Step 3: Microphone")}
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                      {t("onboarding.micDescription", "Let's make sure your microphone is working.")}
+                      {t(
+                        "onboarding.micDescription",
+                        "Let's make sure your microphone is working.",
+                      )}
                     </p>
                   </div>
                 </div>
@@ -366,22 +394,27 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                 {t("onboarding.doneTitle", "You're all set!")}
               </h2>
               <p className="mt-3 text-base text-muted-foreground">
-                {t("onboarding.doneDescription", "Press your hotkey anytime to start dictating. TypeLate will transcribe and paste the text automatically.")}
+                {t(
+                  "onboarding.doneDescription",
+                  "Press your hotkey anytime to start dictating. TypeLate will transcribe and paste the text automatically.",
+                )}
               </p>
               <div className="mt-4 inline-flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{t("onboarding.hotkeyHint", "Default: Fn key")}</span>
+                <span className="text-sm text-muted-foreground">
+                  {t("onboarding.hotkeyHint", "Default: Fn key")}
+                </span>
                 <kbd className="inline-flex h-8 min-w-[2.5rem] items-center justify-center rounded-lg border border-border bg-muted px-3 text-sm font-medium text-foreground shadow-sm">
                   {hotkeyConfig?.triggerKey
                     ? typeof hotkeyConfig.triggerKey === "string"
-                      ? t(`settings.hotkey.keys.${hotkeyConfig.triggerKey}`, { defaultValue: hotkeyConfig.triggerKey })
+                      ? t(`settings.hotkey.keys.${hotkeyConfig.triggerKey}`, {
+                          defaultValue: hotkeyConfig.triggerKey,
+                        })
                       : t("settings.hotkey.custom")
                     : "Fn"}
                 </kbd>
               </div>
               {slogan && (
-                <p className="mt-3 text-sm italic text-primary/70">
-                  &ldquo;{slogan}&rdquo;
-                </p>
+                <p className="mt-3 text-sm italic text-primary/70">&ldquo;{slogan}&rdquo;</p>
               )}
             </div>
 

@@ -3,21 +3,12 @@ import { addColumnIfNotExists, tableExists } from "./utils";
 
 export const v3VocabularyWeight: Migration = {
   version: 3,
-  description:
-    "Add weight/source columns to vocabulary + expand api_usage CHECK constraint",
+  description: "Add weight/source columns to vocabulary + expand api_usage CHECK constraint",
   up: async (db) => {
     // DDL (ALTER TABLE ADD COLUMN) must run outside transactions —
     // under tauri-plugin-sql, DDL inside explicit transactions is invisible to subsequent statements
-    await addColumnIfNotExists(
-      db,
-      "vocabulary",
-      "weight INTEGER NOT NULL DEFAULT 1",
-    );
-    await addColumnIfNotExists(
-      db,
-      "vocabulary",
-      "source TEXT NOT NULL DEFAULT 'manual'",
-    );
+    await addColumnIfNotExists(db, "vocabulary", "weight INTEGER NOT NULL DEFAULT 1");
+    await addColumnIfNotExists(db, "vocabulary", "source TEXT NOT NULL DEFAULT 'manual'");
 
     await db.execute("BEGIN TRANSACTION;");
     try {
@@ -51,9 +42,7 @@ export const v3VocabularyWeight: Migration = {
       // api_usage may have been DROPped in a prior failed migration without RENAME back
       const hasApiUsage = await tableExists(db, "api_usage");
       if (hasApiUsage) {
-        await db.execute(
-          "INSERT INTO api_usage_new SELECT * FROM api_usage;",
-        );
+        await db.execute("INSERT INTO api_usage_new SELECT * FROM api_usage;");
         await db.execute("DROP TABLE api_usage;");
       }
       await db.execute("ALTER TABLE api_usage_new RENAME TO api_usage;");

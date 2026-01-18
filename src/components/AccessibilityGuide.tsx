@@ -12,11 +12,7 @@ interface AccessibilityGuideProps {
   onClose: () => void;
 }
 
-const STEP_KEYS = [
-  "accessibility.step1",
-  "accessibility.step2",
-  "accessibility.step3",
-] as const;
+const STEP_KEYS = ["accessibility.step1", "accessibility.step2", "accessibility.step3"] as const;
 
 export function AccessibilityGuide({ visible, onClose }: AccessibilityGuideProps) {
   const { t } = useTranslation();
@@ -142,9 +138,7 @@ export function AccessibilityGuide({ visible, onClose }: AccessibilityGuideProps
         {isReinitializing && (
           <p className="text-sm text-primary">{t("accessibility.reinitializing")}</p>
         )}
-        {reinitializeError && (
-          <p className="text-sm text-destructive">{reinitializeError}</p>
-        )}
+        {reinitializeError && <p className="text-sm text-destructive">{reinitializeError}</p>}
 
         <div className="flex flex-col gap-2">
           <Button

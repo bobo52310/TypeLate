@@ -51,11 +51,7 @@ interface GroqChatResponse {
   usage?: GroqChatUsage;
 }
 
-async function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  signal?: AbortSignal,
-): Promise<T> {
+async function withTimeout<T>(promise: Promise<T>, ms: number, signal?: AbortSignal): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const raceList: Promise<T>[] = [promise];
 
@@ -75,8 +71,7 @@ async function withTimeout<T>(
         reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
         return;
       }
-      abortHandler = () =>
-        reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+      abortHandler = () => reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
       signal.addEventListener("abort", abortHandler, { once: true });
     });
     raceList.push(abortPromise as Promise<T>);
@@ -86,15 +81,11 @@ async function withTimeout<T>(
     return await Promise.race(raceList);
   } finally {
     if (timeoutId !== undefined) clearTimeout(timeoutId);
-    if (abortHandler && signal)
-      signal.removeEventListener("abort", abortHandler);
+    if (abortHandler && signal) signal.removeEventListener("abort", abortHandler);
   }
 }
 
-export function buildSystemPrompt(
-  basePrompt: string,
-  vocabularyTermList?: string[],
-): string {
+export function buildSystemPrompt(basePrompt: string, vocabularyTermList?: string[]): string {
   let prompt = basePrompt;
 
   if (vocabularyTermList && vocabularyTermList.length > 0) {

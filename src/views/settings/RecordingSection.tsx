@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,18 +25,10 @@ export default function RecordingSection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
-  const isRecordingAutoCleanupEnabled = useSettingsStore(
-    (s) => s.isRecordingAutoCleanupEnabled,
-  );
-  const recordingAutoCleanupDays = useSettingsStore(
-    (s) => s.recordingAutoCleanupDays,
-  );
-  const saveRecordingAutoCleanup = useSettingsStore(
-    (s) => s.saveRecordingAutoCleanup,
-  );
-  const deleteAllRecordingFiles = useHistoryStore(
-    (s) => s.deleteAllRecordingFiles,
-  );
+  const isRecordingAutoCleanupEnabled = useSettingsStore((s) => s.isRecordingAutoCleanupEnabled);
+  const recordingAutoCleanupDays = useSettingsStore((s) => s.recordingAutoCleanupDays);
+  const saveRecordingAutoCleanup = useSettingsStore((s) => s.saveRecordingAutoCleanup);
+  const deleteAllRecordingFiles = useHistoryStore((s) => s.deleteAllRecordingFiles);
 
   const [autoCleanupEnabled, setAutoCleanupEnabled] = useState(false);
   const [cleanupDays, setCleanupDays] = useState(7);
@@ -65,10 +52,7 @@ export default function RecordingSection() {
       );
     } catch (err) {
       setAutoCleanupEnabled(!newValue);
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -77,10 +61,7 @@ export default function RecordingSection() {
       await saveRecordingAutoCleanup(autoCleanupEnabled, cleanupDays);
       feedback.show("success", t("settings.recording.daysSaved"));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -88,15 +69,9 @@ export default function RecordingSection() {
     try {
       setIsDeletingRecordings(true);
       const deletedCount = await deleteAllRecordingFiles();
-      feedback.show(
-        "success",
-        t("settings.recording.deleteSuccess", { count: deletedCount }),
-      );
+      feedback.show("success", t("settings.recording.deleteSuccess", { count: deletedCount }));
     } catch (err) {
-      feedback.show(
-        "error",
-        err instanceof Error ? err.message : String(err),
-      );
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
       setIsDeletingRecordings(false);
     }
@@ -105,9 +80,7 @@ export default function RecordingSection() {
   return (
     <Card>
       <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">
-          {t("settings.recording.title")}
-        </CardTitle>
+        <CardTitle className="text-base">{t("settings.recording.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -116,9 +89,7 @@ export default function RecordingSection() {
 
         <div className="flex items-center justify-between">
           <div>
-            <Label htmlFor="recording-auto-cleanup">
-              {t("settings.recording.autoCleanup")}
-            </Label>
+            <Label htmlFor="recording-auto-cleanup">{t("settings.recording.autoCleanup")}</Label>
             <p className="text-sm text-muted-foreground">
               {t("settings.recording.autoCleanupDescription")}
             </p>
@@ -132,9 +103,7 @@ export default function RecordingSection() {
 
         {autoCleanupEnabled && (
           <div className="flex items-center gap-3">
-            <Label htmlFor="cleanup-days">
-              {t("settings.recording.retentionDays")}
-            </Label>
+            <Label htmlFor="cleanup-days">{t("settings.recording.retentionDays")}</Label>
             <Input
               id="cleanup-days"
               type="number"
@@ -150,10 +119,7 @@ export default function RecordingSection() {
             <span className="text-sm text-muted-foreground">
               {t("settings.recording.daysUnit")}
             </span>
-            <Button
-              size="sm"
-              onClick={() => void handleSaveCleanupDays()}
-            >
+            <Button size="sm" onClick={() => void handleSaveCleanupDays()}>
               {t("common.save")}
             </Button>
           </div>
@@ -170,18 +136,14 @@ export default function RecordingSection() {
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>
-                {t("settings.recording.deleteConfirmTitle")}
-              </AlertDialogTitle>
+              <AlertDialogTitle>{t("settings.recording.deleteConfirmTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
                 {t("settings.recording.deleteConfirmDescription")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => void handleDeleteAllRecordings()}
-              >
+              <AlertDialogAction onClick={() => void handleDeleteAllRecordings()}>
                 {t("common.delete")}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -191,9 +153,7 @@ export default function RecordingSection() {
         {feedback.message && (
           <p
             className={`text-sm ${
-              feedback.type === "success"
-                ? "text-primary"
-                : "text-destructive"
+              feedback.type === "success" ? "text-primary" : "text-destructive"
             }`}
           >
             {feedback.message}

@@ -91,21 +91,13 @@ export function detectEnhancementAnomaly(
 export function detectHallucination(
   params: HallucinationDetectionParams,
 ): HallucinationDetectionResult {
-  const {
-    rawText,
-    recordingDurationMs,
-    peakEnergyLevel,
-    rmsEnergyLevel,
-    noSpeechProbability,
-  } = params;
+  const { rawText, recordingDurationMs, peakEnergyLevel, rmsEnergyLevel, noSpeechProbability } =
+    params;
   const trimmedText = rawText.trim();
   const charCount = trimmedText.length;
 
   // Layer 1: 語速異常（物理定律級判斷）
-  if (
-    recordingDurationMs < SPEED_ANOMALY_MAX_DURATION_MS &&
-    charCount > SPEED_ANOMALY_MIN_CHARS
-  ) {
+  if (recordingDurationMs < SPEED_ANOMALY_MAX_DURATION_MS && charCount > SPEED_ANOMALY_MIN_CHARS) {
     return {
       isHallucination: true,
       reason: "speed-anomaly",

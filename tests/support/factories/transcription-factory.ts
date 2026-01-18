@@ -28,9 +28,7 @@ export const createTranscriptionRecord = (
     processedText: wasEnhanced ? faker.lorem.sentences(2) : null,
     recordingDurationMs: faker.number.int({ min: 500, max: 30_000 }),
     transcriptionDurationMs: faker.number.int({ min: 200, max: 5_000 }),
-    enhancementDurationMs: wasEnhanced
-      ? faker.number.int({ min: 100, max: 5_000 })
-      : null,
+    enhancementDurationMs: wasEnhanced ? faker.number.int({ min: 100, max: 5_000 }) : null,
     charCount: rawText.length,
     triggerMode: faker.helpers.arrayElement(["hold", "toggle"]),
     wasEnhanced,

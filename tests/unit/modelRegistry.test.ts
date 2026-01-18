@@ -40,9 +40,7 @@ describe("findWhisperModelConfig", () => {
 
 describe("findVocabularyAnalysisModelConfig", () => {
   it("finds a valid model", () => {
-    const config = findVocabularyAnalysisModelConfig(
-      DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID,
-    );
+    const config = findVocabularyAnalysisModelConfig(DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID);
     expect(config).toBeDefined();
     expect(config?.id).toBe(DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID);
   });
@@ -50,9 +48,7 @@ describe("findVocabularyAnalysisModelConfig", () => {
 
 describe("getEffectiveLlmModelId", () => {
   it("returns saved ID when valid", () => {
-    expect(getEffectiveLlmModelId(DEFAULT_LLM_MODEL_ID)).toBe(
-      DEFAULT_LLM_MODEL_ID,
-    );
+    expect(getEffectiveLlmModelId(DEFAULT_LLM_MODEL_ID)).toBe(DEFAULT_LLM_MODEL_ID);
   });
 
   it("returns default for null", () => {
@@ -60,17 +56,13 @@ describe("getEffectiveLlmModelId", () => {
   });
 
   it("returns default for unknown model", () => {
-    expect(getEffectiveLlmModelId("unknown-model")).toBe(
-      DEFAULT_LLM_MODEL_ID,
-    );
+    expect(getEffectiveLlmModelId("unknown-model")).toBe(DEFAULT_LLM_MODEL_ID);
   });
 });
 
 describe("getEffectiveWhisperModelId", () => {
   it("returns saved ID when valid", () => {
-    expect(getEffectiveWhisperModelId(DEFAULT_WHISPER_MODEL_ID)).toBe(
-      DEFAULT_WHISPER_MODEL_ID,
-    );
+    expect(getEffectiveWhisperModelId(DEFAULT_WHISPER_MODEL_ID)).toBe(DEFAULT_WHISPER_MODEL_ID);
   });
 
   it("returns default for null", () => {
@@ -80,17 +72,13 @@ describe("getEffectiveWhisperModelId", () => {
 
 describe("getEffectiveVocabularyAnalysisModelId", () => {
   it("returns saved ID when valid", () => {
-    expect(
-      getEffectiveVocabularyAnalysisModelId(
-        DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID,
-      ),
-    ).toBe(DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID);
+    expect(getEffectiveVocabularyAnalysisModelId(DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID)).toBe(
+      DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID,
+    );
   });
 
   it("returns default for null", () => {
-    expect(getEffectiveVocabularyAnalysisModelId(null)).toBe(
-      DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID,
-    );
+    expect(getEffectiveVocabularyAnalysisModelId(null)).toBe(DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID);
   });
 });
 

@@ -49,8 +49,7 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
 ];
 
 export function detectSystemLocale(): SupportedLocale {
-  const browserLanguageList =
-    typeof navigator !== "undefined" ? navigator.languages : [];
+  const browserLanguageList = typeof navigator !== "undefined" ? navigator.languages : [];
 
   for (const browserLang of browserLanguageList) {
     // 1. Exact match (e.g. "zh-Hant-TW" -> zh-TW)
@@ -124,9 +123,7 @@ export const TRANSCRIPTION_LANGUAGE_OPTIONS: TranscriptionLanguageOption[] = [
   })),
 ];
 
-export function getWhisperCodeForTranscriptionLocale(
-  locale: TranscriptionLocale,
-): string | null {
+export function getWhisperCodeForTranscriptionLocale(locale: TranscriptionLocale): string | null {
   if (locale === "auto") return null;
   return getWhisperCodeForLocale(locale);
 }

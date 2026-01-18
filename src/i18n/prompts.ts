@@ -296,10 +296,7 @@ export function getMinimalPromptForLocale(locale: SupportedLocale): string {
   return MINIMAL_PROMPTS[locale] ?? MINIMAL_PROMPTS["zh-TW"];
 }
 
-export function getPromptForModeAndLocale(
-  mode: PresetPromptMode,
-  locale: SupportedLocale,
-): string {
+export function getPromptForModeAndLocale(mode: PresetPromptMode, locale: SupportedLocale): string {
   const map = PROMPT_MAP[mode];
   return map[locale] ?? map["zh-TW"];
 }

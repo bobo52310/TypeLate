@@ -168,10 +168,7 @@ async function syncHotkeyConfigToRust(key: TriggerKey, mode: TriggerMode) {
       triggerMode: mode,
     });
   } catch (err) {
-    logError("settings",
-      "[settingsStore] Failed to sync hotkey config:",
-      extractErrorMessage(err),
-    );
+    logError("settings", "[settingsStore] Failed to sync hotkey config:", extractErrorMessage(err));
     captureError(err, { source: "settings", step: "sync-hotkey" });
   }
 }
@@ -217,9 +214,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   // -- Helper getters --
   getEffectivePromptLocale: () => {
     const { selectedTranscriptionLocale, selectedLocale } = get();
-    return selectedTranscriptionLocale === "auto"
-      ? selectedLocale
-      : selectedTranscriptionLocale;
+    return selectedTranscriptionLocale === "auto" ? selectedLocale : selectedTranscriptionLocale;
   },
 
   getApiKey: () => get().apiKey,
@@ -262,11 +257,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const mode = savedMode ?? "hold";
 
       // Load custom key independently
-      const savedCustomKey =
-        await store.get<CustomTriggerKey>("customTriggerKey");
-      const savedCustomDomCode = await store.get<string>(
-        "customTriggerKeyDomCode",
-      );
+      const savedCustomKey = await store.get<CustomTriggerKey>("customTriggerKey");
+      const savedCustomDomCode = await store.get<string>("customTriggerKeyDomCode");
       let resolvedCustomKey: CustomTriggerKey | null = null;
       let resolvedCustomDomCode = "";
       if (savedCustomKey && isCustomTriggerKey(savedCustomKey)) {
@@ -306,10 +298,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       // Prompt mode migration
       const savedPromptMode = await store.get<string>("promptMode");
       let resolvedPromptMode: PromptMode;
-      if (
-        savedPromptMode &&
-        (PROMPT_MODE_VALUES as readonly string[]).includes(savedPromptMode)
-      ) {
+      if (savedPromptMode && (PROMPT_MODE_VALUES as readonly string[]).includes(savedPromptMode)) {
         resolvedPromptMode = savedPromptMode as PromptMode;
       } else if (!savedPromptMode) {
         if (!trimmedSavedPrompt || isKnownDefaultPrompt(trimmedSavedPrompt)) {
@@ -325,30 +314,19 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
       // Effective prompt locale for fallback
       const effectivePromptLocale =
-        resolvedTranscriptionLocale === "auto"
-          ? resolvedLocale
-          : resolvedTranscriptionLocale;
+        resolvedTranscriptionLocale === "auto" ? resolvedLocale : resolvedTranscriptionLocale;
 
       const resolvedAiPrompt =
-        trimmedSavedPrompt ||
-        getMinimalPromptForLocale(effectivePromptLocale);
+        trimmedSavedPrompt || getMinimalPromptForLocale(effectivePromptLocale);
 
       // Enhancement threshold
-      const savedThresholdEnabled = await store.get<boolean>(
-        "enhancementThresholdEnabled",
-      );
-      const savedThresholdCharCount = await store.get<number>(
-        "enhancementThresholdCharCount",
-      );
+      const savedThresholdEnabled = await store.get<boolean>("enhancementThresholdEnabled");
+      const savedThresholdCharCount = await store.get<number>("enhancementThresholdCharCount");
 
       // LLM model with Kimi K2 migration
       const savedLlmModelId = await store.get<string>("llmModelId");
-      const effectiveLlmModelId = getEffectiveLlmModelId(
-        savedLlmModelId ?? null,
-      );
-      const llmMigratedToKimiK2 = await store.get<boolean>(
-        "llmMigratedToKimiK2",
-      );
+      const effectiveLlmModelId = getEffectiveLlmModelId(savedLlmModelId ?? null);
+      const llmMigratedToKimiK2 = await store.get<boolean>("llmMigratedToKimiK2");
       let resolvedLlmModelId: LlmModelId;
       if (!llmMigratedToKimiK2) {
         resolvedLlmModelId = DEFAULT_LLM_MODEL_ID;
@@ -360,34 +338,22 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       }
 
       // Vocabulary analysis model
-      const savedVocabularyAnalysisModelId = await store.get<string>(
-        "vocabularyAnalysisModelId",
-      );
+      const savedVocabularyAnalysisModelId = await store.get<string>("vocabularyAnalysisModelId");
       const resolvedVocabModelId = getEffectiveVocabularyAnalysisModelId(
         savedVocabularyAnalysisModelId ?? null,
       );
 
       // Whisper model
       const savedWhisperModelId = await store.get<string>("whisperModelId");
-      const resolvedWhisperModelId = getEffectiveWhisperModelId(
-        savedWhisperModelId ?? null,
-      );
+      const resolvedWhisperModelId = getEffectiveWhisperModelId(savedWhisperModelId ?? null);
 
       // Boolean settings
       const savedMuteOnRecording = await store.get<boolean>("muteOnRecording");
       const savedSoundEffects = await store.get<boolean>("soundEffectsEnabled");
-      const savedSmartDictionary = await store.get<boolean>(
-        "smartDictionaryEnabled",
-      );
-      const savedRecordingAutoCleanup = await store.get<boolean>(
-        "recordingAutoCleanupEnabled",
-      );
-      const savedRecordingAutoCleanupDays = await store.get<number>(
-        "recordingAutoCleanupDays",
-      );
-      const savedAudioInputDeviceName = await store.get<string>(
-        "audioInputDeviceName",
-      );
+      const savedSmartDictionary = await store.get<boolean>("smartDictionaryEnabled");
+      const savedRecordingAutoCleanup = await store.get<boolean>("recordingAutoCleanupEnabled");
+      const savedRecordingAutoCleanupDays = await store.get<number>("recordingAutoCleanupDays");
+      const savedAudioInputDeviceName = await store.get<string>("audioInputDeviceName");
 
       set({
         hotkeyConfig: { triggerKey: key, triggerMode: mode },
@@ -405,12 +371,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         selectedLlmModelId: resolvedLlmModelId,
         selectedVocabularyAnalysisModelId: resolvedVocabModelId,
         selectedWhisperModelId: resolvedWhisperModelId,
-        isMuteOnRecordingEnabled:
-          savedMuteOnRecording ?? DEFAULT_MUTE_ON_RECORDING,
-        isSoundEffectsEnabled:
-          savedSoundEffects ?? DEFAULT_SOUND_EFFECTS_ENABLED,
-        isSmartDictionaryEnabled:
-          savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
+        isMuteOnRecordingEnabled: savedMuteOnRecording ?? DEFAULT_MUTE_ON_RECORDING,
+        isSoundEffectsEnabled: savedSoundEffects ?? DEFAULT_SOUND_EFFECTS_ENABLED,
+        isSmartDictionaryEnabled: savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
         isRecordingAutoCleanupEnabled:
           savedRecordingAutoCleanup ?? DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED,
         recordingAutoCleanupDays:
@@ -421,14 +384,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       // Sync saved config to Rust on startup
       await syncHotkeyConfigToRust(key, mode);
       isLoaded = true;
-      logInfo("settings",
-        `Settings loaded: key=${JSON.stringify(key)}, mode=${mode}`,
-      );
+      logInfo("settings", `Settings loaded: key=${JSON.stringify(key)}, mode=${mode}`);
     } catch (err) {
-      logError("settings",
-        "[settingsStore] loadSettings failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] loadSettings failed:", extractErrorMessage(err));
       captureError(err, { source: "settings", step: "load" });
 
       // Fallback to platform defaults
@@ -460,24 +418,15 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      logInfo("settings",
-        `Hotkey config saved: key=${JSON.stringify(key)}, mode=${mode}`,
-      );
+      logInfo("settings", `Hotkey config saved: key=${JSON.stringify(key)}, mode=${mode}`);
     } catch (err) {
-      logError("settings",
-        "[settingsStore] saveHotkeyConfig failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] saveHotkeyConfig failed:", extractErrorMessage(err));
       captureError(err, { source: "settings", step: "save-hotkey" });
       throw err;
     }
   },
 
-  saveCustomTriggerKey: async (
-    keycode: number,
-    domCode: string,
-    mode: TriggerMode,
-  ) => {
+  saveCustomTriggerKey: async (keycode: number, domCode: string, mode: TriggerMode) => {
     const customKey: CustomTriggerKey = { custom: { keycode } };
     try {
       const store = await load(STORE_NAME);
@@ -493,11 +442,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       // Reuse shared logic for active key + Rust sync + event broadcast
       await get().saveHotkeyConfig(customKey, mode);
 
-      logInfo("settings",
+      logInfo(
+        "settings",
         `Custom trigger key saved: keycode=${keycode}, domCode=${domCode}, mode=${mode}`,
       );
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] saveCustomTriggerKey failed:",
         extractErrorMessage(err),
       );
@@ -521,7 +472,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       throw new Error(i18n.t("errors.apiKeyEmpty"));
     }
     if (!trimmedKey.startsWith("gsk_")) {
-      throw new Error(i18n.t("errors.apiKeyInvalidFormat", { defaultValue: "API Key should start with gsk_" }));
+      throw new Error(
+        i18n.t("errors.apiKeyInvalidFormat", { defaultValue: "API Key should start with gsk_" }),
+      );
     }
 
     try {
@@ -538,10 +491,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
       logInfo("settings", "API Key saved");
     } catch (err) {
-      logError("settings",
-        "[settingsStore] saveApiKey failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] saveApiKey failed:", extractErrorMessage(err));
       captureError(err, { source: "settings", step: "save-api-key" });
       throw err;
     }
@@ -553,10 +503,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const savedApiKey = await store.get<string>("groqApiKey");
       set({ apiKey: savedApiKey?.trim() ?? "" });
     } catch (err) {
-      logError("settings",
-        "[settingsStore] refreshApiKey failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] refreshApiKey failed:", extractErrorMessage(err));
     }
   },
 
@@ -572,10 +519,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
       logInfo("settings", "API Key deleted");
     } catch (err) {
-      logError("settings",
-        "[settingsStore] deleteApiKey failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] deleteApiKey failed:", extractErrorMessage(err));
       throw err;
     }
   },
@@ -596,10 +540,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       logInfo("settings", `Prompt mode saved: ${mode}`);
     } catch (err) {
       set({ promptMode: previousMode });
-      logError("settings",
-        "[settingsStore] savePromptMode failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] savePromptMode failed:", extractErrorMessage(err));
       captureError(err, { source: "settings", step: "save-prompt-mode" });
       throw err;
     }
@@ -626,7 +567,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         await store.save();
       }
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] consumeUpgradeNotice failed:",
         extractErrorMessage(err),
       );
@@ -653,10 +595,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
       logInfo("settings", "AI Prompt saved");
     } catch (err) {
-      logError("settings",
-        "[settingsStore] saveAiPrompt failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] saveAiPrompt failed:", extractErrorMessage(err));
       throw err;
     }
   },
@@ -664,9 +603,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   resetAiPrompt: async () => {
     try {
       const store = await load(STORE_NAME);
-      const defaultPrompt = getMinimalPromptForLocale(
-        get().getEffectivePromptLocale(),
-      );
+      const defaultPrompt = getMinimalPromptForLocale(get().getEffectivePromptLocale());
       set({ promptMode: "minimal", aiPrompt: defaultPrompt });
       await store.set("promptMode", "minimal");
       await store.set("aiPrompt", defaultPrompt);
@@ -680,10 +617,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
       logInfo("settings", "AI Prompt reset to minimal");
     } catch (err) {
-      logError("settings",
-        "[settingsStore] resetAiPrompt failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] resetAiPrompt failed:", extractErrorMessage(err));
       throw err;
     }
   },
@@ -711,11 +645,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      logInfo("settings",
+      logInfo(
+        "settings",
         `Enhancement threshold saved: enabled=${enabled}, charCount=${validatedCharCount}`,
       );
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] saveEnhancementThreshold failed:",
         extractErrorMessage(err),
       );
@@ -737,10 +673,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       await emitEvent(SETTINGS_UPDATED, payload);
       logInfo("settings", `LLM model saved: ${id}`);
     } catch (err) {
-      logError("settings",
-        "[settingsStore] saveLlmModel failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] saveLlmModel failed:", extractErrorMessage(err));
       throw err;
     }
   },
@@ -759,7 +692,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       await emitEvent(SETTINGS_UPDATED, payload);
       logInfo("settings", `Vocabulary analysis model saved: ${id}`);
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] saveVocabularyAnalysisModel failed:",
         extractErrorMessage(err),
       );
@@ -781,10 +715,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       await emitEvent(SETTINGS_UPDATED, payload);
       logInfo("settings", `Whisper model saved: ${id}`);
     } catch (err) {
-      logError("settings",
-        "[settingsStore] saveWhisperModel failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] saveWhisperModel failed:", extractErrorMessage(err));
       throw err;
     }
   },
@@ -794,10 +725,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const { isEnabled } = await import("@tauri-apps/plugin-autostart");
       set({ isAutoStartEnabled: await isEnabled() });
     } catch (err) {
-      logError("settings",
-        "[settingsStore] loadAutoStartStatus failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] loadAutoStartStatus failed:", extractErrorMessage(err));
     }
   },
 
@@ -813,10 +741,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         set({ isAutoStartEnabled: true });
       }
     } catch (err) {
-      logError("settings",
-        "[settingsStore] toggleAutoStart failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] toggleAutoStart failed:", extractErrorMessage(err));
       throw err;
     }
   },
@@ -839,10 +764,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       await emitEvent(SETTINGS_UPDATED, payload);
       logInfo("settings", `Locale saved: ${locale}`);
     } catch (err) {
-      logError("settings",
-        "[settingsStore] saveLocale failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] saveLocale failed:", extractErrorMessage(err));
       captureError(err, { source: "settings", step: "save-locale" });
       throw err;
     }
@@ -864,7 +786,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       await emitEvent(SETTINGS_UPDATED, payload);
       logInfo("settings", `Transcription locale saved: ${locale}`);
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] saveTranscriptionLocale failed:",
         extractErrorMessage(err),
       );
@@ -890,10 +813,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       await emitEvent(SETTINGS_UPDATED, payload);
       logInfo("settings", `muteOnRecording saved: ${enabled}`);
     } catch (err) {
-      logError("settings",
-        "[settingsStore] saveMuteOnRecording failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] saveMuteOnRecording failed:", extractErrorMessage(err));
       captureError(err, { source: "settings", step: "save-mute" });
       throw err;
     }
@@ -913,7 +833,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       await emitEvent(SETTINGS_UPDATED, payload);
       logInfo("settings", `soundEffectsEnabled saved: ${enabled}`);
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] saveSoundEffectsEnabled failed:",
         extractErrorMessage(err),
       );
@@ -934,11 +855,10 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: enabled,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
-      logInfo("settings",
-        `smartDictionaryEnabled saved: ${enabled}`,
-      );
+      logInfo("settings", `smartDictionaryEnabled saved: ${enabled}`);
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] saveSmartDictionaryEnabled failed:",
         extractErrorMessage(err),
       );
@@ -952,9 +872,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   saveRecordingAutoCleanup: async (enabled: boolean, days: number) => {
     const validatedDays =
-      !Number.isInteger(days) || days < 1
-        ? DEFAULT_RECORDING_AUTO_CLEANUP_DAYS
-        : days;
+      !Number.isInteger(days) || days < 1 ? DEFAULT_RECORDING_AUTO_CLEANUP_DAYS : days;
 
     try {
       const store = await load(STORE_NAME);
@@ -967,11 +885,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         recordingAutoCleanupDays: validatedDays,
       });
 
-      logInfo("settings",
+      logInfo(
+        "settings",
         `Recording auto cleanup saved: enabled=${enabled}, days=${validatedDays}`,
       );
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] saveRecordingAutoCleanup failed:",
         extractErrorMessage(err),
       );
@@ -997,11 +917,10 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      logInfo("settings",
-        `Audio input device saved: "${deviceName || "(system default)"}"`,
-      );
+      logInfo("settings", `Audio input device saved: "${deviceName || "(system default)"}"`);
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] saveAudioInputDevice failed:",
         extractErrorMessage(err),
       );
@@ -1018,38 +937,23 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const store = await load(STORE_NAME);
       const savedKey = await store.get<TriggerKey>("hotkeyTriggerKey");
       const savedMode = await store.get<TriggerMode>("hotkeyTriggerMode");
-      const savedCustomKey =
-        await store.get<CustomTriggerKey>("customTriggerKey");
-      const savedCustomDomCode = await store.get<string>(
-        "customTriggerKeyDomCode",
-      );
+      const savedCustomKey = await store.get<CustomTriggerKey>("customTriggerKey");
+      const savedCustomDomCode = await store.get<string>("customTriggerKeyDomCode");
       const savedApiKey = await store.get<string>("groqApiKey");
       const savedPrompt = await store.get<string>("aiPrompt");
-      const savedThresholdEnabled = await store.get<boolean>(
-        "enhancementThresholdEnabled",
-      );
-      const savedThresholdCharCount = await store.get<number>(
-        "enhancementThresholdCharCount",
-      );
+      const savedThresholdEnabled = await store.get<boolean>("enhancementThresholdEnabled");
+      const savedThresholdCharCount = await store.get<number>("enhancementThresholdCharCount");
       const savedLlmModelId = await store.get<string>("llmModelId");
-      const savedVocabModelId = await store.get<string>(
-        "vocabularyAnalysisModelId",
-      );
+      const savedVocabModelId = await store.get<string>("vocabularyAnalysisModelId");
       const savedWhisperModelId = await store.get<string>("whisperModelId");
       const savedMuteOnRecording = await store.get<boolean>("muteOnRecording");
       const savedSoundEffects = await store.get<boolean>("soundEffectsEnabled");
-      const savedSmartDictionary = await store.get<boolean>(
-        "smartDictionaryEnabled",
-      );
+      const savedSmartDictionary = await store.get<boolean>("smartDictionaryEnabled");
 
       const resolvedCustomKey =
-        savedCustomKey && isCustomTriggerKey(savedCustomKey)
-          ? savedCustomKey
-          : null;
+        savedCustomKey && isCustomTriggerKey(savedCustomKey) ? savedCustomKey : null;
       const resolvedCustomDomCode =
-        savedCustomKey && isCustomTriggerKey(savedCustomKey)
-          ? (savedCustomDomCode ?? "")
-          : "";
+        savedCustomKey && isCustomTriggerKey(savedCustomKey) ? (savedCustomDomCode ?? "") : "";
 
       // Locale + transcription locale
       const savedLocale = await store.get<SupportedLocale>("selectedLocale");
@@ -1066,23 +970,16 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       // Prompt mode
       const savedPromptMode = await store.get<string>("promptMode");
       const resolvedPromptMode: PromptMode =
-        savedPromptMode &&
-        (PROMPT_MODE_VALUES as readonly string[]).includes(savedPromptMode)
+        savedPromptMode && (PROMPT_MODE_VALUES as readonly string[]).includes(savedPromptMode)
           ? (savedPromptMode as PromptMode)
           : DEFAULT_PROMPT_MODE;
 
       // Effective prompt locale for fallback
       const effectivePromptLocale =
-        resolvedTranscriptionLocale === "auto"
-          ? resolvedLocale
-          : resolvedTranscriptionLocale;
+        resolvedTranscriptionLocale === "auto" ? resolvedLocale : resolvedTranscriptionLocale;
 
-      const savedRecCleanup = await store.get<boolean>(
-        "recordingAutoCleanupEnabled",
-      );
-      const savedRecCleanupDays = await store.get<number>(
-        "recordingAutoCleanupDays",
-      );
+      const savedRecCleanup = await store.get<boolean>("recordingAutoCleanupEnabled");
+      const savedRecCleanupDays = await store.get<number>("recordingAutoCleanupDays");
       const savedAudioDevice = await store.get<string>("audioInputDeviceName");
 
       set({
@@ -1096,33 +993,26 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         selectedTranscriptionLocale: resolvedTranscriptionLocale,
         promptMode: resolvedPromptMode,
         apiKey: savedApiKey?.trim() ?? "",
-        aiPrompt:
-          savedPrompt?.trim() ||
-          getMinimalPromptForLocale(effectivePromptLocale),
+        aiPrompt: savedPrompt?.trim() || getMinimalPromptForLocale(effectivePromptLocale),
         isEnhancementThresholdEnabled:
           savedThresholdEnabled ?? DEFAULT_ENHANCEMENT_THRESHOLD_ENABLED,
         enhancementThresholdCharCount:
           savedThresholdCharCount ?? DEFAULT_ENHANCEMENT_THRESHOLD_CHAR_COUNT,
         selectedLlmModelId: getEffectiveLlmModelId(savedLlmModelId ?? null),
-        selectedVocabularyAnalysisModelId:
-          getEffectiveVocabularyAnalysisModelId(savedVocabModelId ?? null),
-        selectedWhisperModelId: getEffectiveWhisperModelId(
-          savedWhisperModelId ?? null,
+        selectedVocabularyAnalysisModelId: getEffectiveVocabularyAnalysisModelId(
+          savedVocabModelId ?? null,
         ),
-        isMuteOnRecordingEnabled:
-          savedMuteOnRecording ?? DEFAULT_MUTE_ON_RECORDING,
-        isSoundEffectsEnabled:
-          savedSoundEffects ?? DEFAULT_SOUND_EFFECTS_ENABLED,
-        isSmartDictionaryEnabled:
-          savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
-        isRecordingAutoCleanupEnabled:
-          savedRecCleanup ?? DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED,
-        recordingAutoCleanupDays:
-          savedRecCleanupDays ?? DEFAULT_RECORDING_AUTO_CLEANUP_DAYS,
+        selectedWhisperModelId: getEffectiveWhisperModelId(savedWhisperModelId ?? null),
+        isMuteOnRecordingEnabled: savedMuteOnRecording ?? DEFAULT_MUTE_ON_RECORDING,
+        isSoundEffectsEnabled: savedSoundEffects ?? DEFAULT_SOUND_EFFECTS_ENABLED,
+        isSmartDictionaryEnabled: savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
+        isRecordingAutoCleanupEnabled: savedRecCleanup ?? DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED,
+        recordingAutoCleanupDays: savedRecCleanupDays ?? DEFAULT_RECORDING_AUTO_CLEANUP_DAYS,
         selectedAudioInputDeviceName: savedAudioDevice ?? "",
       });
     } catch (err) {
-      logError("settings",
+      logError(
+        "settings",
         "[settingsStore] refreshCrossWindowSettings failed:",
         extractErrorMessage(err),
       );
@@ -1146,10 +1036,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         await get().loadAutoStartStatus();
       }
     } catch (err) {
-      logError("settings",
-        "[settingsStore] initializeAutoStart failed:",
-        extractErrorMessage(err),
-      );
+      logError("settings", "[settingsStore] initializeAutoStart failed:", extractErrorMessage(err));
     }
   },
 }));

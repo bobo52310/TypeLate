@@ -83,9 +83,12 @@ export function HudApp() {
       // Phase 4: Deferred — vocabulary fetch after DB is ready (non-blocking)
       dbPromise.then((result) => {
         if (result !== null) {
-          void useVocabularyStore.getState().fetchTermList().catch((err) => {
-            logError("HudApp", "Vocabulary fetch failed", err);
-          });
+          void useVocabularyStore
+            .getState()
+            .fetchTermList()
+            .catch((err) => {
+              logError("HudApp", "Vocabulary fetch failed", err);
+            });
         }
       });
     })();

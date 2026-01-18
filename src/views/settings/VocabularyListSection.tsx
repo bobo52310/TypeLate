@@ -4,12 +4,7 @@ import { Plus, Trash2, Bot, Hand } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -87,11 +82,17 @@ export default function VocabularyListSection() {
     } catch (err) {
       feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
-      setRemovingTermIdSet((prev) => { const next = new Set(prev); next.delete(id); return next; });
+      setRemovingTermIdSet((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   }
 
-  useEffect(() => { void fetchTermList(); }, [fetchTermList]);
+  useEffect(() => {
+    void fetchTermList();
+  }, [fetchTermList]);
 
   const locale = i18n.language;
 
@@ -107,13 +108,19 @@ export default function VocabularyListSection() {
               onChange={(e) => setNewTermInput(e.target.value)}
               placeholder={t("dictionary.inputPlaceholder")}
               className="w-48"
-              onKeyDown={(e) => { if (e.key === "Enter") void handleAddTerm(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleAddTerm();
+              }}
             />
             {showDuplicateHint && (
               <p className="mt-1 text-xs text-destructive">{t("dictionary.duplicateEntry")}</p>
             )}
           </div>
-          <Button size="sm" disabled={isAddDisabled || showDuplicateHint} onClick={() => void handleAddTerm()}>
+          <Button
+            size="sm"
+            disabled={isAddDisabled || showDuplicateHint}
+            onClick={() => void handleAddTerm()}
+          >
             <Plus className="mr-1 h-4 w-4" />
             {t("dictionary.add")}
           </Button>
@@ -125,7 +132,9 @@ export default function VocabularyListSection() {
 
       {/* Feedback */}
       {feedback.message && (
-        <p className={`text-sm ${feedback.type === "success" ? "text-primary" : "text-destructive"}`}>
+        <p
+          className={`text-sm ${feedback.type === "success" ? "text-primary" : "text-destructive"}`}
+        >
           {feedback.message}
         </p>
       )}
@@ -133,7 +142,9 @@ export default function VocabularyListSection() {
       {isLoading && <p className="text-center text-muted-foreground">{t("dictionary.loading")}</p>}
 
       {!isLoading && termCount === 0 && (
-        <p className="py-4 text-center text-sm text-muted-foreground">{t("dictionary.emptyState")}</p>
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          {t("dictionary.emptyState")}
+        </p>
       )}
 
       {!isLoading && termCount > 0 && (
@@ -155,7 +166,9 @@ export default function VocabularyListSection() {
             </CardHeader>
             <CardContent>
               {aiSuggestedTermList.length === 0 ? (
-                <p className="py-3 text-center text-xs text-muted-foreground">{t("dictionary.noAiSuggestions")}</p>
+                <p className="py-3 text-center text-xs text-muted-foreground">
+                  {t("dictionary.noAiSuggestions")}
+                </p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -163,7 +176,9 @@ export default function VocabularyListSection() {
                       <TableHead className="w-full">{t("dictionary.termHeader")}</TableHead>
                       <TableHead className="w-20 text-center">{t("dictionary.weight")}</TableHead>
                       <TableHead className="w-32">{t("dictionary.dateHeader")}</TableHead>
-                      <TableHead className="w-16 text-right">{t("dictionary.actionHeader")}</TableHead>
+                      <TableHead className="w-16 text-right">
+                        {t("dictionary.actionHeader")}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -173,9 +188,17 @@ export default function VocabularyListSection() {
                         <TableCell className="text-center">
                           <Badge variant={getWeightVariant(entry.weight)}>{entry.weight}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{formatDate(entry.createdAt, locale)}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {formatDate(entry.createdAt, locale)}
+                        </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={removingTermIdSet.has(entry.id)} onClick={() => void handleRemoveTerm(entry.id, entry.term)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            disabled={removingTermIdSet.has(entry.id)}
+                            onClick={() => void handleRemoveTerm(entry.id, entry.term)}
+                          >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </TableCell>
@@ -197,7 +220,9 @@ export default function VocabularyListSection() {
             </CardHeader>
             <CardContent>
               {manualTermList.length === 0 ? (
-                <p className="py-3 text-center text-xs text-muted-foreground">{t("dictionary.emptyState")}</p>
+                <p className="py-3 text-center text-xs text-muted-foreground">
+                  {t("dictionary.emptyState")}
+                </p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -205,7 +230,9 @@ export default function VocabularyListSection() {
                       <TableHead className="w-full">{t("dictionary.termHeader")}</TableHead>
                       <TableHead className="w-20 text-center">{t("dictionary.weight")}</TableHead>
                       <TableHead className="w-32">{t("dictionary.dateHeader")}</TableHead>
-                      <TableHead className="w-16 text-right">{t("dictionary.actionHeader")}</TableHead>
+                      <TableHead className="w-16 text-right">
+                        {t("dictionary.actionHeader")}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -215,9 +242,17 @@ export default function VocabularyListSection() {
                         <TableCell className="text-center">
                           <Badge variant={getWeightVariant(entry.weight)}>{entry.weight}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{formatDate(entry.createdAt, locale)}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {formatDate(entry.createdAt, locale)}
+                        </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={removingTermIdSet.has(entry.id)} onClick={() => void handleRemoveTerm(entry.id, entry.term)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            disabled={removingTermIdSet.has(entry.id)}
+                            onClick={() => void handleRemoveTerm(entry.id, entry.term)}
+                          >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </TableCell>

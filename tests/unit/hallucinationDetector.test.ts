@@ -109,9 +109,7 @@ describe("detectEnhancementAnomaly", () => {
 
   it("detects length explosion", () => {
     const raw = "test";
-    const enhanced = "T".repeat(
-      raw.length * ENHANCEMENT_LENGTH_EXPLOSION_RATIO,
-    );
+    const enhanced = "T".repeat(raw.length * ENHANCEMENT_LENGTH_EXPLOSION_RATIO);
     const result = detectEnhancementAnomaly({
       rawText: raw,
       enhancedText: enhanced,

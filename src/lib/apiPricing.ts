@@ -31,11 +31,9 @@ export function calculateChatCostCeiling(
   totalTokens: number,
   modelId: string = DEFAULT_LLM_MODEL_ID,
 ): number {
-  const config =
-    findLlmModelConfig(modelId) ?? findVocabularyAnalysisModelConfig(modelId);
+  const config = findLlmModelConfig(modelId) ?? findVocabularyAnalysisModelConfig(modelId);
   const maxCostPerToken = config
-    ? Math.max(config.inputCostPerMillion, config.outputCostPerMillion) /
-      1_000_000
+    ? Math.max(config.inputCostPerMillion, config.outputCostPerMillion) / 1_000_000
     : 0.00000079;
   return totalTokens * maxCostPerToken;
 }

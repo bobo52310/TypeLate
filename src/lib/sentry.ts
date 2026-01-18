@@ -52,8 +52,7 @@ export function initSentryForDashboard(): void {
     environment: getSentryEnvironment(),
     release: getSentryRelease(),
     sendDefaultPii: false,
-    integrations:
-      tracesSampleRate > 0 ? [Sentry.browserTracingIntegration()] : [],
+    integrations: tracesSampleRate > 0 ? [Sentry.browserTracingIntegration()] : [],
     ...(tracesSampleRate > 0 ? { tracesSampleRate } : {}),
     initialScope: {
       tags: { window: "dashboard" },
@@ -61,10 +60,7 @@ export function initSentryForDashboard(): void {
   });
 }
 
-export function captureError(
-  error: unknown,
-  context?: Record<string, unknown>,
-): void {
+export function captureError(error: unknown, context?: Record<string, unknown>): void {
   if (!isSentryEnabled()) return;
 
   if (context) {

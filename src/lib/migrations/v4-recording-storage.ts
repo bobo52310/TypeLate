@@ -7,11 +7,7 @@ export const v4RecordingStorage: Migration = {
   up: async (db) => {
     // DDL (ALTER TABLE ADD COLUMN) must run outside transactions
     await addColumnIfNotExists(db, "transcriptions", "audio_file_path TEXT");
-    await addColumnIfNotExists(
-      db,
-      "transcriptions",
-      "status TEXT NOT NULL DEFAULT 'success'",
-    );
+    await addColumnIfNotExists(db, "transcriptions", "status TEXT NOT NULL DEFAULT 'success'");
 
     await db.execute("BEGIN TRANSACTION;");
     try {
