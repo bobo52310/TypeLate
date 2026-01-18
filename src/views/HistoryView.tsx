@@ -125,6 +125,7 @@ export default function HistoryView() {
   const [copiedRecordId, setCopiedRecordId] = useState<string | null>(null);
   const [copiedRawRecordId, setCopiedRawRecordId] = useState<string | null>(null);
   const [playingRecordId, setPlayingRecordId] = useState<string | null>(null);
+  const [playbackErrorId, setPlaybackErrorId] = useState<string | null>(null);
 
   // Random slogan for empty state (stable per mount)
   const [slogan] = useState(() => getRandomSlogan());
@@ -238,8 +239,13 @@ export default function HistoryView() {
       setPlayingRecordId(null);
       return;
     }
-    if (!record.audioFilePath) return;
+    if (!record.audioFilePath) {
+      setPlaybackErrorId(record.id);
+      setTimeout(() => setPlaybackErrorId(null), 3000);
+      return;
+    }
     setPlayingRecordId(record.id);
+    setPlaybackErrorId(null);
     try {
       const raw = await invoke<number[]>("read_recording_file", { id: record.id });
       const blob = new Blob([new Uint8Array(raw)], { type: "audio/wav" });
@@ -254,6 +260,8 @@ export default function HistoryView() {
       captureError(err, { source: "history", action: "play-recording" });
       cleanupAudio();
       setPlayingRecordId(null);
+      setPlaybackErrorId(record.id);
+      setTimeout(() => setPlaybackErrorId(null), 3000);
     }
   }
 
@@ -367,23 +375,31 @@ export default function HistoryView() {
                       onClick={() => toggleExpand(record.id)}
                     >
                       {/* Play button / waveform */}
-                      <button
-                        className={cn(
-                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors",
-                          playing
-                            ? "bg-primary/15"
-                            : "bg-muted hover:bg-muted/80",
-                          !record.audioFilePath && "opacity-30",
+                      <div className="relative shrink-0">
+                        <button
+                          className={cn(
+                            "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
+                            playing
+                              ? "bg-primary/15"
+                              : "bg-muted hover:bg-muted/80",
+                            !record.audioFilePath && "opacity-30",
+                          )}
+                          disabled={!record.audioFilePath}
+                          aria-label={t("history.playRecording")}
+                          onClick={(e) => { e.stopPropagation(); void handlePlayRecording(record); }}
+                        >
+                          {playing ? (
+                            <PlaybackWaveform />
+                          ) : (
+                            <Play className="h-3 w-3 text-foreground ml-0.5" />
+                          )}
+                        </button>
+                        {playbackErrorId === record.id && (
+                          <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-destructive">
+                            {t("history.noRecordingFile")}
+                          </span>
                         )}
-                        disabled={!record.audioFilePath}
-                        onClick={(e) => { e.stopPropagation(); void handlePlayRecording(record); }}
-                      >
-                        {playing ? (
-                          <PlaybackWaveform />
-                        ) : (
-                          <Play className="h-3 w-3 text-foreground ml-0.5" />
-                        )}
-                      </button>
+                      </div>
 
                       {/* Content */}
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
