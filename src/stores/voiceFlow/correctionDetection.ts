@@ -94,6 +94,7 @@ export function startCorrectionDetectionFlow(
       let latestSnapshot: string | null = null;
       stopCorrectionSnapshotPolling();
 
+      let consecutiveSnapshotErrors = 0;
       correctionSnapshotTimer = setInterval(() => {
         void (async () => {
           try {
@@ -102,9 +103,15 @@ export function startCorrectionDetectionFlow(
             );
             if (text) {
               latestSnapshot = text;
+              consecutiveSnapshotErrors = 0;
             }
-          } catch {
-            // AX read failure silently handled
+          } catch (err) {
+            consecutiveSnapshotErrors++;
+            if (consecutiveSnapshotErrors === 5) {
+              writeErrorLog(
+                `correctionDetection: read_focused_text_field failed 5 times consecutively: ${String(err)}`,
+              );
+            }
           }
         })();
       }, SNAPSHOT_POLL_INTERVAL_MS);
