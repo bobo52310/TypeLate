@@ -1,6 +1,7 @@
 import Database from "@tauri-apps/plugin-sql";
 import { runMigrations } from "./migrations";
 import { tableExists } from "./migrations/utils";
+import { logInfo, logWarn } from "./logger";
 
 let db: Database | null = null;
 let initPromise: Promise<Database> | null = null;
@@ -49,7 +50,7 @@ export async function connectToDatabase(
       await existing.execute("PRAGMA busy_timeout = 5000;");
       await existing.select<{ n: number }[]>("SELECT 1 AS n");
       db = existing;
-      console.log("[database] HUD connected to existing database pool");
+      logInfo("database", "HUD connected to existing database pool");
       return db;
     } catch {
       if (i < maxRetries - 1) {
@@ -59,7 +60,7 @@ export async function connectToDatabase(
   }
 
   // Fallback：Dashboard 尚未載入（極罕見），HUD 自行初始化
-  console.warn("[database] HUD fallback: initializing database directly");
+  logWarn("database", "HUD fallback: initializing database directly");
   return doInitializeDatabase();
 }
 
@@ -83,7 +84,7 @@ async function doInitializeDatabase(): Promise<Database> {
       await connection.execute(
         "ALTER TABLE api_usage_new RENAME TO api_usage;",
       );
-      console.log("[database] Recovery: renamed api_usage_new → api_usage");
+      logInfo("database", "Recovery: renamed api_usage_new → api_usage");
     } else {
       await connection.execute(`
         CREATE TABLE api_usage (
@@ -107,13 +108,13 @@ async function doInitializeDatabase(): Promise<Database> {
         CREATE INDEX IF NOT EXISTS idx_api_usage_transcription_id
         ON api_usage(transcription_id);
       `);
-      console.log("[database] Recovery: recreated missing api_usage table");
+      logInfo("database", "Recovery: recreated missing api_usage table");
     }
   }
 
   // 只有全部 schema 建立成功才設定 singleton
   db = connection;
-  console.log("[database] SQLite initialized with WAL mode");
+  logInfo("database", "SQLite initialized with WAL mode");
 
   return db;
 }

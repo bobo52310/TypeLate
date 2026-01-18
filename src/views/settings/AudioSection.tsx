@@ -58,11 +58,8 @@ export default function AudioSection() {
         "list_audio_input_devices",
       );
       setDeviceList(list);
-    } catch (err) {
-      console.error(
-        "[AudioSection] Failed to list audio input devices:",
-        err,
-      );
+    } catch {
+      // Device enumeration may fail if no audio hardware available
     }
   }
 
