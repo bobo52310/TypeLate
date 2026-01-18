@@ -121,6 +121,30 @@ export function NotchHud({
 
   const { waveformLevelList, startWaveformAnimation, stopWaveformAnimation } = useAudioWaveform();
 
+  // --- Silence hint: show "Speak now..." after 3s of flat waveform ---
+  const silenceFrameCountRef = useRef(0);
+  const [showSilenceHint, setShowSilenceHint] = useState(false);
+  const SILENCE_THRESHOLD = 0.02;
+  const SILENCE_FRAMES_FOR_HINT = 180; // ~3 seconds at 60fps
+
+  useEffect(() => {
+    if (visualMode !== "recording") {
+      silenceFrameCountRef.current = 0;
+      setShowSilenceHint(false);
+      return;
+    }
+    const isSilent = waveformLevelList.every((level) => level < SILENCE_THRESHOLD);
+    if (isSilent) {
+      silenceFrameCountRef.current++;
+      if (silenceFrameCountRef.current >= SILENCE_FRAMES_FOR_HINT) {
+        setShowSilenceHint(true);
+      }
+    } else {
+      silenceFrameCountRef.current = 0;
+      setShowSilenceHint(false);
+    }
+  }, [visualMode, waveformLevelList]);
+
   // --- Timer helpers ---
 
   const clearMorphingTimer = useCallback(() => {
@@ -456,7 +480,17 @@ export function NotchHud({
     }
 
     if (visualMode === "recording") {
-      return <span className={styles.elapsedTimer}>{formattedElapsedTime}</span>;
+      return (
+        <span className={styles.elapsedTimer}>
+          {showSilenceHint ? (
+            <span style={{ fontSize: "10px", opacity: 0.7 }}>
+              {t("voiceFlow.recording")}
+            </span>
+          ) : (
+            formattedElapsedTime
+          )}
+        </span>
+      );
     }
 
     if (visualMode === "error" && canRetry) {
