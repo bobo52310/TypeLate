@@ -314,7 +314,15 @@ async function completePasteFlow(params: {
   try {
     await invoke("paste_text", { text: params.text });
     actions().setState({ isRecording: false });
-    transitionTo("success", params.successMessage);
+
+    // Show text preview in success message (truncate to ~30 chars)
+    const preview = params.text.trim().length > 30
+      ? params.text.trim().slice(0, 30) + "…"
+      : params.text.trim();
+    const successWithPreview = preview
+      ? `${params.successMessage} · ${preview}`
+      : params.successMessage;
+    transitionTo("success", successWithPreview);
     startQualityMonitorAfterPaste();
 
     // api_usage FK depends on transcriptions -- must wait for transcription write

@@ -139,7 +139,8 @@ export function NotchHud({
   // --- Derived values ---
 
   const hasErrorMessage = visualMode === "error" && message !== "";
-  const isExpandedMode = hasErrorMessage || visualMode === "learned";
+  const hasSuccessPreview = visualMode === "success" && message !== "" && message.includes("·");
+  const isExpandedMode = hasErrorMessage || visualMode === "learned" || hasSuccessPreview;
 
   const isHighPriorityMode =
     visualMode === "recording" ||
@@ -532,6 +533,14 @@ export function NotchHud({
         {visualMode === "learned" && (
           <div className={styles.learnedTermsRow}>
             <span className={styles.learnedTerms}>{learnedDisplayText}</span>
+          </div>
+        )}
+
+        {hasSuccessPreview && (
+          <div className={styles.errorMessageRow}>
+            <span className={styles.errorMessage} style={{ color: "rgba(255,255,255,0.7)" }}>
+              {message.split("·").slice(1).join("·").trim()}
+            </span>
           </div>
         )}
 
