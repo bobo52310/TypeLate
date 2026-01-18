@@ -39,6 +39,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
   const [slogan] = useState(() => getRandomSlogan());
 
   const saveApiKey = useSettingsStore((s) => s.saveApiKey);
+  const hotkeyConfig = useSettingsStore((s) => s.hotkeyConfig);
 
   const handleOpenGroqConsole = useCallback(() => {
     void open(GROQ_CONSOLE_URL);
@@ -367,6 +368,16 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
               <p className="mt-3 text-base text-muted-foreground">
                 {t("onboarding.doneDescription", "Press your hotkey anytime to start dictating. TypeLate will transcribe and paste the text automatically.")}
               </p>
+              <div className="mt-4 inline-flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{t("onboarding.hotkeyHint", "Default: Fn key")}</span>
+                <kbd className="inline-flex h-8 min-w-[2.5rem] items-center justify-center rounded-lg border border-border bg-muted px-3 text-sm font-medium text-foreground shadow-sm">
+                  {hotkeyConfig?.triggerKey
+                    ? typeof hotkeyConfig.triggerKey === "string"
+                      ? t(`settings.hotkey.keys.${hotkeyConfig.triggerKey}`, { defaultValue: hotkeyConfig.triggerKey })
+                      : t("settings.hotkey.custom")
+                    : "Fn"}
+                </kbd>
+              </div>
               {slogan && (
                 <p className="mt-3 text-sm italic text-primary/70">
                   &ldquo;{slogan}&rdquo;
