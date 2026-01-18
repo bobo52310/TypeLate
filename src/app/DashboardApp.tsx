@@ -40,6 +40,7 @@ import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import { useDebouncedTauriEvent, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
+import { logError } from "@/lib/logger";
 import { captureError, initSentryForDashboard } from "@/lib/sentry";
 import { IS_MAC } from "@/lib/platform";
 import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
@@ -166,7 +167,7 @@ export function DashboardApp() {
 
       setShowAutoInstallDialog(true);
     } catch (err) {
-      console.error("[main-window] Auto update check/download failed:", err);
+      logError("dashboard", "Auto update check/download failed", err);
       captureError(err, { source: "updater", step: "auto-check" });
       setUpdateState("idle");
     }
@@ -185,7 +186,7 @@ export function DashboardApp() {
       const { installAndRelaunch } = await import("@/lib/autoUpdater");
       await installAndRelaunch();
     } catch (err) {
-      console.error("[main-window] Auto install failed:", err);
+      logError("dashboard", "Auto install failed", err);
       updateFeedback.show("error", t("mainApp.update.installFailed"));
       setUpdateState("idle");
       setAvailableVersion("");
@@ -210,7 +211,7 @@ export function DashboardApp() {
       const { downloadInstallAndRelaunch } = await import("@/lib/autoUpdater");
       await downloadInstallAndRelaunch();
     } catch (err) {
-      console.error("[main-window] Manual update failed:", err);
+      logError("dashboard", "Manual update failed", err);
       updateFeedback.show("error", t("mainApp.update.updateFailed"));
       setUpdateState("idle");
       setAvailableVersion("");
@@ -263,8 +264,9 @@ export function DashboardApp() {
           );
           setShowAccessibilityGuide(!hasPermission);
         } catch (error) {
-          console.error(
-            "[main-window] Failed to check accessibility permission:",
+          logError(
+            "dashboard",
+            "Failed to check accessibility permission",
             error,
           );
           captureError(error, {
@@ -298,7 +300,7 @@ export function DashboardApp() {
 
     invoke("cleanup_old_recordings", { days: recordingAutoCleanupDays }).catch(
       (err) => {
-        console.error("[main-window] Recording cleanup failed:", err);
+        logError("dashboard", "Recording cleanup failed", err);
         captureError(err, { source: "recording-cleanup" });
       },
     );

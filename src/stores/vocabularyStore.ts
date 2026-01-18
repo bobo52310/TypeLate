@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { getDatabase } from "@/lib/database";
 import { extractErrorMessage } from "@/lib/errorUtils";
+import { logError } from "@/lib/logger";
 import { captureError } from "@/lib/sentry";
 import { emitEvent, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
 import type { VocabularyEntry, VocabularySource } from "@/types/vocabulary";
@@ -85,8 +86,9 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
       );
       set({ termList: rows.map(mapRowToEntry) });
     } catch (error) {
-      console.error(
-        `[vocabularyStore] fetchTermList failed: ${extractErrorMessage(error)}`,
+      logError(
+        "vocabulary",
+        `fetchTermList failed: ${extractErrorMessage(error)}`,
       );
       captureError(error, { source: "vocabulary", step: "fetch" });
       throw error;
@@ -120,7 +122,7 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
       if (message.includes("UNIQUE")) {
         throw new Error(i18n.t("dictionary.duplicateEntry"));
       }
-      console.error(`[vocabularyStore] addTerm failed: ${message}`);
+      logError("vocabulary", `addTerm failed: ${message}`);
       captureError(error, { source: "vocabulary", step: "add" });
       throw error;
     }
@@ -139,8 +141,9 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
         term: entry.term,
       } satisfies VocabularyChangedPayload);
     } catch (error) {
-      console.error(
-        `[vocabularyStore] removeTerm failed: ${extractErrorMessage(error)}`,
+      logError(
+        "vocabulary",
+        `removeTerm failed: ${extractErrorMessage(error)}`,
       );
       captureError(error, { source: "vocabulary", step: "remove" });
       throw error;
@@ -169,7 +172,7 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
         // Already exists -- silently ignore (caller will do weight +1)
         return;
       }
-      console.error(`[vocabularyStore] addAiSuggestedTerm failed: ${message}`);
+      logError("vocabulary", `addAiSuggestedTerm failed: ${message}`);
       captureError(error, { source: "vocabulary", step: "add-ai" });
       throw error;
     }
@@ -187,8 +190,9 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
       }
       await get().fetchTermList();
     } catch (error) {
-      console.error(
-        `[vocabularyStore] batchIncrementWeights failed: ${extractErrorMessage(error)}`,
+      logError(
+        "vocabulary",
+        `batchIncrementWeights failed: ${extractErrorMessage(error)}`,
       );
       captureError(error, { source: "vocabulary", step: "increment-weights" });
       throw error;
@@ -227,8 +231,9 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
         } satisfies VocabularyChangedPayload);
       }
     } catch (error) {
-      console.error(
-        `[vocabularyStore] syncImportBatch failed: ${extractErrorMessage(error)}`,
+      logError(
+        "vocabulary",
+        `syncImportBatch failed: ${extractErrorMessage(error)}`,
       );
       captureError(error, { source: "vocabulary", step: "sync-import" });
       throw error;
@@ -244,8 +249,9 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
       );
       return rows.map((row) => row.term);
     } catch (error) {
-      console.error(
-        `[vocabularyStore] getTopTermListByWeight failed: ${extractErrorMessage(error)}`,
+      logError(
+        "vocabulary",
+        `getTopTermListByWeight failed: ${extractErrorMessage(error)}`,
       );
       captureError(error, { source: "vocabulary", step: "top-by-weight" });
       return [];
