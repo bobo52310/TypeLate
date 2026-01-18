@@ -37,7 +37,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
-import { useTauriEvent, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
+import { useDebouncedTauriEvent, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
 import { captureError, initSentryForDashboard } from "@/lib/sentry";
@@ -126,9 +126,8 @@ export function DashboardApp() {
   const isRecordingAutoCleanupEnabled = useSettingsStore((s) => s.isRecordingAutoCleanupEnabled);
   const recordingAutoCleanupDays = useSettingsStore((s) => s.recordingAutoCleanupDays);
 
-  // ── Listen for VOCABULARY_CHANGED from HUD window ──
-  useTauriEvent(VOCABULARY_CHANGED, () => {
-    console.log("[main-window] VOCABULARY_CHANGED received, refreshing termList");
+  // ── Listen for VOCABULARY_CHANGED from HUD window (debounced) ──
+  useDebouncedTauriEvent(VOCABULARY_CHANGED, () => {
     void useVocabularyStore.getState().fetchTermList();
   });
 
@@ -351,12 +350,22 @@ export function DashboardApp() {
           <SidebarContent>
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu>
-                  {NAV_ITEMS.map((item) => (
+                <SidebarMenu role="navigation" aria-label="Main navigation">
+                  {NAV_ITEMS.map((item, index) => (
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton
                         isActive={currentPath.startsWith(item.path)}
                         onClick={() => navigate(item.path)}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                            e.preventDefault();
+                            const next = e.key === "ArrowDown"
+                              ? (index + 1) % NAV_ITEMS.length
+                              : (index - 1 + NAV_ITEMS.length) % NAV_ITEMS.length;
+                            const buttons = e.currentTarget.closest("[role=navigation]")?.querySelectorAll("button");
+                            (buttons?.[next] as HTMLElement | undefined)?.focus();
+                          }
+                        }}
                       >
                         <item.icon />
                         <span>{t(item.labelKey)}</span>
