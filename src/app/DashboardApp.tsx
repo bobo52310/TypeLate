@@ -309,6 +309,14 @@ export function DashboardApp() {
 
   return (
     <>
+      {/* Skip to content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-10 focus:left-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-1.5 focus:text-sm focus:text-primary-foreground focus:shadow-md"
+      >
+        Skip to content
+      </a>
+
       {/* macOS custom title bar: fixed overlay for window dragging */}
       <div
         data-tauri-drag-region
@@ -407,7 +415,7 @@ export function DashboardApp() {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto">
+          <div id="main-content" className="flex-1 overflow-y-auto">
             <RouterOutlet />
           </div>
         </SidebarInset>
