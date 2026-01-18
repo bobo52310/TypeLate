@@ -28,11 +28,15 @@ let autoHideTimer: ReturnType<typeof setTimeout> | null = null;
 let collapseHideTimer: ReturnType<typeof setTimeout> | null = null;
 let delayedMuteTimer: ReturnType<typeof setTimeout> | null = null;
 let learnedHideTimer: ReturnType<typeof setTimeout> | null = null;
+let recordingTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ── Constants ──
 
 export const COLLAPSE_HIDE_DELAY_MS = 400;
 export const LEARNED_NOTIFICATION_TOTAL_DURATION_MS = 2800; // 2000 display + 400 collapse + 400 buffer
+
+/** Maximum recording duration in seconds (safety limit to prevent runaway recordings) */
+export const MAX_RECORDING_DURATION_S = 300; // 5 minutes
 
 // ── Auto-hide timer ──
 
@@ -112,6 +116,20 @@ export function setLearnedHideTimer(callback: () => void): void {
   learnedHideTimer = setTimeout(callback, LEARNED_NOTIFICATION_TOTAL_DURATION_MS);
 }
 
+// ── Recording timeout timer (safety limit) ──
+
+export function clearRecordingTimeoutTimer(): void {
+  if (recordingTimeoutTimer) {
+    clearTimeout(recordingTimeoutTimer);
+    recordingTimeoutTimer = null;
+  }
+}
+
+export function startRecordingTimeoutTimer(callback: () => void): void {
+  clearRecordingTimeoutTimer();
+  recordingTimeoutTimer = setTimeout(callback, MAX_RECORDING_DURATION_S * 1000);
+}
+
 // ── Cleanup all timers ──
 
 export function cleanupAllTimers(): void {
@@ -119,5 +137,6 @@ export function cleanupAllTimers(): void {
   clearCollapseHideTimer();
   clearDelayedMuteTimer();
   clearLearnedHideTimer();
+  clearRecordingTimeoutTimer();
   stopElapsedTimer();
 }

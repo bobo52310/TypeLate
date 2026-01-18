@@ -41,6 +41,8 @@ import {
   stopElapsedTimer,
   clearDelayedMuteTimer,
   setDelayedMuteTimer,
+  startRecordingTimeoutTimer,
+  clearRecordingTimeoutTimer,
 } from "./timers";
 import { startCorrectionDetectionFlow } from "./correctionDetection";
 
@@ -376,6 +378,10 @@ export async function handleStartRecording(): Promise<void> {
     });
     if (getState()._isAborted) return;
     startElapsedTimer();
+    startRecordingTimeoutTimer(() => {
+      writeInfoLog("voiceFlowStore: recording safety timeout reached, auto-stopping");
+      void handleStopRecording();
+    });
     transitionTo("recording", t("voiceFlow.recording"));
     writeInfoLog("voiceFlowStore: recording started");
   } catch (error) {
@@ -397,6 +403,7 @@ export async function handleStopRecording(): Promise<void> {
   if (getState()._isAborted) return;
 
   clearDelayedMuteTimer();
+  clearRecordingTimeoutTimer();
   await restoreSystemAudio();
   playSoundIfEnabled("play_stop_sound");
   stopElapsedTimer();
