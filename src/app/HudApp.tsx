@@ -37,10 +37,8 @@ export function HudApp() {
       logInfo("HudApp", "Mounted, initializing voice flow...");
 
       // Phase 1: Run DB, settings, and event listeners in parallel
-      // Settings + voice flow init is the critical path for hotkey readiness
       const dbPromise = connectToDatabase().catch((err) => {
         logError("HudApp", "Database init failed", err);
-        return null;
       });
 
       const settingsPromise = useSettingsStore.getState().loadSettings();
@@ -56,10 +54,10 @@ export function HudApp() {
         unlistenFns.push(unlistenSettings, unlistenVocabulary);
       });
 
-      // Wait for settings (critical path) and listeners
-      await Promise.all([settingsPromise, listenersPromise]);
+      // Wait for ALL parallel tasks — DB is required for history/vocabulary
+      await Promise.all([dbPromise, settingsPromise, listenersPromise]);
 
-      // Phase 2: Initialize voice flow (needs settings loaded)
+      // Phase 2: Initialize voice flow (needs settings + DB)
       const appWindow = getCurrentWindow();
       await appWindow.show();
       await useVoiceFlowStore.getState().initialize({
@@ -80,17 +78,13 @@ export function HudApp() {
       }
       await appWindow.hide();
 
-      // Phase 4: Deferred — vocabulary fetch after DB is ready (non-blocking)
-      dbPromise.then((result) => {
-        if (result !== null) {
-          void useVocabularyStore
-            .getState()
-            .fetchTermList()
-            .catch((err) => {
-              logError("HudApp", "Vocabulary fetch failed", err);
-            });
-        }
-      });
+      // Phase 4: Vocabulary fetch (non-blocking, DB already ready)
+      void useVocabularyStore
+        .getState()
+        .fetchTermList()
+        .catch((err) => {
+          logError("HudApp", "Vocabulary fetch failed", err);
+        });
     })();
 
     return () => {
