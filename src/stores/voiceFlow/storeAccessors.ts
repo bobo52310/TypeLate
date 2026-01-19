@@ -26,6 +26,7 @@ export interface SettingsStoreAccessor {
   getAiPrompt: () => string;
   getWhisperLanguageCode: () => string | null;
   pasteMode: "auto-paste" | "copy-only";
+  recordingRetentionPolicy: import("@/stores/settingsStore").RecordingRetentionPolicy;
   loadSettings: () => Promise<void>;
 }
 

@@ -1,10 +1,15 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,50 +21,64 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
-import { useSettingsStore } from "@/stores/settingsStore";
+import { FolderOpen, HardDrive, Trash2 } from "lucide-react";
+import {
+  useSettingsStore,
+  type RecordingRetentionPolicy,
+  type RecordingsStorageInfo,
+} from "@/stores/settingsStore";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+const RETENTION_OPTIONS: RecordingRetentionPolicy[] = ["forever", "30", "14", "7", "none"];
 
 export default function RecordingSection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
-  const isRecordingAutoCleanupEnabled = useSettingsStore((s) => s.isRecordingAutoCleanupEnabled);
-  const recordingAutoCleanupDays = useSettingsStore((s) => s.recordingAutoCleanupDays);
-  const saveRecordingAutoCleanup = useSettingsStore((s) => s.saveRecordingAutoCleanup);
+  const recordingRetentionPolicy = useSettingsStore((s) => s.recordingRetentionPolicy);
+  const saveRecordingRetentionPolicy = useSettingsStore((s) => s.saveRecordingRetentionPolicy);
+  const getRecordingsStorageInfo = useSettingsStore((s) => s.getRecordingsStorageInfo);
+  const openRecordingsFolder = useSettingsStore((s) => s.openRecordingsFolder);
   const deleteAllRecordingFiles = useHistoryStore((s) => s.deleteAllRecordingFiles);
 
-  const [autoCleanupEnabled, setAutoCleanupEnabled] = useState(false);
-  const [cleanupDays, setCleanupDays] = useState(7);
+  const [storageInfo, setStorageInfo] = useState<RecordingsStorageInfo | null>(null);
   const [isDeletingRecordings, setIsDeletingRecordings] = useState(false);
 
-  useEffect(() => {
-    setAutoCleanupEnabled(isRecordingAutoCleanupEnabled);
-    setCleanupDays(recordingAutoCleanupDays);
-  }, [isRecordingAutoCleanupEnabled, recordingAutoCleanupDays]);
-
-  async function handleToggleAutoCleanup() {
-    const newValue = !autoCleanupEnabled;
-    setAutoCleanupEnabled(newValue);
+  const refreshStorageInfo = useCallback(async () => {
     try {
-      await saveRecordingAutoCleanup(newValue, cleanupDays);
-      feedback.show(
-        "success",
-        newValue
-          ? t("settings.recording.autoCleanupEnabled")
-          : t("settings.recording.autoCleanupDisabled"),
-      );
+      const info = await getRecordingsStorageInfo();
+      setStorageInfo(info);
+    } catch {
+      // Silently fail — storage info is informational only
+    }
+  }, [getRecordingsStorageInfo]);
+
+  useEffect(() => {
+    void refreshStorageInfo();
+  }, [refreshStorageInfo]);
+
+  async function handleRetentionChange(value: string) {
+    const policy = value as RecordingRetentionPolicy;
+    try {
+      await saveRecordingRetentionPolicy(policy);
+      feedback.show("success", t("settings.recording.retentionSaved"));
     } catch (err) {
-      setAutoCleanupEnabled(!newValue);
       feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
-  async function handleSaveCleanupDays() {
+  async function handleOpenFolder() {
     try {
-      await saveRecordingAutoCleanup(autoCleanupEnabled, cleanupDays);
-      feedback.show("success", t("settings.recording.daysSaved"));
+      await openRecordingsFolder();
     } catch (err) {
       feedback.show("error", err instanceof Error ? err.message : String(err));
     }
@@ -70,11 +89,23 @@ export default function RecordingSection() {
       setIsDeletingRecordings(true);
       const deletedCount = await deleteAllRecordingFiles();
       feedback.show("success", t("settings.recording.deleteSuccess", { count: deletedCount }));
+      await refreshStorageInfo();
     } catch (err) {
       feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
       setIsDeletingRecordings(false);
     }
+  }
+
+  function getRetentionLabel(policy: RecordingRetentionPolicy): string {
+    const labels: Record<RecordingRetentionPolicy, string> = {
+      forever: t("settings.recording.retentionForever"),
+      "30": t("settings.recording.retention30"),
+      "14": t("settings.recording.retention14"),
+      "7": t("settings.recording.retention7"),
+      none: t("settings.recording.retentionNone"),
+    };
+    return labels[policy];
   }
 
   return (
@@ -87,46 +118,76 @@ export default function RecordingSection() {
           {t("settings.recording.description")}
         </p>
 
+        {/* Storage statistics */}
         <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="recording-auto-cleanup">{t("settings.recording.autoCleanup")}</Label>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.recording.autoCleanupDescription")}
-            </p>
+          <div className="flex items-center gap-2">
+            <HardDrive className="h-4 w-4 text-muted-foreground" />
+            <Label>{t("settings.recording.storageUsed")}</Label>
           </div>
-          <Switch
-            id="recording-auto-cleanup"
-            checked={autoCleanupEnabled}
-            onCheckedChange={() => void handleToggleAutoCleanup()}
-          />
+          <span className="text-sm text-muted-foreground">
+            {storageInfo
+              ? storageInfo.fileCount > 0
+                ? t("settings.recording.storageInfo", {
+                    size: formatFileSize(storageInfo.totalSizeBytes),
+                    count: storageInfo.fileCount,
+                  })
+                : t("settings.recording.storageEmpty")
+              : "—"}
+          </span>
         </div>
 
-        {autoCleanupEnabled && (
-          <div className="flex items-center gap-3">
-            <Label htmlFor="cleanup-days">{t("settings.recording.retentionDays")}</Label>
-            <Input
-              id="cleanup-days"
-              type="number"
-              min={1}
-              max={365}
-              value={cleanupDays}
-              onChange={(e) => {
-                const parsed = Number(e.target.value);
-                if (!Number.isNaN(parsed)) setCleanupDays(parsed);
-              }}
-              className="w-24"
-            />
-            <span className="text-sm text-muted-foreground">
-              {t("settings.recording.daysUnit")}
-            </span>
-            <Button size="sm" onClick={() => void handleSaveCleanupDays()}>
-              {t("common.save")}
-            </Button>
+        {/* Retention policy */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="retention-policy">{t("settings.recording.retentionPolicy")}</Label>
+            <p className="text-sm text-muted-foreground">
+              {t("settings.recording.retentionPolicyDescription")}
+            </p>
           </div>
+          <Select
+            value={recordingRetentionPolicy}
+            onValueChange={(val) => void handleRetentionChange(val)}
+          >
+            <SelectTrigger id="retention-policy" className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RETENTION_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {getRetentionLabel(option)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {recordingRetentionPolicy === "none" && (
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            {t("settings.recording.retentionNoneDescription")}
+          </p>
         )}
 
         <div className="border-t border-border" />
 
+        {/* Storage path + Open folder */}
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <Label>{t("settings.recording.storagePath")}</Label>
+            {storageInfo && (
+              <p className="truncate text-sm text-muted-foreground" title={storageInfo.path}>
+                {storageInfo.path}
+              </p>
+            )}
+          </div>
+          <Button variant="outline" size="sm" className="ml-3 shrink-0" onClick={() => void handleOpenFolder()}>
+            <FolderOpen className="mr-2 h-4 w-4" />
+            {t("settings.recording.openFolder")}
+          </Button>
+        </div>
+
+        <div className="border-t border-border" />
+
+        {/* Delete all */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" disabled={isDeletingRecordings}>

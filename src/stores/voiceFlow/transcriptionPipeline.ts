@@ -422,20 +422,25 @@ export async function handleStopRecording(): Promise<void> {
     peakEnergyLevel = stopResult.peakEnergyLevel;
     rmsEnergyLevel = stopResult.rmsEnergyLevel;
 
-    // Save audio file (non-blocking)
-    try {
-      audioFilePath = await invoke<string>("save_recording_file", {
-        id: transcriptionId,
-      });
-      writeInfoLog(`voiceFlowStore: recording saved: ${audioFilePath}`);
-    } catch (saveErr) {
-      writeErrorLog(
-        `voiceFlowStore: save_recording_file failed (non-blocking): ${extractErrorMessage(saveErr)}`,
-      );
-      captureError(saveErr, {
-        source: "voice-flow",
-        step: "save-recording-file",
-      });
+    // Save audio file (non-blocking) — skip if retention policy is "none"
+    const retentionPolicy = getSettingsStore().recordingRetentionPolicy;
+    if (retentionPolicy !== "none") {
+      try {
+        audioFilePath = await invoke<string>("save_recording_file", {
+          id: transcriptionId,
+        });
+        writeInfoLog(`voiceFlowStore: recording saved: ${audioFilePath}`);
+      } catch (saveErr) {
+        writeErrorLog(
+          `voiceFlowStore: save_recording_file failed (non-blocking): ${extractErrorMessage(saveErr)}`,
+        );
+        captureError(saveErr, {
+          source: "voice-flow",
+          step: "save-recording-file",
+        });
+      }
+    } else {
+      writeInfoLog("voiceFlowStore: skipping recording save (retention=none)");
     }
 
     if (recordingDurationMs < MINIMUM_RECORDING_DURATION_MS) {

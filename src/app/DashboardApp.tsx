@@ -151,8 +151,7 @@ export function DashboardApp() {
 
   // Store subscriptions
   const showPromptUpgradeNotice = useSettingsStore((s) => s.showPromptUpgradeNotice);
-  const isRecordingAutoCleanupEnabled = useSettingsStore((s) => s.isRecordingAutoCleanupEnabled);
-  const recordingAutoCleanupDays = useSettingsStore((s) => s.recordingAutoCleanupDays);
+  const recordingRetentionPolicy = useSettingsStore((s) => s.recordingRetentionPolicy);
 
   // ── Listen for VOCABULARY_CHANGED from HUD window (debounced) ──
   useDebouncedTauriEvent(VOCABULARY_CHANGED, () => {
@@ -315,15 +314,18 @@ export function DashboardApp() {
     };
   }, [autoCheckAndDownload]);
 
-  // ── Recording auto-cleanup (runs when settings change) ──
+  // ── Recording auto-cleanup (runs when retention policy changes) ──
   useEffect(() => {
-    if (!isRecordingAutoCleanupEnabled || recordingAutoCleanupDays <= 0) return;
+    if (recordingRetentionPolicy === "forever" || recordingRetentionPolicy === "none") return;
 
-    invoke("cleanup_old_recordings", { days: recordingAutoCleanupDays }).catch((err) => {
+    const days = Number(recordingRetentionPolicy);
+    if (days <= 0) return;
+
+    invoke("cleanup_old_recordings", { days }).catch((err) => {
       logError("dashboard", "Recording cleanup failed", err);
       captureError(err, { source: "recording-cleanup" });
     });
-  }, [isRecordingAutoCleanupEnabled, recordingAutoCleanupDays]);
+  }, [recordingRetentionPolicy]);
 
   // ── Render ──
 
