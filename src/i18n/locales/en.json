@@ -148,6 +148,26 @@
       "soundFeedbackDescription": "Play sound effects when recording starts, stops, or encounters an error",
       "soundFeedbackEnabled": "Sound feedback enabled",
       "soundFeedbackDisabled": "Sound feedback disabled",
+      "soundPreset": "Sound Theme",
+      "soundPresetDescription": "Choose a built-in sound theme or set custom sounds",
+      "soundPresetUpdated": "Sound theme updated",
+      "soundPresets": {
+        "default": "Default",
+        "gentle": "Gentle",
+        "minimal": "Minimal",
+        "retro": "Retro",
+        "custom": "Custom"
+      },
+      "soundPreview": "Preview",
+      "customSounds": "Custom Sound Files",
+      "soundSlots": {
+        "start": "Recording Start",
+        "stop": "Recording Stop",
+        "error": "Error",
+        "learned": "Word Learned"
+      },
+      "selectFile": "Select File",
+      "customSoundSaved": "Custom sound saved",
       "autoStart": "Launch at Login",
       "autoStartDescription": "Automatically start TypeLate when you log in",
       "autoStartEnabled": "Launch at login enabled",

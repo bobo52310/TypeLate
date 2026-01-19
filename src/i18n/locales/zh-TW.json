@@ -148,6 +148,26 @@
       "soundFeedbackDescription": "錄音開始、結束及錯誤時播放提示音效",
       "soundFeedbackEnabled": "已啟用音效回饋",
       "soundFeedbackDisabled": "已停用音效回饋",
+      "soundPreset": "音效主題",
+      "soundPresetDescription": "選擇內建音效主題或自訂音效",
+      "soundPresetUpdated": "音效主題已更新",
+      "soundPresets": {
+        "default": "預設",
+        "gentle": "柔和",
+        "minimal": "極簡",
+        "retro": "復古",
+        "custom": "自訂"
+      },
+      "soundPreview": "試聽",
+      "customSounds": "自訂音效檔案",
+      "soundSlots": {
+        "start": "開始錄音",
+        "stop": "結束錄音",
+        "error": "錯誤",
+        "learned": "學習新詞"
+      },
+      "selectFile": "選擇檔案",
+      "customSoundSaved": "自訂音效已儲存",
       "autoStart": "開機自動啟動",
       "autoStartDescription": "登入系統後自動啟動 TypeLate",
       "autoStartEnabled": "已啟用開機自啟動",
