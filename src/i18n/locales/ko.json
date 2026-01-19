@@ -148,6 +148,26 @@
       "soundFeedbackDescription": "녹음 시작, 종료 및 오류 시 효과음을 재생합니다",
       "soundFeedbackEnabled": "사운드 피드백이 활성화되었습니다",
       "soundFeedbackDisabled": "사운드 피드백이 비활성화되었습니다",
+      "soundPreset": "사운드 테마",
+      "soundPresetDescription": "내장 사운드 테마를 선택하거나 사용자 정의 사운드를 설정",
+      "soundPresetUpdated": "사운드 테마가 업데이트되었습니다",
+      "soundPresets": {
+        "default": "기본",
+        "gentle": "부드러운",
+        "minimal": "미니멀",
+        "retro": "레트로",
+        "custom": "사용자 정의"
+      },
+      "soundPreview": "미리 듣기",
+      "customSounds": "사용자 정의 사운드 파일",
+      "soundSlots": {
+        "start": "녹음 시작",
+        "stop": "녹음 중지",
+        "error": "오류",
+        "learned": "단어 학습"
+      },
+      "selectFile": "파일 선택",
+      "customSoundSaved": "사용자 정의 사운드가 저장되었습니다",
       "autoStart": "부팅 시 자동 시작",
       "autoStartDescription": "시스템 로그인 후 TypeLate을 자동으로 시작합니다",
       "autoStartEnabled": "부팅 시 자동 시작이 활성화되었습니다",

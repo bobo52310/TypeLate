@@ -148,6 +148,26 @@
       "soundFeedbackDescription": "录音开始、结束及错误时播放提示音效",
       "soundFeedbackEnabled": "已启用音效反馈",
       "soundFeedbackDisabled": "已停用音效反馈",
+      "soundPreset": "音效主题",
+      "soundPresetDescription": "选择内置音效主题或自定义音效",
+      "soundPresetUpdated": "音效主题已更新",
+      "soundPresets": {
+        "default": "默认",
+        "gentle": "柔和",
+        "minimal": "极简",
+        "retro": "复古",
+        "custom": "自定义"
+      },
+      "soundPreview": "试听",
+      "customSounds": "自定义音效文件",
+      "soundSlots": {
+        "start": "开始录音",
+        "stop": "结束录音",
+        "error": "错误",
+        "learned": "学习新词"
+      },
+      "selectFile": "选择文件",
+      "customSoundSaved": "自定义音效已保存",
       "autoStart": "开机自动启动",
       "autoStartDescription": "登录系统后自动启动 TypeLate",
       "autoStartEnabled": "已启用开机自启动",

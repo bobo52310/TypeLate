@@ -148,6 +148,26 @@
       "soundFeedbackDescription": "録音の開始・終了・エラー時に効果音を再生します",
       "soundFeedbackEnabled": "効果音フィードバックを有効にしました",
       "soundFeedbackDisabled": "効果音フィードバックを無効にしました",
+      "soundPreset": "サウンドテーマ",
+      "soundPresetDescription": "内蔵サウンドテーマを選択するか、カスタムサウンドを設定",
+      "soundPresetUpdated": "サウンドテーマが更新されました",
+      "soundPresets": {
+        "default": "デフォルト",
+        "gentle": "やさしい",
+        "minimal": "ミニマル",
+        "retro": "レトロ",
+        "custom": "カスタム"
+      },
+      "soundPreview": "試聴",
+      "customSounds": "カスタムサウンドファイル",
+      "soundSlots": {
+        "start": "録音開始",
+        "stop": "録音停止",
+        "error": "エラー",
+        "learned": "単語学習"
+      },
+      "selectFile": "ファイルを選択",
+      "customSoundSaved": "カスタムサウンドを保存しました",
       "autoStart": "ログイン時に自動起動",
       "autoStartDescription": "システムログイン後に TypeLate を自動的に起動します",
       "autoStartEnabled": "自動起動を有効にしました",
