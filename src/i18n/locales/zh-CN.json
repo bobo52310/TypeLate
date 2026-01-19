@@ -222,7 +222,8 @@
       "general": "通用",
       "voice": "语音与音频",
       "ai": "AI 与文字整理",
-      "about": "关于"
+      "about": "关于",
+      "dictionary": "字典"
     },
     "smartDictionary": {
       "title": "智能字典学习",
@@ -316,7 +317,29 @@
     "description": "字典词汇会在语音识别时提供给 AI，提升专有名词与术语的识别准确度。",
     "weightDescription": "每次语音识别时，系统会将权重最高的前 {limit} 个词汇加入 AI 识别提示。当 AI 检测到你重复修正同一个词时，该词的权重会自动提升。",
     "noAiSuggestions": "暂无 AI 推荐词汇，启用智能字典学习后系统会自动学习",
-    "aiTermCount": "{count} 个词"
+    "aiTermCount": "{count} 个词",
+    "bulkAdd": "批量添加",
+    "singleAdd": "单条添加",
+    "bulkAddPlaceholder": "一行一个词汇...",
+    "bulkAddButton": "全部添加",
+    "bulkAddSuccess": "已添加 {added} 个词汇，{skipped} 个重复已跳过",
+    "bulkAddEmpty": "没有可添加的词汇",
+    "googleDrive": {
+      "title": "Google Drive 同步",
+      "description": "通过 Google Drive 在不同设备间同步你的词汇",
+      "clientIdLabel": "Google OAuth Client ID",
+      "clientIdHint": "前往创建",
+      "connect": "连接 Google Drive",
+      "disconnect": "断开连接",
+      "syncNow": "立即同步",
+      "syncing": "同步中...",
+      "lastSync": "上次同步：{time}",
+      "connectedAs": "已连接为 {email}",
+      "syncSuccess": "已同步：新增 {added} 个，更新 {updated} 个",
+      "disconnectConfirm": "确定要断开与 Google Drive 的连接吗？",
+      "offline": "没有网络连接",
+      "authExpired": "授权已过期，请重新连接 Google Drive。"
+    }
   },
   "accessibility": {
     "title": "需要辅助使用权限",

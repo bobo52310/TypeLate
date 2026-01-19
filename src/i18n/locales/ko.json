@@ -222,7 +222,8 @@
       "general": "일반",
       "voice": "음성 및 오디오",
       "ai": "AI 및 텍스트 정리",
-      "about": "앱 정보"
+      "about": "앱 정보",
+      "dictionary": "사전"
     },
     "smartDictionary": {
       "title": "스마트 사전 학습",
@@ -316,7 +317,29 @@
     "description": "사전 용어는 음성 인식 시 AI에 제공되어 고유명사와 기술 용어의 인식 정확도를 높입니다.",
     "weightDescription": "음성 인식 시 가중치가 가장 높은 상위 {limit}개 용어가 AI 인식 프롬프트에 포함됩니다. 동일한 수정이 반복 감지되면 해당 용어의 가중치가 자동으로 증가합니다.",
     "noAiSuggestions": "아직 AI 추천 용어가 없습니다. 스마트 사전 학습을 활성화하면 자동으로 학습됩니다",
-    "aiTermCount": "{count}개 용어"
+    "aiTermCount": "{count}개 용어",
+    "bulkAdd": "일괄 추가",
+    "singleAdd": "단일 추가",
+    "bulkAddPlaceholder": "한 줄에 하나의 용어...",
+    "bulkAddButton": "모두 추가",
+    "bulkAddSuccess": "{added}개 추가, {skipped}개 중복 건너뜀",
+    "bulkAddEmpty": "추가할 용어가 없습니다",
+    "googleDrive": {
+      "title": "Google Drive 동기화",
+      "description": "Google Drive를 통해 기기 간 용어를 동기화합니다",
+      "clientIdLabel": "Google OAuth Client ID",
+      "clientIdHint": "여기서 생성하세요",
+      "connect": "Google Drive 연결",
+      "disconnect": "연결 해제",
+      "syncNow": "지금 동기화",
+      "syncing": "동기화 중...",
+      "lastSync": "마지막 동기화: {time}",
+      "connectedAs": "{email}로 연결됨",
+      "syncSuccess": "동기화 완료: {added}개 추가, {updated}개 업데이트",
+      "disconnectConfirm": "Google Drive 연결을 해제하시겠습니까?",
+      "offline": "인터넷 연결이 없습니다",
+      "authExpired": "인증이 만료되었습니다. Google Drive에 다시 연결해주세요."
+    }
   },
   "accessibility": {
     "title": "손쉬운 사용 권한 필요",
