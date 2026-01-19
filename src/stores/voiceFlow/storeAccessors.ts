@@ -17,6 +17,7 @@ export interface SettingsStoreAccessor {
   selectedVocabularyAnalysisModelId: string;
   isMuteOnRecordingEnabled: boolean;
   isSoundEffectsEnabled: boolean;
+  getSoundForSlot: (slot: "start" | "stop" | "error" | "learned") => string;
   isSmartDictionaryEnabled: boolean;
   isEnhancementThresholdEnabled: boolean;
   enhancementThresholdCharCount: number;

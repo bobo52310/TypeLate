@@ -19,6 +19,17 @@ mod macos {
         fn AudioServicesPlaySystemSound(in_system_sound_id: SystemSoundID);
     }
 
+    pub fn play_sound_by_name(name: &str) {
+        let path = if name.starts_with('/') {
+            // Absolute path (custom sound file)
+            name.to_string()
+        } else {
+            // System sound name → /System/Library/Sounds/{name}.aiff
+            format!("/System/Library/Sounds/{}.aiff", name)
+        };
+        play_system_sound(&path);
+    }
+
     fn play_system_sound(path: &str) {
         let url = match CFURL::from_path(std::path::Path::new(path), false) {
             Some(url) => url,
@@ -75,6 +86,31 @@ mod windows_sound {
 
     static START_SOUND: &[u8] = include_bytes!("../../resources/sounds/start.wav");
     static STOP_SOUND: &[u8] = include_bytes!("../../resources/sounds/stop.wav");
+
+    pub fn play_sound_by_name(name: &str) {
+        // Custom file path: load from filesystem
+        if name.contains('/') || name.contains('\\') {
+            use windows::Win32::Media::Audio::SND_FILENAME;
+            let path_cstr = std::ffi::CString::new(name).unwrap_or_default();
+            let ok = unsafe {
+                PlaySoundA(PCSTR(path_cstr.as_ptr() as *const u8), None, SND_FILENAME | SND_ASYNC)
+            };
+            if !ok.as_bool() {
+                eprintln!("[sound-feedback] PlaySoundA(file:{}) failed", name);
+            }
+            return;
+        }
+        // Built-in names: map to embedded WAV buffers
+        let buffer = match name {
+            "start" | "Funk" => START_SOUND,
+            "stop" | "Bottle" => STOP_SOUND,
+            _ => START_SOUND, // fallback
+        };
+        let ok = unsafe { PlaySoundA(PCSTR(buffer.as_ptr()), None, SND_MEMORY | SND_ASYNC) };
+        if !ok.as_bool() {
+            eprintln!("[sound-feedback] PlaySoundA(name:{}) failed", name);
+        }
+    }
 
     pub fn play_start_sound() {
         let ok =
@@ -185,6 +221,22 @@ pub fn play_error_sound() {
 #[command]
 pub fn play_learned_sound() {
     platform_play_learned_sound();
+}
+
+#[command]
+pub fn play_sound(sound_name: String) {
+    #[cfg(target_os = "macos")]
+    {
+        macos::play_sound_by_name(&sound_name);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        windows_sound::play_sound_by_name(&sound_name);
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        println!("[sound-feedback] play_sound({}): unsupported platform", sound_name);
+    }
 }
 
 // ========== Tests ==========

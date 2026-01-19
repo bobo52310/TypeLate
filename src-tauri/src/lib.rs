@@ -409,6 +409,7 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(plugins::hotkey_listener::init())
         .invoke_handler(tauri::generate_handler![
             debug_log,
@@ -438,7 +439,8 @@ pub fn run() {
             plugins::sound_feedback::play_start_sound,
             plugins::sound_feedback::play_stop_sound,
             plugins::sound_feedback::play_error_sound,
-            plugins::sound_feedback::play_learned_sound
+            plugins::sound_feedback::play_learned_sound,
+            plugins::sound_feedback::play_sound
         ])
         .setup(|app| {
             // 初始化 keyboard monitor 狀態
