@@ -1,4 +1,4 @@
-import { lazy, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -39,6 +39,7 @@ import { captureError, initSentryForDashboard } from "@/lib/sentry";
 import { IS_MAC } from "@/lib/platform";
 import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
 import { AccessibilityGuide } from "@/components/AccessibilityGuide";
+import { useHistoryStore } from "@/stores/historyStore";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
 import { getRandomSlogan } from "@/lib/slogans";
 
@@ -124,6 +125,14 @@ export function DashboardApp() {
 
   // Accessibility guide (placeholder)
   const [showAccessibilityGuide, setShowAccessibilityGuide] = useState(false);
+
+  // Today's usage count for sidebar
+  const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
+  const todayCount = useMemo(() => {
+    if (dailyUsageTrendList.length === 0) return 0;
+    const today = new Date().toISOString().slice(0, 10);
+    return dailyUsageTrendList.find((d) => d.date === today)?.count ?? 0;
+  }, [dailyUsageTrendList]);
 
   // Update state
   const [updateState, setUpdateState] = useState<UpdateUiState>("idle");
@@ -399,12 +408,19 @@ export function DashboardApp() {
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <button
-                  onClick={handleVersionClick}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors select-none"
-                >
-                  v{APP_VERSION}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleVersionClick}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors select-none"
+                  >
+                    v{APP_VERSION}
+                  </button>
+                  {todayCount > 0 && (
+                    <span className="text-[10px] text-muted-foreground/70">
+                      {t("home.statsBar.todayCount")} {todayCount}
+                    </span>
+                  )}
+                </div>
                 {updateState === "ready-to-install" && (
                   <Button
                     size="sm"
