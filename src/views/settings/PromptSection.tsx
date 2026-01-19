@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { isKnownDefaultPrompt } from "@/i18n/prompts";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 
 type PromptMode = "minimal" | "active" | "custom";
@@ -23,14 +24,24 @@ export default function PromptSection() {
 
   const [selectedPromptMode, setSelectedPromptMode] = useState<PromptMode>("minimal");
   const [promptInput, setPromptInput] = useState("");
+  const [lastSavedPrompt, setLastSavedPrompt] = useState("");
   const [isPresetDirty, setIsPresetDirty] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const resetConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    setSelectedPromptMode(promptMode as PromptMode);
-    setPromptInput(getAiPrompt());
+    const mode = promptMode as PromptMode;
+    setSelectedPromptMode(mode);
+    const currentPrompt = getAiPrompt();
+    if (mode === "custom" && isKnownDefaultPrompt(currentPrompt)) {
+      // Custom mode but no real custom prompt saved yet → show empty
+      setPromptInput("");
+      setLastSavedPrompt("");
+    } else {
+      setPromptInput(currentPrompt);
+      setLastSavedPrompt(currentPrompt);
+    }
     setIsPresetDirty(false);
   }, [promptMode, getAiPrompt]);
 
@@ -44,7 +55,15 @@ export default function PromptSection() {
     setSelectedPromptMode(newMode);
     try {
       await savePromptMode(newMode);
-      setPromptInput(getAiPrompt());
+      if (newMode === "custom") {
+        // Switching to custom: start with empty textarea
+        setPromptInput("");
+        setLastSavedPrompt("");
+      } else {
+        const currentPrompt = getAiPrompt();
+        setPromptInput(currentPrompt);
+        setLastSavedPrompt(currentPrompt);
+      }
       setIsPresetDirty(false);
     } catch (err) {
       setSelectedPromptMode(previousMode);
@@ -70,6 +89,7 @@ export default function PromptSection() {
         setIsPresetDirty(false);
       }
       await saveAiPrompt(promptInput);
+      setLastSavedPrompt(promptInput);
       feedback.show("success", t("settings.prompt.saved"));
     } catch (err) {
       if (wasModeSwitch) {
@@ -104,7 +124,9 @@ export default function PromptSection() {
       setIsSubmitting(true);
       await resetAiPrompt();
       setSelectedPromptMode("minimal");
-      setPromptInput(getAiPrompt());
+      const currentPrompt = getAiPrompt();
+      setPromptInput(currentPrompt);
+      setLastSavedPrompt(currentPrompt);
       setIsPresetDirty(false);
       feedback.show("success", t("settings.prompt.resetDone"));
     } catch (err) {
@@ -113,6 +135,15 @@ export default function PromptSection() {
       setIsSubmitting(false);
     }
   }
+
+  // Save is disabled when there's nothing new to save:
+  // - Preset mode: text hasn't been edited
+  // - Custom mode: non-empty text that differs from last save
+  const hasUnsavedChanges =
+    selectedPromptMode === "custom"
+      ? promptInput.trim() !== "" && promptInput.trim() !== lastSavedPrompt.trim()
+      : isPresetDirty;
+  const isSaveDisabled = isSubmitting || !hasUnsavedChanges;
 
   const modes: { value: PromptMode; labelKey: string; descKey: string }[] = [
     {
@@ -176,12 +207,13 @@ export default function PromptSection() {
         <Textarea
           value={promptInput}
           onChange={(e) => handlePromptInput(e.target.value)}
+          placeholder={selectedPromptMode === "custom" ? t("settings.prompt.customPlaceholder") : undefined}
           className="min-h-[120px] font-mono"
         />
 
         <div className="flex justify-end gap-2">
           <Button
-            disabled={isSubmitting || (selectedPromptMode !== "custom" && !isPresetDirty)}
+            disabled={isSaveDisabled}
             onClick={() => void handleSavePrompt()}
           >
             {t("common.save")}
