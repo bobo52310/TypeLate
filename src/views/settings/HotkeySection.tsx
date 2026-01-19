@@ -26,7 +26,7 @@ type PresetTriggerKey =
   | "rightAlt"
   | "leftAlt";
 
-type TriggerMode = "hold" | "toggle";
+type TriggerMode = "hold" | "toggle" | "doubleTap";
 
 const RECORDING_TIMEOUT_MS = 10_000;
 
@@ -380,13 +380,27 @@ export default function HotkeySection() {
             >
               Toggle
             </button>
+            <button
+              type="button"
+              className={cn(
+                "px-4 py-2 text-sm font-medium transition-colors",
+                triggerMode === "doubleTap"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent",
+              )}
+              onClick={() => void handleTriggerModeChange("doubleTap")}
+            >
+              {t("settings.hotkey.doubleTap")}
+            </button>
           </div>
         </div>
 
         <p className="text-sm leading-relaxed text-muted-foreground">
           {triggerMode === "hold"
             ? t("settings.hotkey.holdDescription")
-            : t("settings.hotkey.toggleDescription")}
+            : triggerMode === "toggle"
+              ? t("settings.hotkey.toggleDescription")
+              : t("settings.hotkey.doubleTapDescription")}
         </p>
 
         {feedback.message && (

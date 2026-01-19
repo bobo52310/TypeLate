@@ -229,13 +229,17 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
   }
 }
 
-export function playSoundIfEnabled(command: string): void {
+export function playSoundIfEnabled(slot: "start" | "stop" | "error" | "learned"): void {
   try {
-    if (getSettingsStoreFromAccessors().isSoundEffectsEnabled) {
-      void invoke(command).catch((err) => {
-        writeErrorLog(`Sound playback failed for ${command}: ${String(err)}`);
-      });
-    }
+    const settings = getSettingsStoreFromAccessors();
+    if (!settings.isSoundEffectsEnabled) return;
+
+    const soundName = settings.getSoundForSlot(slot);
+    if (!soundName) return;
+
+    void invoke("play_sound", { soundName }).catch((err) => {
+      writeErrorLog(`Sound playback failed for ${slot}: ${String(err)}`);
+    });
   } catch {
     // Settings store not yet registered -- skip sound
   }
@@ -246,7 +250,7 @@ export function failRecordingFlow(errorMessage: string, logMessage: string, erro
   void restoreSystemAudio();
   useVoiceFlowStore.setState({ isRecording: false });
   transitionTo("error", errorMessage);
-  playSoundIfEnabled("play_error_sound");
+  playSoundIfEnabled("error");
   writeErrorLog(logMessage);
   if (error) {
     captureError(error, { userMessage: errorMessage, source: "voice-flow" });
@@ -393,7 +397,7 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
           })();
         }
         transitionTo("error", hudMessage);
-        playSoundIfEnabled("play_error_sound");
+        playSoundIfEnabled("error");
         writeErrorLog(`voiceFlowStore: hotkey error: ${event.payload.message}`);
       }),
     ]);

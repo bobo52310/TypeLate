@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tauri::{
@@ -33,6 +34,7 @@ pub enum TriggerKey {
 pub enum TriggerMode {
     Hold,
     Toggle,
+    DoubleTap,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -48,11 +50,16 @@ struct HotkeyEventPayload {
     action: HotkeyAction,
 }
 
+const DOUBLE_TAP_WINDOW: Duration = Duration::from_millis(400);
+
 pub struct HotkeyListenerState {
     trigger_key: Arc<Mutex<TriggerKey>>,
     trigger_mode: Arc<Mutex<TriggerMode>>,
     is_pressed: Arc<AtomicBool>,
     is_toggled_on: Arc<AtomicBool>,
+    // DoubleTap mode state
+    last_tap_time: Arc<Mutex<Option<Instant>>>,
+    double_tap_recording: Arc<AtomicBool>,
     #[cfg(target_os = "macos")]
     run_loop_ref: Arc<Mutex<Option<core_foundation::runloop::CFRunLoop>>>,
 }
@@ -64,6 +71,8 @@ impl Clone for HotkeyListenerState {
             trigger_mode: self.trigger_mode.clone(),
             is_pressed: self.is_pressed.clone(),
             is_toggled_on: self.is_toggled_on.clone(),
+            last_tap_time: self.last_tap_time.clone(),
+            double_tap_recording: self.double_tap_recording.clone(),
             #[cfg(target_os = "macos")]
             run_loop_ref: self.run_loop_ref.clone(),
         }
@@ -74,6 +83,8 @@ impl HotkeyListenerState {
     pub fn reset_key_states(&self) {
         self.is_pressed.store(false, Ordering::SeqCst);
         self.is_toggled_on.store(false, Ordering::SeqCst);
+        *self.last_tap_time.lock().unwrap() = None;
+        self.double_tap_recording.store(false, Ordering::SeqCst);
     }
 
     pub fn update_config(&self, key: TriggerKey, mode: TriggerMode) {
@@ -139,6 +150,51 @@ fn handle_key_event<R: Runtime>(
                         action,
                     },
                 );
+            } else if !pressed {
+                state.is_pressed.store(false, Ordering::SeqCst);
+            }
+        }
+        TriggerMode::DoubleTap => {
+            if pressed && !state.is_pressed.swap(true, Ordering::SeqCst) {
+                let is_recording = state.double_tap_recording.load(Ordering::SeqCst);
+                if is_recording {
+                    // Single tap while recording → stop
+                    state.double_tap_recording.store(false, Ordering::SeqCst);
+                    *state.last_tap_time.lock().unwrap() = None;
+                    println!("[hotkey-listener] DoubleTap: tap during recording → stop");
+                    let _ = app_handle.emit(
+                        "hotkey:toggled",
+                        HotkeyEventPayload {
+                            mode: TriggerMode::DoubleTap,
+                            action: HotkeyAction::Stop,
+                        },
+                    );
+                } else {
+                    // Not recording: check if this is second tap within window
+                    let mut last_tap = state.last_tap_time.lock().unwrap();
+                    let now = Instant::now();
+                    let is_double_tap = last_tap
+                        .map(|t| now.duration_since(t) < DOUBLE_TAP_WINDOW)
+                        .unwrap_or(false);
+
+                    if is_double_tap {
+                        // Double tap detected → start recording
+                        state.double_tap_recording.store(true, Ordering::SeqCst);
+                        *last_tap = None;
+                        println!("[hotkey-listener] DoubleTap: double-tap detected → start");
+                        let _ = app_handle.emit(
+                            "hotkey:toggled",
+                            HotkeyEventPayload {
+                                mode: TriggerMode::DoubleTap,
+                                action: HotkeyAction::Start,
+                            },
+                        );
+                    } else {
+                        // First tap: record time, wait for second
+                        *last_tap = Some(now);
+                        println!("[hotkey-listener] DoubleTap: first tap registered, waiting for second...");
+                    }
+                }
             } else if !pressed {
                 state.is_pressed.store(false, Ordering::SeqCst);
             }
@@ -603,6 +659,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 trigger_mode: Arc::new(Mutex::new(TriggerMode::Hold)),
                 is_pressed: Arc::new(AtomicBool::new(false)),
                 is_toggled_on: Arc::new(AtomicBool::new(false)),
+                last_tap_time: Arc::new(Mutex::new(None)),
+                double_tap_recording: Arc::new(AtomicBool::new(false)),
                 #[cfg(target_os = "macos")]
                 run_loop_ref: Arc::new(Mutex::new(None)),
             };
@@ -724,11 +782,24 @@ mod tests {
             trigger_mode: Arc::new(Mutex::new(TriggerMode::Hold)),
             is_pressed: Arc::new(AtomicBool::new(true)),
             is_toggled_on: Arc::new(AtomicBool::new(true)),
+            last_tap_time: Arc::new(Mutex::new(Some(Instant::now()))),
+            double_tap_recording: Arc::new(AtomicBool::new(true)),
             #[cfg(target_os = "macos")]
             run_loop_ref: Arc::new(Mutex::new(None)),
         };
         state.reset_key_states();
         assert!(!state.is_pressed.load(Ordering::SeqCst));
         assert!(!state.is_toggled_on.load(Ordering::SeqCst));
+        assert!(state.last_tap_time.lock().unwrap().is_none());
+        assert!(!state.double_tap_recording.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn test_double_tap_trigger_mode_serde() {
+        let mode = TriggerMode::DoubleTap;
+        let serialized = serde_json::to_value(&mode).unwrap();
+        assert_eq!(serialized, json!("doubleTap"));
+        let deserialized: TriggerMode = serde_json::from_value(json!("doubleTap")).unwrap();
+        assert_eq!(deserialized, TriggerMode::DoubleTap);
     }
 }
