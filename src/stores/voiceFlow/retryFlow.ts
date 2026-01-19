@@ -39,7 +39,7 @@ interface VoiceFlowActions {
   };
   setState: (partial: Record<string, unknown>) => void;
   transitionTo: (status: HudStatus, message?: string) => void;
-  playSoundIfEnabled: (command: string) => void;
+  playSoundIfEnabled: (slot: "start" | "stop" | "error" | "learned") => void;
 }
 
 let _actions: VoiceFlowActions | null = null;
@@ -146,7 +146,7 @@ async function completePasteFlowForRetry(params: {
   } catch (pasteError) {
     setState({ isRecording: false });
     transitionTo("error", t("voiceFlow.pasteFailed"));
-    playSoundIfEnabled("play_error_sound");
+    playSoundIfEnabled("error");
     writeErrorLog(`voiceFlowStore: paste_text failed: ${extractErrorMessage(pasteError)}`);
     captureError(pasteError, { source: "voice-flow", step: "paste" });
   }
@@ -185,7 +185,7 @@ export async function handleRetryTranscription(): Promise<void> {
 
     if (!apiKey) {
       transitionTo("error", t("errors.apiKeyMissing"));
-      playSoundIfEnabled("play_error_sound");
+      playSoundIfEnabled("error");
       setState({
         _lastFailedAudioFilePath: null,
         _isRetryAttempt: false,
@@ -210,7 +210,7 @@ export async function handleRetryTranscription(): Promise<void> {
 
     if (isEmptyTranscription(result.rawText)) {
       transitionTo("error", t("voiceFlow.retryFailed"));
-      playSoundIfEnabled("play_error_sound");
+      playSoundIfEnabled("error");
       setState({
         _lastFailedAudioFilePath: null,
         _isRetryAttempt: false,
@@ -233,7 +233,7 @@ export async function handleRetryTranscription(): Promise<void> {
         `voiceFlowStore: retry hallucination detected (reason=${String(retryHallucinationResult.reason)})`,
       );
       transitionTo("error", t("voiceFlow.retryFailed"));
-      playSoundIfEnabled("play_error_sound");
+      playSoundIfEnabled("error");
       setState({
         _lastFailedAudioFilePath: null,
         _isRetryAttempt: false,
@@ -404,7 +404,7 @@ export async function handleRetryTranscription(): Promise<void> {
   } catch (error) {
     if (getState()._isAborted) return;
     transitionTo("error", t("voiceFlow.retryFailed"));
-    playSoundIfEnabled("play_error_sound");
+    playSoundIfEnabled("error");
     setState({
       _lastFailedAudioFilePath: null,
       _isRetryAttempt: false,

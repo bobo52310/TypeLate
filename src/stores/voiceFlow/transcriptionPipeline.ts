@@ -66,7 +66,7 @@ interface VoiceFlowActions {
   };
   setState: (partial: Record<string, unknown>) => void;
   transitionTo: (status: HudStatus, message?: string) => void;
-  playSoundIfEnabled: (command: string) => void;
+  playSoundIfEnabled: (slot: "start" | "stop" | "error" | "learned") => void;
   failRecordingFlow: (errorMessage: string, logMessage: string, error?: unknown) => void;
 }
 
@@ -370,7 +370,7 @@ export async function handleStartRecording(): Promise<void> {
   abortController = new AbortController();
 
   try {
-    playSoundIfEnabled("play_start_sound");
+    playSoundIfEnabled("start");
     setDelayedMuteTimer(() => {
       void muteSystemAudioIfEnabled();
     }, START_SOUND_DURATION_MS);
@@ -406,7 +406,7 @@ export async function handleStopRecording(): Promise<void> {
   clearDelayedMuteTimer();
   clearRecordingTimeoutTimer();
   await restoreSystemAudio();
-  playSoundIfEnabled("play_stop_sound");
+  playSoundIfEnabled("stop");
   stopElapsedTimer();
 
   const transcriptionId = crypto.randomUUID();
