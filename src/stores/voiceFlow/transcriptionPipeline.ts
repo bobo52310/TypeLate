@@ -99,6 +99,14 @@ function isEmptyTranscription(rawText: string): boolean {
   return !rawText || !rawText.trim();
 }
 
+function getSuccessMessage(enhanced: boolean): string {
+  const isCopyOnly = getSettingsStore().pasteMode === "copy-only";
+  if (isCopyOnly) {
+    return enhanced ? t("voiceFlow.copiedToClipboard") : t("voiceFlow.copiedToClipboardUnenhanced");
+  }
+  return enhanced ? t("voiceFlow.pasteSuccess") : t("voiceFlow.pasteSuccessUnenhanced");
+}
+
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -289,7 +297,13 @@ async function completePasteFlow(params: {
 }): Promise<void> {
   const { transitionTo, failRecordingFlow } = actions();
   try {
-    await invoke("paste_text", { text: params.text });
+    // Paste mode: auto-paste (default) or copy-only (preserves clipboard)
+    const pasteMode = getSettingsStore().pasteMode;
+    if (pasteMode === "copy-only") {
+      await invoke("copy_to_clipboard", { text: params.text });
+    } else {
+      await invoke("paste_text", { text: params.text });
+    }
     actions().setState({ isRecording: false });
 
     // Show text preview in success message (truncate to ~30 chars)
@@ -654,7 +668,7 @@ export async function handleStopRecording(): Promise<void> {
 
         await completePasteFlow({
           text: enhanceResult.text,
-          successMessage: t("voiceFlow.pasteSuccess"),
+          successMessage: getSuccessMessage(true),
           record,
           chatUsage: enhanceResult.usage,
         });
@@ -686,7 +700,7 @@ export async function handleStopRecording(): Promise<void> {
 
         await completePasteFlow({
           text: result.rawText,
-          successMessage: t("voiceFlow.pasteSuccessUnenhanced"),
+          successMessage: getSuccessMessage(false),
           record: fallbackRecord,
           chatUsage: null,
         });
@@ -707,7 +721,7 @@ export async function handleStopRecording(): Promise<void> {
 
       await completePasteFlow({
         text: result.rawText,
-        successMessage: t("voiceFlow.pasteSuccess"),
+        successMessage: getSuccessMessage(false),
         record,
         chatUsage: null,
       });

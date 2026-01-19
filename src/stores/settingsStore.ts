@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { load } from "@tauri-apps/plugin-store";
 import type { TriggerMode } from "@/types";
+import { findPresetById, CUSTOM_PRESET_ID } from "@/lib/soundPresets";
 import {
   type HotkeyConfig,
   type TriggerKey,
@@ -104,9 +105,12 @@ interface SettingsState {
   selectedLocale: SupportedLocale;
   selectedTranscriptionLocale: TranscriptionLocale;
   isSoundEffectsEnabled: boolean;
+  soundPresetId: string;
+  customSoundPaths: Record<string, string> | null;
   isRecordingAutoCleanupEnabled: boolean;
   recordingAutoCleanupDays: number;
   selectedAudioInputDeviceName: string;
+  pasteMode: "auto-paste" | "copy-only";
 
   // -- Derived getters --
   triggerMode: () => TriggerMode;
@@ -147,9 +151,13 @@ interface SettingsState {
   saveWhisperModel: (id: WhisperModelId) => Promise<void>;
   saveMuteOnRecording: (enabled: boolean) => Promise<void>;
   saveSoundEffectsEnabled: (enabled: boolean) => Promise<void>;
+  saveSoundPreset: (presetId: string) => Promise<void>;
+  saveCustomSoundPath: (slot: string, filePath: string) => Promise<void>;
+  getSoundForSlot: (slot: "start" | "stop" | "error" | "learned") => string;
   saveSmartDictionaryEnabled: (enabled: boolean) => Promise<void>;
   saveRecordingAutoCleanup: (enabled: boolean, days: number) => Promise<void>;
   saveAudioInputDevice: (deviceName: string) => Promise<void>;
+  savePasteMode: (mode: "auto-paste" | "copy-only") => Promise<void>;
   saveLocale: (locale: SupportedLocale) => Promise<void>;
   saveTranscriptionLocale: (locale: TranscriptionLocale) => Promise<void>;
   refreshCrossWindowSettings: () => Promise<void>;
@@ -193,9 +201,12 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   selectedLocale: FALLBACK_LOCALE,
   selectedTranscriptionLocale: FALLBACK_LOCALE,
   isSoundEffectsEnabled: DEFAULT_SOUND_EFFECTS_ENABLED,
+  soundPresetId: "default",
+  customSoundPaths: null,
   isRecordingAutoCleanupEnabled: DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED,
   recordingAutoCleanupDays: DEFAULT_RECORDING_AUTO_CLEANUP_DAYS,
   selectedAudioInputDeviceName: "",
+  pasteMode: "auto-paste" as const,
 
   // -- Derived getters --
   triggerMode: () => get().hotkeyConfig?.triggerMode ?? "hold",
@@ -350,10 +361,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       // Boolean settings
       const savedMuteOnRecording = await store.get<boolean>("muteOnRecording");
       const savedSoundEffects = await store.get<boolean>("soundEffectsEnabled");
+      const savedSoundPresetId = await store.get<string>("soundPresetId");
+      const savedCustomSoundPaths = await store.get<Record<string, string>>("customSoundPaths");
       const savedSmartDictionary = await store.get<boolean>("smartDictionaryEnabled");
       const savedRecordingAutoCleanup = await store.get<boolean>("recordingAutoCleanupEnabled");
       const savedRecordingAutoCleanupDays = await store.get<number>("recordingAutoCleanupDays");
       const savedAudioInputDeviceName = await store.get<string>("audioInputDeviceName");
+      const savedPasteMode = await store.get<string>("pasteMode");
 
       set({
         hotkeyConfig: { triggerKey: key, triggerMode: mode },
@@ -373,12 +387,17 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         selectedWhisperModelId: resolvedWhisperModelId,
         isMuteOnRecordingEnabled: savedMuteOnRecording ?? DEFAULT_MUTE_ON_RECORDING,
         isSoundEffectsEnabled: savedSoundEffects ?? DEFAULT_SOUND_EFFECTS_ENABLED,
+        soundPresetId: savedSoundPresetId ?? "default",
+        customSoundPaths: savedCustomSoundPaths ?? null,
         isSmartDictionaryEnabled: savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
         isRecordingAutoCleanupEnabled:
           savedRecordingAutoCleanup ?? DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED,
         recordingAutoCleanupDays:
           savedRecordingAutoCleanupDays ?? DEFAULT_RECORDING_AUTO_CLEANUP_DAYS,
         selectedAudioInputDeviceName: savedAudioInputDeviceName ?? "",
+        pasteMode: (savedPasteMode === "copy-only" ? "copy-only" : "auto-paste") as
+          | "auto-paste"
+          | "copy-only",
       });
 
       // Sync saved config to Rust on startup
@@ -843,6 +862,50 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
+  saveSoundPreset: async (presetId: string) => {
+    try {
+      const store = await load(STORE_NAME);
+      await store.set("soundPresetId", presetId);
+      await store.save();
+      set({ soundPresetId: presetId });
+      const payload: SettingsUpdatedPayload = {
+        key: "soundPresetId" as SettingsUpdatedPayload["key"],
+        value: presetId,
+      };
+      await emitEvent(SETTINGS_UPDATED, payload);
+      logInfo("settings", `Sound preset saved: ${presetId}`);
+    } catch (err) {
+      logError("settings", "saveSoundPreset failed:", extractErrorMessage(err));
+      captureError(err, { source: "settings", step: "save-sound-preset" });
+      throw err;
+    }
+  },
+
+  saveCustomSoundPath: async (slot: string, filePath: string) => {
+    try {
+      const store = await load(STORE_NAME);
+      const current = get().customSoundPaths ?? {};
+      const updated = { ...current, [slot]: filePath };
+      await store.set("customSoundPaths", updated);
+      await store.save();
+      set({ customSoundPaths: updated });
+      logInfo("settings", `Custom sound path saved: ${slot}=${filePath}`);
+    } catch (err) {
+      logError("settings", "saveCustomSoundPath failed:", extractErrorMessage(err));
+      captureError(err, { source: "settings", step: "save-custom-sound-path" });
+      throw err;
+    }
+  },
+
+  getSoundForSlot: (slot: "start" | "stop" | "error" | "learned") => {
+    const { soundPresetId, customSoundPaths } = get();
+    if (soundPresetId === CUSTOM_PRESET_ID && customSoundPaths?.[slot]) {
+      return customSoundPaths[slot] ?? "";
+    }
+    const preset = findPresetById(soundPresetId);
+    return preset?.sounds[slot] ?? "";
+  },
+
   saveSmartDictionaryEnabled: async (enabled: boolean) => {
     try {
       const store = await load(STORE_NAME);
@@ -928,6 +991,27 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         source: "settings",
         step: "save-audio-input-device",
       });
+      throw err;
+    }
+  },
+
+  savePasteMode: async (mode: "auto-paste" | "copy-only") => {
+    try {
+      const store = await load(STORE_NAME);
+      await store.set("pasteMode", mode);
+      await store.save();
+      set({ pasteMode: mode });
+
+      const payload: SettingsUpdatedPayload = {
+        key: "pasteMode" as SettingsUpdatedPayload["key"],
+        value: mode,
+      };
+      await emitEvent(SETTINGS_UPDATED, payload);
+
+      logInfo("settings", `Paste mode saved: ${mode}`);
+    } catch (err) {
+      logError("settings", "savePasteMode failed:", extractErrorMessage(err));
+      captureError(err, { source: "settings", step: "save-paste-mode" });
       throw err;
     }
   },

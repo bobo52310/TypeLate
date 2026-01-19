@@ -48,6 +48,8 @@
       "triggerMode": "觸發模式",
       "holdDescription": "按住錄音，放開停止",
       "toggleDescription": "按一下開始，再按停止",
+      "doubleTap": "雙擊",
+      "doubleTapDescription": "快速雙擊開始錄音，單擊停止。避免誤觸。",
       "updated": "觸發鍵已更新",
       "modeUpdated": "觸發模式已更新",
       "keySet": "觸發鍵已設為 {key}",
@@ -155,6 +157,15 @@
       "transcriptionLanguageUpdated": "轉錄語言已更新",
       "autoDetect": "自動偵測"
     },
+    "pasteMode": {
+      "title": "貼上行為",
+      "description": "選擇語音辨識完成後的操作方式",
+      "autoPaste": "自動貼上",
+      "autoPasteDescription": "直接貼上文字到使用中的應用程式",
+      "copyOnly": "僅複製到剪貼簿",
+      "copyOnlyDescription": "將文字複製到剪貼簿，不自動貼上（保留原有剪貼簿內容）",
+      "updated": "貼上行為已更新"
+    },
     "audioInput": {
       "title": "輸入裝置",
       "description": "選擇錄音使用的麥克風",
@@ -224,7 +235,7 @@
       "action": "前往設定",
       "guide": "設定導引"
     },
-    "heroPrefix": "TypeLate 讓你用嘴砲輸出比打字快了",
+    "heroPrefix": "TypeLate 讓你用嘴砲輸出，比打字快了",
     "heroMultiplier": "{value} 倍",
     "heroSuffix": "",
     "speakingTime": "口述時間",
@@ -296,6 +307,8 @@
     "transcribing": "轉錄中...",
     "pasteSuccess": "已貼上 ✓",
     "pasteSuccessUnenhanced": "已貼上（未整理）",
+    "copiedToClipboard": "已複製",
+    "copiedToClipboardUnenhanced": "已複製（未整理）",
     "enhancing": "整理中...",
     "pasteFailed": "貼上失敗",
     "recordingTooShort": "錄音時間太短",

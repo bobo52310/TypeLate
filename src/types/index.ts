@@ -12,7 +12,7 @@ export interface HudState {
   message: string;
 }
 
-export type TriggerMode = "hold" | "toggle";
+export type TriggerMode = "hold" | "toggle" | "doubleTap";
 
 export interface HudTargetPosition {
   x: number;

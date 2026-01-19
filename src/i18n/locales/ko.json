@@ -48,6 +48,8 @@
       "triggerMode": "트리거 모드",
       "holdDescription": "길게 눌러 녹음, 놓으면 중지",
       "toggleDescription": "한 번 누르면 시작, 다시 누르면 중지",
+      "doubleTap": "더블 탭",
+      "doubleTapDescription": "더블 탭으로 녹음 시작, 한 번 탭으로 중지. 실수로 인한 트리거를 방지합니다.",
       "updated": "트리거 키가 업데이트되었습니다",
       "modeUpdated": "트리거 모드가 업데이트되었습니다",
       "keySet": "트리거 키가 {key}(으)로 설정되었습니다",
@@ -154,6 +156,15 @@
       "transcriptionLanguageDescription": "음성 인식에 사용할 언어",
       "transcriptionLanguageUpdated": "전사 언어가 업데이트되었습니다",
       "autoDetect": "자동 감지"
+    },
+    "pasteMode": {
+      "title": "붙여넣기 동작",
+      "description": "전사 완료 후 동작을 선택하세요",
+      "autoPaste": "자동 붙여넣기",
+      "autoPasteDescription": "활성 앱에 텍스트를 직접 붙여넣기",
+      "copyOnly": "클립보드에 복사",
+      "copyOnlyDescription": "붙여넣지 않고 텍스트를 클립보드에 복사 (기존 클립보드 내용 유지)",
+      "updated": "붙여넣기 동작이 업데이트되었습니다"
     },
     "audioInput": {
       "title": "입력 장치",
@@ -296,6 +307,8 @@
     "transcribing": "전사 중...",
     "pasteSuccess": "붙여넣기 완료 ✓",
     "pasteSuccessUnenhanced": "붙여넣기 완료 (미정리)",
+    "copiedToClipboard": "복사 완료",
+    "copiedToClipboardUnenhanced": "복사 완료 (미정리)",
     "enhancing": "정리 중...",
     "pasteFailed": "붙여넣기 실패",
     "recordingTooShort": "녹음 시간이 너무 짧습니다",

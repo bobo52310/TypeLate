@@ -48,6 +48,8 @@
       "triggerMode": "トリガーモード",
       "holdDescription": "Hold で録音、離すと停止",
       "toggleDescription": "一度押すと開始、もう一度押すと停止",
+      "doubleTap": "ダブルタップ",
+      "doubleTapDescription": "ダブルタップで録音開始、シングルタップで停止。誤操作を防ぎます。",
       "updated": "トリガーキーが更新されました",
       "modeUpdated": "トリガーモードが更新されました",
       "keySet": "トリガーキーを {key} に設定しました",
@@ -154,6 +156,15 @@
       "transcriptionLanguageDescription": "音声認識に使用する言語",
       "transcriptionLanguageUpdated": "文字起こし言語が更新されました",
       "autoDetect": "自動検出"
+    },
+    "pasteMode": {
+      "title": "貼り付け動作",
+      "description": "文字起こし完了後の動作を選択",
+      "autoPaste": "自動貼り付け",
+      "autoPasteDescription": "アクティブなアプリにテキストを直接貼り付け",
+      "copyOnly": "クリップボードにコピー",
+      "copyOnlyDescription": "貼り付けずにテキストをクリップボードにコピー（既存のクリップボード内容を保持）",
+      "updated": "貼り付け動作が更新されました"
     },
     "audioInput": {
       "title": "入力デバイス",
@@ -296,6 +307,8 @@
     "transcribing": "文字起こし中...",
     "pasteSuccess": "貼り付け完了 ✓",
     "pasteSuccessUnenhanced": "貼り付け完了（未整理）",
+    "copiedToClipboard": "コピー完了",
+    "copiedToClipboardUnenhanced": "コピー完了（未整理）",
     "enhancing": "整理中...",
     "pasteFailed": "貼り付け失敗",
     "recordingTooShort": "録音時間が短すぎます",
