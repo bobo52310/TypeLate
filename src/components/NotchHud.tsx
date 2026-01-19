@@ -528,7 +528,9 @@ export function NotchHud({
       ? `${t("voiceFlow.recording")} ${formattedElapsedTime}`
       : (message ?? undefined);
 
-  const showAppIndicator = visualMode === "recording" && appIconBase64;
+  const showAppIndicator =
+    (visualMode === "recording" || visualMode === "morphing") && appIconBase64;
+  const isAppIndicatorFading = visualMode === "morphing";
 
   return (
     <>
@@ -577,7 +579,11 @@ export function NotchHud({
         </div>
       </div>
       {showAppIndicator && (
-        <div className={styles.appIndicator}>
+        <div
+          className={cn(styles.appIndicator, {
+            [styles.appIndicatorFading]: isAppIndicatorFading,
+          })}
+        >
           <img
             src={`data:image/png;base64,${appIconBase64}`}
             className={styles.appIcon}
