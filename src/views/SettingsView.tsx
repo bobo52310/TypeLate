@@ -12,6 +12,7 @@ import PromptSection from "@/views/settings/PromptSection";
 import EnhancementSection from "@/views/settings/EnhancementSection";
 import SmartDictionarySection from "@/views/settings/SmartDictionarySection";
 import VocabularyListSection from "@/views/settings/VocabularyListSection";
+import PasteModeSection from "@/views/settings/PasteModeSection";
 import AboutSection from "@/views/settings/AboutSection";
 
 interface SettingsTab {
@@ -68,6 +69,7 @@ export default function SettingsView() {
           {activeTab === "general" && (
             <>
               <AppSection />
+              <PasteModeSection />
               <HotkeySection />
             </>
           )}

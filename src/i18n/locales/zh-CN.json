@@ -48,6 +48,8 @@
       "triggerMode": "触发模式",
       "holdDescription": "按住录音，放开停止",
       "toggleDescription": "按一下开始，再按停止",
+      "doubleTap": "双击",
+      "doubleTapDescription": "双击开始录音，单击停止。防止误触发。",
       "updated": "触发键已更新",
       "modeUpdated": "触发模式已更新",
       "keySet": "触发键已设为 {key}",
@@ -154,6 +156,15 @@
       "transcriptionLanguageDescription": "语音转文字时使用的识别语言",
       "transcriptionLanguageUpdated": "转录语言已更新",
       "autoDetect": "自动检测"
+    },
+    "pasteMode": {
+      "title": "粘贴行为",
+      "description": "选择转录完成后的操作",
+      "autoPaste": "自动粘贴",
+      "autoPasteDescription": "将文字直接粘贴到当前应用",
+      "copyOnly": "仅复制到剪贴板",
+      "copyOnlyDescription": "将文字复制到剪贴板而不粘贴（保留现有剪贴板内容）",
+      "updated": "粘贴行为已更新"
     },
     "audioInput": {
       "title": "输入设备",
@@ -296,6 +307,8 @@
     "transcribing": "转录中...",
     "pasteSuccess": "已粘贴 ✓",
     "pasteSuccessUnenhanced": "已粘贴（未整理）",
+    "copiedToClipboard": "已复制",
+    "copiedToClipboardUnenhanced": "已复制（未整理）",
     "enhancing": "整理中...",
     "pasteFailed": "粘贴失败",
     "recordingTooShort": "录音时间太短",

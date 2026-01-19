@@ -48,6 +48,8 @@
       "triggerMode": "Trigger Mode",
       "holdDescription": "Hold to record, release to stop",
       "toggleDescription": "Press once to start, press again to stop",
+      "doubleTap": "Double Tap",
+      "doubleTapDescription": "Double-tap to start recording, tap once to stop. Prevents accidental triggers.",
       "updated": "Trigger key updated",
       "modeUpdated": "Trigger mode updated",
       "keySet": "Trigger key set to {key}",
@@ -154,6 +156,15 @@
       "transcriptionLanguageDescription": "Language used for speech recognition",
       "transcriptionLanguageUpdated": "Transcription language updated",
       "autoDetect": "Auto Detect"
+    },
+    "pasteMode": {
+      "title": "Paste Behavior",
+      "description": "Choose what happens after transcription completes",
+      "autoPaste": "Auto-paste",
+      "autoPasteDescription": "Paste text directly into the active app",
+      "copyOnly": "Copy to clipboard",
+      "copyOnlyDescription": "Copy text to clipboard without pasting (preserves existing clipboard content)",
+      "updated": "Paste behavior updated"
     },
     "audioInput": {
       "title": "Input Device",
@@ -296,6 +307,8 @@
     "transcribing": "Transcribing...",
     "pasteSuccess": "Pasted",
     "pasteSuccessUnenhanced": "Pasted (unenhanced)",
+    "copiedToClipboard": "Copied",
+    "copiedToClipboardUnenhanced": "Copied (unenhanced)",
     "enhancing": "Enhancing...",
     "pasteFailed": "Paste failed",
     "recordingTooShort": "Recording too short",
