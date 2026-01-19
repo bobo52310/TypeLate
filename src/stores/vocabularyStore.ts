@@ -53,6 +53,7 @@ interface VocabularyState {
     toUpdate: Array<{ id: string; weight: number }>,
   ) => Promise<void>;
   getTopTermListByWeight: (limit: number) => Promise<string[]>;
+  batchAddTerms: (terms: string[]) => Promise<{ added: number; skipped: number }>;
 }
 
 export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
@@ -217,6 +218,55 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
     } catch (error) {
       logError("vocabulary", `syncImportBatch failed: ${extractErrorMessage(error)}`);
       captureError(error, { source: "vocabulary", step: "sync-import" });
+      throw error;
+    }
+  },
+
+  batchAddTerms: async (terms: string[]) => {
+    // Trim, filter empty, deduplicate input
+    const uniqueTerms = [
+      ...new Map(
+        terms
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+          .map((t) => [t.toLowerCase(), t] as const),
+      ).values(),
+    ];
+
+    if (uniqueTerms.length === 0) return { added: 0, skipped: 0 };
+
+    let added = 0;
+    let skipped = 0;
+
+    try {
+      const db = getDatabase();
+      for (const term of uniqueTerms) {
+        if (get().isDuplicateTerm(term)) {
+          skipped++;
+          continue;
+        }
+        const id = crypto.randomUUID();
+        try {
+          await db.execute("INSERT OR IGNORE INTO vocabulary (id, term, source) VALUES ($1, $2, 'manual')", [
+            id,
+            term,
+          ]);
+          added++;
+        } catch {
+          skipped++;
+        }
+      }
+      await get().fetchTermList();
+      if (added > 0) {
+        void emitEvent(VOCABULARY_CHANGED, {
+          action: "added",
+          term: `${added} terms batch added`,
+        } satisfies VocabularyChangedPayload);
+      }
+      return { added, skipped };
+    } catch (error) {
+      logError("vocabulary", `batchAddTerms failed: ${extractErrorMessage(error)}`);
+      captureError(error, { source: "vocabulary", step: "batch-add" });
       throw error;
     }
   },

@@ -222,7 +222,8 @@
       "general": "一般",
       "voice": "音声・オーディオ",
       "ai": "AI・テキスト整理",
-      "about": "バージョン情報"
+      "about": "バージョン情報",
+      "dictionary": "辞書"
     },
     "smartDictionary": {
       "title": "スマート辞書学習",
@@ -316,7 +317,29 @@
     "description": "辞書の用語は音声認識時に AI に提供され、固有名詞や技術用語の認識精度を向上させます。",
     "weightDescription": "音声認識のたびに、重みが最も高い上位 {limit} 語が AI 認識プロンプトに含まれます。同じ修正が繰り返し検出されると、その用語の重みが自動的に増加します。",
     "noAiSuggestions": "AI 推奨の用語はまだありません。スマート辞書学習を有効にすると自動学習されます",
-    "aiTermCount": "{count} 語"
+    "aiTermCount": "{count} 語",
+    "bulkAdd": "一括追加",
+    "singleAdd": "単語追加",
+    "bulkAddPlaceholder": "1行に1つの用語...",
+    "bulkAddButton": "すべて追加",
+    "bulkAddSuccess": "{added} 語を追加、{skipped} 件の重複をスキップ",
+    "bulkAddEmpty": "追加する用語がありません",
+    "googleDrive": {
+      "title": "Google Drive 同期",
+      "description": "Google Drive を通じてデバイス間で語彙を同期",
+      "clientIdLabel": "Google OAuth Client ID",
+      "clientIdHint": "作成はこちら",
+      "connect": "Google Drive に接続",
+      "disconnect": "切断",
+      "syncNow": "今すぐ同期",
+      "syncing": "同期中...",
+      "lastSync": "最終同期：{time}",
+      "connectedAs": "{email} として接続中",
+      "syncSuccess": "同期完了：{added} 件追加、{updated} 件更新",
+      "disconnectConfirm": "Google Drive との接続を切断しますか？",
+      "offline": "インターネット接続がありません",
+      "authExpired": "認証が期限切れです。Google Drive に再接続してください。"
+    }
   },
   "accessibility": {
     "title": "アクセシビリティ権限が必要です",

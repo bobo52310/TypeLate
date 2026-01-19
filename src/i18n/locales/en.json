@@ -222,7 +222,8 @@
       "general": "General",
       "voice": "Voice & Audio",
       "ai": "AI & Enhancement",
-      "about": "About"
+      "about": "About",
+      "dictionary": "Dictionary"
     },
     "smartDictionary": {
       "title": "Smart Dictionary Learning",
@@ -316,7 +317,29 @@
     "description": "Dictionary terms are provided to the AI during speech recognition to improve accuracy for proper nouns and technical terms.",
     "weightDescription": "During each speech recognition, the top {limit} terms by weight are included in the AI recognition prompt. When the AI detects you repeatedly correcting the same term, its weight increases automatically.",
     "noAiSuggestions": "No AI suggestions yet. Enable Smart Dictionary Learning to auto-learn new terms",
-    "aiTermCount": "{count} terms"
+    "aiTermCount": "{count} terms",
+    "bulkAdd": "Bulk Add",
+    "singleAdd": "Single Add",
+    "bulkAddPlaceholder": "One term per line...",
+    "bulkAddButton": "Add All",
+    "bulkAddSuccess": "Added {added} terms, {skipped} duplicates skipped",
+    "bulkAddEmpty": "No terms to add",
+    "googleDrive": {
+      "title": "Google Drive Sync",
+      "description": "Sync your vocabulary across devices via Google Drive",
+      "clientIdLabel": "Google OAuth Client ID",
+      "clientIdHint": "Create one at",
+      "connect": "Connect Google Drive",
+      "disconnect": "Disconnect",
+      "syncNow": "Sync Now",
+      "syncing": "Syncing...",
+      "lastSync": "Last synced: {time}",
+      "connectedAs": "Connected as {email}",
+      "syncSuccess": "Synced: {added} new, {updated} updated",
+      "disconnectConfirm": "Disconnect from Google Drive?",
+      "offline": "No internet connection",
+      "authExpired": "Session expired. Please reconnect Google Drive."
+    }
   },
   "accessibility": {
     "title": "Accessibility Permission Required",

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, Bot, Hand } from "lucide-react";
+import { Plus, Trash2, Bot, Hand, List, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -43,12 +44,15 @@ export default function VocabularyListSection() {
   const fetchTermList = useVocabularyStore((s) => s.fetchTermList);
   const addTerm = useVocabularyStore((s) => s.addTerm);
   const removeTerm = useVocabularyStore((s) => s.removeTerm);
+  const batchAddTerms = useVocabularyStore((s) => s.batchAddTerms);
 
   const termCount = getTermCount();
   const aiSuggestedTermList = getAiSuggestedTermList();
   const manualTermList = getManualTermList();
 
   const [newTermInput, setNewTermInput] = useState("");
+  const [bulkInput, setBulkInput] = useState("");
+  const [isBulkMode, setIsBulkMode] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [removingTermIdSet, setRemovingTermIdSet] = useState<Set<string>>(new Set());
 
@@ -66,6 +70,24 @@ export default function VocabularyListSection() {
       await addTerm(term);
       setNewTermInput("");
       feedback.show("success", t("dictionary.added", { term }));
+    } catch (err) {
+      feedback.show("error", err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsAdding(false);
+    }
+  }
+
+  async function handleBulkAdd() {
+    const terms = bulkInput.split("\n").map((t) => t.trim()).filter((t) => t.length > 0);
+    if (terms.length === 0) {
+      feedback.show("error", t("dictionary.bulkAddEmpty"));
+      return;
+    }
+    try {
+      setIsAdding(true);
+      const result = await batchAddTerms(terms);
+      setBulkInput("");
+      feedback.show("success", t("dictionary.bulkAddSuccess", { added: result.added, skipped: result.skipped }));
     } catch (err) {
       feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
@@ -99,32 +121,67 @@ export default function VocabularyListSection() {
   return (
     <div className="space-y-4">
       {/* Add term */}
-      <div className="flex items-center gap-2">
-        <Badge variant="secondary">{t("dictionary.termCount", { count: termCount })}</Badge>
-        <div className="flex flex-1 items-center gap-2">
-          <div className="flex flex-col">
-            <Input
-              value={newTermInput}
-              onChange={(e) => setNewTermInput(e.target.value)}
-              placeholder={t("dictionary.inputPlaceholder")}
-              className="w-48"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void handleAddTerm();
-              }}
-            />
-            {showDuplicateHint && (
-              <p className="mt-1 text-xs text-destructive">{t("dictionary.duplicateEntry")}</p>
-            )}
-          </div>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">{t("dictionary.termCount", { count: termCount })}</Badge>
           <Button
+            variant="ghost"
             size="sm"
-            disabled={isAddDisabled || showDuplicateHint}
-            onClick={() => void handleAddTerm()}
+            className="ml-auto text-xs"
+            onClick={() => setIsBulkMode((prev) => !prev)}
           >
-            <Plus className="mr-1 h-4 w-4" />
-            {t("dictionary.add")}
+            {isBulkMode ? (
+              <><List className="mr-1 h-3.5 w-3.5" />{t("dictionary.singleAdd")}</>
+            ) : (
+              <><FileText className="mr-1 h-3.5 w-3.5" />{t("dictionary.bulkAdd")}</>
+            )}
           </Button>
         </div>
+
+        {isBulkMode ? (
+          <div className="space-y-2">
+            <Textarea
+              value={bulkInput}
+              onChange={(e) => setBulkInput(e.target.value)}
+              placeholder={t("dictionary.bulkAddPlaceholder")}
+              rows={5}
+              className="resize-y"
+            />
+            <Button
+              size="sm"
+              disabled={!bulkInput.trim() || isAdding}
+              onClick={() => void handleBulkAdd()}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              {t("dictionary.bulkAddButton")}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="flex flex-col">
+              <Input
+                value={newTermInput}
+                onChange={(e) => setNewTermInput(e.target.value)}
+                placeholder={t("dictionary.inputPlaceholder")}
+                className="w-48"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleAddTerm();
+                }}
+              />
+              {showDuplicateHint && (
+                <p className="mt-1 text-xs text-destructive">{t("dictionary.duplicateEntry")}</p>
+              )}
+            </div>
+            <Button
+              size="sm"
+              disabled={isAddDisabled || showDuplicateHint}
+              onClick={() => void handleAddTerm()}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              {t("dictionary.add")}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Description */}

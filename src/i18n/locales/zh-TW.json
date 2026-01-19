@@ -222,7 +222,8 @@
       "general": "一般",
       "voice": "語音與音訊",
       "ai": "AI 與文字整理",
-      "about": "關於"
+      "about": "關於",
+      "dictionary": "字典"
     },
     "smartDictionary": {
       "title": "智慧字典學習",
@@ -316,7 +317,29 @@
     "description": "字典詞彙會在語音辨識時提供給 AI，提升專有名詞與術語的辨識準確度。",
     "weightDescription": "每次語音辨識時，系統會將權重最高的前 {limit} 個詞彙加入 AI 辨識提示。當 AI 偵測到你重複修正同一個詞時，該詞的權重會自動提升。",
     "noAiSuggestions": "尚無 AI 推薦詞彙，啟用智慧字典學習後系統會自動學習",
-    "aiTermCount": "{count} 個詞"
+    "aiTermCount": "{count} 個詞",
+    "bulkAdd": "批次新增",
+    "singleAdd": "單筆新增",
+    "bulkAddPlaceholder": "一行一個詞彙...",
+    "bulkAddButton": "全部新增",
+    "bulkAddSuccess": "已新增 {added} 個詞彙，{skipped} 個重複已略過",
+    "bulkAddEmpty": "沒有可新增的詞彙",
+    "googleDrive": {
+      "title": "Google Drive 同步",
+      "description": "透過 Google Drive 在不同裝置間同步你的詞彙",
+      "clientIdLabel": "Google OAuth Client ID",
+      "clientIdHint": "前往建立",
+      "connect": "連接 Google Drive",
+      "disconnect": "中斷連接",
+      "syncNow": "立即同步",
+      "syncing": "同步中...",
+      "lastSync": "上次同步：{time}",
+      "connectedAs": "已連接為 {email}",
+      "syncSuccess": "已同步：新增 {added} 個，更新 {updated} 個",
+      "disconnectConfirm": "確定要中斷與 Google Drive 的連接嗎？",
+      "offline": "沒有網路連線",
+      "authExpired": "授權已過期，請重新連接 Google Drive。"
+    }
   },
   "accessibility": {
     "title": "需要輔助使用權限",
