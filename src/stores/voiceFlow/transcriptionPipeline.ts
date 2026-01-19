@@ -24,7 +24,7 @@ import { enhanceText } from "@/lib/enhancer";
 import { detectHallucination, detectEnhancementAnomaly } from "@/lib/hallucinationDetector";
 import { calculateWhisperCostCeiling, calculateChatCostCeiling } from "@/lib/apiPricing";
 import { retryWithBackoff } from "@/lib/retryWithBackoff";
-import type { StopRecordingResult, TranscriptionResult } from "@/types/audio";
+import type { StopRecordingResult, TranscriptionResult, FrontmostAppInfo } from "@/types/audio";
 import type { TranscriptionRecord, ChatUsageData, ApiUsageRecord } from "@/types/transcription";
 import type { HudStatus } from "@/types";
 import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
@@ -374,15 +374,17 @@ export async function handleStartRecording(): Promise<void> {
   abortController = new AbortController();
 
   try {
-    // Capture frontmost app before HUD takes focus (for context-aware enhancement)
-    if (getSettingsStore().isContextAwareEnabled) {
-      try {
-        lastRecordingBundleId = await invoke<string | null>("get_frontmost_app_bundle_id");
-      } catch {
-        lastRecordingBundleId = null;
-      }
-    } else {
+    // Capture frontmost app before HUD takes focus (for context-aware enhancement + icon display)
+    try {
+      const appInfo = await invoke<FrontmostAppInfo | null>("get_frontmost_app_info");
+      lastRecordingBundleId = appInfo?.bundleId ?? null;
+      setState({
+        frontmostAppName: appInfo?.name ?? null,
+        frontmostAppIconBase64: appInfo?.iconBase64 ?? null,
+      });
+    } catch {
       lastRecordingBundleId = null;
+      setState({ frontmostAppName: null, frontmostAppIconBase64: null });
     }
 
     playSoundIfEnabled("start");

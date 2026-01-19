@@ -14,6 +14,31 @@ pub fn get_frontmost_app_bundle_id() -> Result<Option<String>, String> {
     }
 }
 
+/// 最前方應用程式的資訊（名稱 + bundle ID + icon base64 PNG）
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FrontmostAppInfo {
+    pub name: String,
+    pub bundle_id: String,
+    pub icon_base64: String,
+}
+
+/// 取得最前方應用程式的名稱、bundle ID 和圖示。
+/// macOS: 透過 NSWorkspace + NSRunningApplication
+/// 其他平台: 回傳 None
+#[tauri::command]
+pub fn get_frontmost_app_info() -> Result<Option<FrontmostAppInfo>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        macos::get_frontmost_app_info_impl()
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        Ok(None)
+    }
+}
+
 /// 讀取當前 focused text field 游標附近的文字。
 /// macOS: 透過 AXUIElement Accessibility API
 /// Windows: 目前為 no-op placeholder（後續補上 UI Automation）
@@ -164,33 +189,120 @@ mod macos {
         )
     }
 
+    use objc::runtime::Object;
+
+    /// Convert an NSString pointer to a Rust String. Returns empty string on null.
+    unsafe fn nsstring_to_string(ns_string: *mut Object) -> String {
+        use objc::{msg_send, sel, sel_impl};
+        if ns_string.is_null() {
+            return String::new();
+        }
+        let utf8: *const std::os::raw::c_char = msg_send![ns_string, UTF8String];
+        if utf8.is_null() {
+            String::new()
+        } else {
+            std::ffi::CStr::from_ptr(utf8).to_string_lossy().into_owned()
+        }
+    }
+
+    /// Get the frontmost NSRunningApplication.
+    unsafe fn get_frontmost_running_app() -> Option<*mut Object> {
+        use objc::runtime::Class;
+        use objc::{msg_send, sel, sel_impl};
+
+        let ns_workspace_class = Class::get("NSWorkspace")?;
+        let workspace: *mut Object = msg_send![ns_workspace_class, sharedWorkspace];
+        if workspace.is_null() {
+            return None;
+        }
+        let app: *mut Object = msg_send![workspace, frontmostApplication];
+        if app.is_null() {
+            return None;
+        }
+        Some(app)
+    }
+
     pub fn get_frontmost_app_bundle_id_impl() -> Result<Option<String>, String> {
-        use objc::runtime::{Class, Object};
         use objc::{msg_send, sel, sel_impl};
 
         unsafe {
-            let ns_workspace_class = match Class::get("NSWorkspace") {
-                Some(c) => c,
+            let app = match get_frontmost_running_app() {
+                Some(a) => a,
                 None => return Ok(None),
             };
-            let workspace: *mut Object = msg_send![ns_workspace_class, sharedWorkspace];
-            if workspace.is_null() {
-                return Ok(None);
-            }
-            let app: *mut Object = msg_send![workspace, frontmostApplication];
-            if app.is_null() {
-                return Ok(None);
-            }
             let bundle_id: *mut Object = msg_send![app, bundleIdentifier];
-            if bundle_id.is_null() {
+            let s = nsstring_to_string(bundle_id);
+            if s.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(s))
+            }
+        }
+    }
+
+    /// Extract app icon as base64-encoded PNG string.
+    unsafe fn get_app_icon_base64(app: *mut Object) -> String {
+        use objc::runtime::Class;
+        use objc::{msg_send, sel, sel_impl};
+
+        let icon: *mut Object = msg_send![app, icon];
+        if icon.is_null() {
+            return String::new();
+        }
+
+        // Get TIFF representation (contains the icon bitmap data)
+        let tiff_data: *mut Object = msg_send![icon, TIFFRepresentation];
+        if tiff_data.is_null() {
+            return String::new();
+        }
+
+        // Create NSBitmapImageRep from TIFF (picks first/primary representation)
+        let bitmap_class = match Class::get("NSBitmapImageRep") {
+            Some(c) => c,
+            None => return String::new(),
+        };
+        let bitmap: *mut Object = msg_send![bitmap_class, imageRepWithData: tiff_data];
+        if bitmap.is_null() {
+            return String::new();
+        }
+
+        // Convert to PNG (NSBitmapImageFileType.png = 4)
+        let nil: *mut Object = std::ptr::null_mut();
+        let png_data: *mut Object =
+            msg_send![bitmap, representationUsingType: 4u64 properties: nil];
+        if png_data.is_null() {
+            return String::new();
+        }
+
+        // Base64 encode using NSData's built-in method (avoids extra crate dependency)
+        let base64_ns: *mut Object =
+            msg_send![png_data, base64EncodedStringWithOptions: 0u64];
+        nsstring_to_string(base64_ns)
+    }
+
+    pub fn get_frontmost_app_info_impl() -> Result<Option<super::FrontmostAppInfo>, String> {
+        use objc::{msg_send, sel, sel_impl};
+
+        unsafe {
+            let app = match get_frontmost_running_app() {
+                Some(a) => a,
+                None => return Ok(None),
+            };
+
+            let bundle_id = nsstring_to_string(msg_send![app, bundleIdentifier]);
+            let name = nsstring_to_string(msg_send![app, localizedName]);
+
+            if name.is_empty() && bundle_id.is_empty() {
                 return Ok(None);
             }
-            let utf8: *const std::os::raw::c_char = msg_send![bundle_id, UTF8String];
-            if utf8.is_null() {
-                return Ok(None);
-            }
-            let s = std::ffi::CStr::from_ptr(utf8).to_string_lossy().into_owned();
-            Ok(Some(s))
+
+            let icon_base64 = get_app_icon_base64(app);
+
+            Ok(Some(super::FrontmostAppInfo {
+                name,
+                bundle_id,
+                icon_base64,
+            }))
         }
     }
 

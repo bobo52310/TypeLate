@@ -17,3 +17,9 @@ export interface TranscriptionResult {
   transcriptionDurationMs: number;
   noSpeechProbability: number;
 }
+
+export interface FrontmostAppInfo {
+  name: string;
+  bundleId: string;
+  iconBase64: string;
+}

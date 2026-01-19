@@ -27,6 +27,8 @@ interface NotchHudProps {
   message: string;
   canRetry: boolean;
   onRetry: () => void;
+  appName: string | null;
+  appIconBase64: string | null;
 }
 
 // --- Constants ---
@@ -101,6 +103,8 @@ export function NotchHud({
   message,
   canRetry,
   onRetry,
+  appName,
+  appIconBase64,
 }: NotchHudProps) {
   const { t } = useTranslation();
 
@@ -524,50 +528,64 @@ export function NotchHud({
       ? `${t("voiceFlow.recording")} ${formattedElapsedTime}`
       : (message ?? undefined);
 
+  const showAppIndicator = visualMode === "recording" && appIconBase64;
+
   return (
-    <div
-      role="status"
-      aria-live="assertive"
-      aria-label={ariaLabel}
-      className={cn(styles.notchWrapper, {
-        [styles.notchWrapperSuccess]: visualMode === "success",
-        [styles.notchWrapperLearned]: visualMode === "learned",
-      })}
-    >
+    <>
       <div
-        className={cn(styles.notchHud, {
-          [styles.notchShake]: visualMode === "error",
-          [styles.notchCollapsing]: visualMode === "collapsing",
-          [styles.notchHudExpanded]: isExpandedMode,
+        role="status"
+        aria-live="assertive"
+        aria-label={ariaLabel}
+        className={cn(styles.notchWrapper, {
+          [styles.notchWrapperSuccess]: visualMode === "success",
+          [styles.notchWrapperLearned]: visualMode === "learned",
         })}
-        style={notchStyle}
       >
-        <div className={styles.notchContent}>
-          <div className={styles.notchLeft}>{renderLeftContent()}</div>
-          <div className={styles.notchCameraGap} />
-          <div className={styles.notchRight}>{renderRightContent()}</div>
+        <div
+          className={cn(styles.notchHud, {
+            [styles.notchShake]: visualMode === "error",
+            [styles.notchCollapsing]: visualMode === "collapsing",
+            [styles.notchHudExpanded]: isExpandedMode,
+          })}
+          style={notchStyle}
+        >
+          <div className={styles.notchContent}>
+            <div className={styles.notchLeft}>{renderLeftContent()}</div>
+            <div className={styles.notchCameraGap} />
+            <div className={styles.notchRight}>{renderRightContent()}</div>
+          </div>
+
+          {visualMode === "learned" && (
+            <div className={styles.learnedTermsRow}>
+              <span className={styles.learnedTerms}>{learnedDisplayText}</span>
+            </div>
+          )}
+
+          {hasSuccessPreview && (
+            <div className={styles.errorMessageRow}>
+              <span className={styles.errorMessage} style={{ color: "rgba(255,255,255,0.7)" }}>
+                {message.split("·").slice(1).join("·").trim()}
+              </span>
+            </div>
+          )}
+
+          {hasErrorMessage && (
+            <div className={styles.errorMessageRow}>
+              <span className={styles.errorMessage}>{message}</span>
+            </div>
+          )}
         </div>
-
-        {visualMode === "learned" && (
-          <div className={styles.learnedTermsRow}>
-            <span className={styles.learnedTerms}>{learnedDisplayText}</span>
-          </div>
-        )}
-
-        {hasSuccessPreview && (
-          <div className={styles.errorMessageRow}>
-            <span className={styles.errorMessage} style={{ color: "rgba(255,255,255,0.7)" }}>
-              {message.split("·").slice(1).join("·").trim()}
-            </span>
-          </div>
-        )}
-
-        {hasErrorMessage && (
-          <div className={styles.errorMessageRow}>
-            <span className={styles.errorMessage}>{message}</span>
-          </div>
-        )}
       </div>
-    </div>
+      {showAppIndicator && (
+        <div className={styles.appIndicator}>
+          <img
+            src={`data:image/png;base64,${appIconBase64}`}
+            className={styles.appIcon}
+            alt=""
+          />
+          {appName && <span className={styles.appName}>{appName}</span>}
+        </div>
+      )}
+    </>
   );
 }

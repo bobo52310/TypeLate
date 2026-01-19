@@ -18,6 +18,8 @@ export function HudApp() {
   const recordingElapsedSeconds = useVoiceFlowStore((s) => s.recordingElapsedSeconds);
   const canRetry = useVoiceFlowStore((s) => s.canRetry);
   const handleRetryTranscription = useVoiceFlowStore((s) => s.handleRetryTranscription);
+  const frontmostAppName = useVoiceFlowStore((s) => s.frontmostAppName);
+  const frontmostAppIconBase64 = useVoiceFlowStore((s) => s.frontmostAppIconBase64);
 
   const initializedRef = useRef(false);
 
@@ -103,6 +105,8 @@ export function HudApp() {
         recordingElapsedSeconds={recordingElapsedSeconds}
         canRetry={canRetry}
         onRetry={handleRetry}
+        appName={frontmostAppName}
+        appIconBase64={frontmostAppIconBase64}
       />
     </div>
   );
