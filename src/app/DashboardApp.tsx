@@ -73,12 +73,24 @@ export function DashboardApp() {
   const { t } = useTranslation();
   const { currentPath, navigate } = useHashRouter();
 
-  // Keyboard shortcut: Cmd+, (macOS) / Ctrl+, (Windows) → open settings
+  // Keyboard shortcuts: Cmd+1/2/3 for tab switching, Cmd+, for settings
   useEffect(() => {
     function handleKeydown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
-        e.preventDefault();
-        navigate("/settings");
+      if (!e.metaKey && !e.ctrlKey) return;
+      switch (e.key) {
+        case "1":
+          e.preventDefault();
+          navigate("/dashboard");
+          break;
+        case "2":
+          e.preventDefault();
+          navigate("/history");
+          break;
+        case "3":
+        case ",":
+          e.preventDefault();
+          navigate("/settings");
+          break;
       }
     }
     document.addEventListener("keydown", handleKeydown);
