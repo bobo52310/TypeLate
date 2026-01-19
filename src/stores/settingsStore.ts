@@ -66,8 +66,14 @@ export const DEFAULT_MUTE_ON_RECORDING = true;
 const DEFAULT_SMART_DICTIONARY_ENABLED = IS_MAC;
 const DEFAULT_SOUND_EFFECTS_ENABLED = true;
 const DEFAULT_PROMPT_MODE: PromptMode = "minimal";
-const DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED = false;
-const DEFAULT_RECORDING_AUTO_CLEANUP_DAYS = 7;
+export type RecordingRetentionPolicy = "forever" | "30" | "14" | "7" | "none";
+const DEFAULT_RECORDING_RETENTION_POLICY: RecordingRetentionPolicy = "forever";
+
+export interface RecordingsStorageInfo {
+  totalSizeBytes: number;
+  fileCount: number;
+  path: string;
+}
 
 function getDefaultTriggerKey(): TriggerKey {
   return IS_MAC ? "fn" : "rightAlt";
@@ -107,8 +113,7 @@ interface SettingsState {
   isSoundEffectsEnabled: boolean;
   soundPresetId: string;
   customSoundPaths: Record<string, string> | null;
-  isRecordingAutoCleanupEnabled: boolean;
-  recordingAutoCleanupDays: number;
+  recordingRetentionPolicy: RecordingRetentionPolicy;
   selectedAudioInputDeviceName: string;
   pasteMode: "auto-paste" | "copy-only";
 
@@ -155,7 +160,9 @@ interface SettingsState {
   saveCustomSoundPath: (slot: string, filePath: string) => Promise<void>;
   getSoundForSlot: (slot: "start" | "stop" | "error" | "learned") => string;
   saveSmartDictionaryEnabled: (enabled: boolean) => Promise<void>;
-  saveRecordingAutoCleanup: (enabled: boolean, days: number) => Promise<void>;
+  saveRecordingRetentionPolicy: (policy: RecordingRetentionPolicy) => Promise<void>;
+  getRecordingsStorageInfo: () => Promise<RecordingsStorageInfo>;
+  openRecordingsFolder: () => Promise<void>;
   saveAudioInputDevice: (deviceName: string) => Promise<void>;
   savePasteMode: (mode: "auto-paste" | "copy-only") => Promise<void>;
   saveLocale: (locale: SupportedLocale) => Promise<void>;
@@ -203,8 +210,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   isSoundEffectsEnabled: DEFAULT_SOUND_EFFECTS_ENABLED,
   soundPresetId: "default",
   customSoundPaths: null,
-  isRecordingAutoCleanupEnabled: DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED,
-  recordingAutoCleanupDays: DEFAULT_RECORDING_AUTO_CLEANUP_DAYS,
+  recordingRetentionPolicy: DEFAULT_RECORDING_RETENTION_POLICY,
   selectedAudioInputDeviceName: "",
   pasteMode: "auto-paste" as const,
 
@@ -364,8 +370,21 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const savedSoundPresetId = await store.get<string>("soundPresetId");
       const savedCustomSoundPaths = await store.get<Record<string, string>>("customSoundPaths");
       const savedSmartDictionary = await store.get<boolean>("smartDictionaryEnabled");
-      const savedRecordingAutoCleanup = await store.get<boolean>("recordingAutoCleanupEnabled");
-      const savedRecordingAutoCleanupDays = await store.get<number>("recordingAutoCleanupDays");
+      // Recording retention: migrate from old boolean+days to new policy
+      const savedRetentionPolicy = await store.get<RecordingRetentionPolicy>("recordingRetentionPolicy");
+      let resolvedRetentionPolicy: RecordingRetentionPolicy = DEFAULT_RECORDING_RETENTION_POLICY;
+      if (savedRetentionPolicy) {
+        resolvedRetentionPolicy = savedRetentionPolicy;
+      } else {
+        // Migrate from legacy settings
+        const legacyEnabled = await store.get<boolean>("recordingAutoCleanupEnabled");
+        const legacyDays = await store.get<number>("recordingAutoCleanupDays");
+        if (legacyEnabled && legacyDays) {
+          if (legacyDays <= 7) resolvedRetentionPolicy = "7";
+          else if (legacyDays <= 14) resolvedRetentionPolicy = "14";
+          else resolvedRetentionPolicy = "30";
+        }
+      }
       const savedAudioInputDeviceName = await store.get<string>("audioInputDeviceName");
       const savedPasteMode = await store.get<string>("pasteMode");
 
@@ -390,10 +409,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         soundPresetId: savedSoundPresetId ?? "default",
         customSoundPaths: savedCustomSoundPaths ?? null,
         isSmartDictionaryEnabled: savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
-        isRecordingAutoCleanupEnabled:
-          savedRecordingAutoCleanup ?? DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED,
-        recordingAutoCleanupDays:
-          savedRecordingAutoCleanupDays ?? DEFAULT_RECORDING_AUTO_CLEANUP_DAYS,
+        recordingRetentionPolicy: resolvedRetentionPolicy,
         selectedAudioInputDeviceName: savedAudioInputDeviceName ?? "",
         pasteMode: (savedPasteMode === "copy-only" ? "copy-only" : "auto-paste") as
           | "auto-paste"
@@ -933,37 +949,35 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
-  saveRecordingAutoCleanup: async (enabled: boolean, days: number) => {
-    const validatedDays =
-      !Number.isInteger(days) || days < 1 ? DEFAULT_RECORDING_AUTO_CLEANUP_DAYS : days;
-
+  saveRecordingRetentionPolicy: async (policy: RecordingRetentionPolicy) => {
     try {
       const store = await load(STORE_NAME);
-      await store.set("recordingAutoCleanupEnabled", enabled);
-      await store.set("recordingAutoCleanupDays", validatedDays);
+      await store.set("recordingRetentionPolicy", policy);
       await store.save();
 
-      set({
-        isRecordingAutoCleanupEnabled: enabled,
-        recordingAutoCleanupDays: validatedDays,
-      });
+      set({ recordingRetentionPolicy: policy });
 
-      logInfo(
-        "settings",
-        `Recording auto cleanup saved: enabled=${enabled}, days=${validatedDays}`,
-      );
+      logInfo("settings", `Recording retention policy saved: ${policy}`);
     } catch (err) {
       logError(
         "settings",
-        "[settingsStore] saveRecordingAutoCleanup failed:",
+        "[settingsStore] saveRecordingRetentionPolicy failed:",
         extractErrorMessage(err),
       );
       captureError(err, {
         source: "settings",
-        step: "save-recording-auto-cleanup",
+        step: "save-recording-retention-policy",
       });
       throw err;
     }
+  },
+
+  getRecordingsStorageInfo: async () => {
+    return invoke<RecordingsStorageInfo>("get_recordings_storage_info");
+  },
+
+  openRecordingsFolder: async () => {
+    await invoke("open_recordings_folder");
   },
 
   saveAudioInputDevice: async (deviceName: string) => {
@@ -1062,8 +1076,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const effectivePromptLocale =
         resolvedTranscriptionLocale === "auto" ? resolvedLocale : resolvedTranscriptionLocale;
 
-      const savedRecCleanup = await store.get<boolean>("recordingAutoCleanupEnabled");
-      const savedRecCleanupDays = await store.get<number>("recordingAutoCleanupDays");
+      const savedRetentionPolicy = await store.get<RecordingRetentionPolicy>("recordingRetentionPolicy");
       const savedAudioDevice = await store.get<string>("audioInputDeviceName");
 
       set({
@@ -1090,8 +1103,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         isMuteOnRecordingEnabled: savedMuteOnRecording ?? DEFAULT_MUTE_ON_RECORDING,
         isSoundEffectsEnabled: savedSoundEffects ?? DEFAULT_SOUND_EFFECTS_ENABLED,
         isSmartDictionaryEnabled: savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
-        isRecordingAutoCleanupEnabled: savedRecCleanup ?? DEFAULT_RECORDING_AUTO_CLEANUP_ENABLED,
-        recordingAutoCleanupDays: savedRecCleanupDays ?? DEFAULT_RECORDING_AUTO_CLEANUP_DAYS,
+        recordingRetentionPolicy: savedRetentionPolicy ?? DEFAULT_RECORDING_RETENTION_POLICY,
         selectedAudioInputDeviceName: savedAudioDevice ?? "",
       });
     } catch (err) {

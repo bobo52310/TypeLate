@@ -434,6 +434,8 @@ pub fn run() {
             plugins::audio_recorder::read_recording_file,
             plugins::audio_recorder::delete_all_recordings,
             plugins::audio_recorder::cleanup_old_recordings,
+            plugins::audio_recorder::get_recordings_storage_info,
+            plugins::audio_recorder::open_recordings_folder,
             plugins::transcription::transcribe_audio,
             plugins::transcription::retranscribe_from_file,
             plugins::sound_feedback::play_start_sound,
@@ -453,7 +455,7 @@ pub fn run() {
             app.manage(plugins::transcription::TranscriptionState::new());
 
             let open_dashboard_item =
-                MenuItem::with_id(app, "open-dashboard", "開啟 Dashboard", true, None::<&str>)?;
+                MenuItem::with_id(app, "open-dashboard", "Open Dashboard", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit TypeLate", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open_dashboard_item, &quit_item])?;
 

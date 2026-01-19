@@ -584,6 +584,85 @@ fn encode_wav(samples: &[i16], sample_rate: u32) -> Result<Vec<u8>, AudioRecorde
     Ok(buffer.into_inner())
 }
 
+// ========== Storage Info ==========
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordingsStorageInfo {
+    total_size_bytes: u64,
+    file_count: u32,
+    path: String,
+}
+
+#[command]
+pub fn get_recordings_storage_info(app: AppHandle) -> Result<RecordingsStorageInfo, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
+    let recordings_dir = app_data_dir.join("recordings");
+    if !recordings_dir.exists() {
+        return Ok(RecordingsStorageInfo {
+            total_size_bytes: 0,
+            file_count: 0,
+            path: recordings_dir.to_string_lossy().to_string(),
+        });
+    }
+
+    let mut total_size: u64 = 0;
+    let mut count: u32 = 0;
+
+    for entry in std::fs::read_dir(&recordings_dir)
+        .map_err(|e| format!("Failed to read recordings dir: {}", e))?
+    {
+        let entry = entry.map_err(|e| format!("Failed to read dir entry: {}", e))?;
+        let path = entry.path();
+        if path.extension().map_or(false, |ext| ext == "wav") {
+            if let Ok(metadata) = std::fs::metadata(&path) {
+                total_size += metadata.len();
+                count += 1;
+            }
+        }
+    }
+
+    Ok(RecordingsStorageInfo {
+        total_size_bytes: total_size,
+        file_count: count,
+        path: recordings_dir.to_string_lossy().to_string(),
+    })
+}
+
+#[command]
+pub fn open_recordings_folder(app: AppHandle) -> Result<(), String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
+    let recordings_dir = app_data_dir.join("recordings");
+    std::fs::create_dir_all(&recordings_dir)
+        .map_err(|e| format!("Failed to create recordings dir: {}", e))?;
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&recordings_dir)
+            .spawn()
+            .map_err(|e| format!("Failed to open folder: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg(&recordings_dir)
+            .spawn()
+            .map_err(|e| format!("Failed to open folder: {}", e))?;
+    }
+
+    Ok(())
+}
+
 // ========== Recording File Management Commands ==========
 
 #[command]
