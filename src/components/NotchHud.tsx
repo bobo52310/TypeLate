@@ -244,9 +244,12 @@ export function NotchHud({
     setLearnedDisplayText(formatLearnedText(nextTermList));
     setVisualMode("learned");
     if (useSettingsStore.getState().isSoundEffectsEnabled) {
-      void invoke("play_learned_sound").catch(() => {
-        /* non-critical sound */
-      });
+      const soundName = useSettingsStore.getState().getSoundForSlot("learned");
+      if (soundName) {
+        void invoke("play_sound", { soundName }).catch(() => {
+          /* non-critical sound */
+        });
+      }
     }
     clearLearnedTimer();
     learnedTimerRef.current = setTimeout(() => {
@@ -261,9 +264,12 @@ export function NotchHud({
           setLearnedDisplayText(formatLearnedText(next ?? []));
           setVisualMode("learned");
           if (useSettingsStore.getState().isSoundEffectsEnabled) {
-            void invoke("play_learned_sound").catch(() => {
-              /* non-critical sound */
-            });
+            const soundName = useSettingsStore.getState().getSoundForSlot("learned");
+            if (soundName) {
+              void invoke("play_sound", { soundName }).catch(() => {
+                /* non-critical sound */
+              });
+            }
           }
         }
       }, COLLAPSE_ANIMATION_DURATION_MS);
@@ -275,9 +281,12 @@ export function NotchHud({
       setLearnedDisplayText(formatLearnedText(termList));
       setVisualMode("learned");
       if (useSettingsStore.getState().isSoundEffectsEnabled) {
-        void invoke("play_learned_sound").catch(() => {
-          /* non-critical sound */
-        });
+        const soundName = useSettingsStore.getState().getSoundForSlot("learned");
+        if (soundName) {
+          void invoke("play_sound", { soundName }).catch(() => {
+            /* non-critical sound */
+          });
+        }
       }
       clearLearnedTimer();
       learnedTimerRef.current = setTimeout(() => {
