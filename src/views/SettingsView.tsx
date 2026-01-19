@@ -14,6 +14,7 @@ import SmartDictionarySection from "@/views/settings/SmartDictionarySection";
 import VocabularyListSection from "@/views/settings/VocabularyListSection";
 import GoogleDriveSyncSection from "@/views/settings/GoogleDriveSyncSection";
 import PasteModeSection from "@/views/settings/PasteModeSection";
+import ContextAwareSection from "@/views/settings/ContextAwareSection";
 import AboutSection from "@/views/settings/AboutSection";
 
 interface SettingsTab {
@@ -89,6 +90,7 @@ export default function SettingsView() {
               <ModelSection />
               <PromptSection />
               <EnhancementSection />
+              <ContextAwareSection />
             </>
           )}
 

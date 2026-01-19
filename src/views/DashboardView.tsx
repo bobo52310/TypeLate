@@ -6,17 +6,17 @@ import { KeyRound, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
   formatTimestamp,
   truncateText,
   getDisplayText,
-  formatDurationFromMs,
-  formatNumber,
 } from "@/lib/formatUtils";
 import { useQuotaInfo } from "@/hooks/useQuotaInfo";
+import HeroMetricCard from "@/components/dashboard/HeroMetricCard";
+import StatCardRow from "@/components/dashboard/StatCardRow";
+import FeatureTipCards from "@/components/dashboard/FeatureTipCards";
 
 const TRANSCRIPTION_COMPLETED = "transcription:completed";
 // TODO: Update URL if repo moves
@@ -32,10 +32,6 @@ export default function DashboardView() {
   const hasApiKey = useSettingsStore((s) => s.hasApiKey);
 
   const quotaInfo = useQuotaInfo();
-  const quotaDimensionList = quotaInfo.dimensions;
-  const quotaRemainingPercent = quotaInfo.percent / 100;
-  const quotaBottleneckLabel = quotaInfo.bottleneckLabel;
-  const quotaBarColorClass = quotaInfo.colorClass;
 
   const avgCharacters = useMemo(() => {
     if (dashboardStats.totalTranscriptions <= 0) return 0;
@@ -99,11 +95,13 @@ export default function DashboardView() {
     }
   }
 
+  const hasData = dashboardStats.totalTranscriptions > 0 && speedMultiplier > 1;
+
   return (
-    <div className="p-5">
+    <div className="space-y-5 p-5">
       {/* API Key setup prompt */}
       {apiKeyMissing && (
-        <Card className="mb-5 border-primary/30 bg-primary/5">
+        <Card className="border-primary/30 bg-primary/5">
           <CardContent className="flex items-center gap-4 pt-5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
               <KeyRound className="h-5 w-5 text-primary" />
@@ -128,182 +126,33 @@ export default function DashboardView() {
         </Card>
       )}
 
-      {/* Hero: Speed comparison */}
-      {dashboardStats.totalTranscriptions > 0 && speedMultiplier > 1 && (
-        <Card className="mb-5">
-          <CardContent className="pt-6">
-            <p className="text-center text-lg text-muted-foreground">
-              {t("dashboard.heroPrefix")}{" "}
-              <span className="text-3xl font-bold text-primary">
-                {t("dashboard.heroMultiplier", {
-                  value: speedMultiplier.toFixed(1),
-                })}
-              </span>{" "}
-              {t("dashboard.heroSuffix")}
-            </p>
+      {/* Hero: Speed metric with circular ring */}
+      <HeroMetricCard
+        speedMultiplier={speedMultiplier}
+        timeSavedMs={dashboardStats.estimatedTimeSavedMs}
+        speakingTimeMs={dashboardStats.totalRecordingDurationMs}
+        typingTimeMs={estimatedTypingTimeMs}
+        hasData={hasData}
+      />
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-muted/50 px-4 py-3">
-                <p className="text-2xl font-bold text-foreground">
-                  {formatDurationFromMs(dashboardStats.totalRecordingDurationMs)}
-                </p>
-                <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {t("dashboard.speakingTime")}
-                </p>
-              </div>
-              <div className="rounded-lg bg-muted/50 px-4 py-3">
-                <p className="text-2xl font-bold text-foreground">
-                  {formatDurationFromMs(estimatedTypingTimeMs)}
-                </p>
-                <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {t("dashboard.typingTime")}
-                </p>
-              </div>
-            </div>
+      {/* Stats cards row */}
+      <StatCardRow
+        totalCharacters={dashboardStats.totalCharacters}
+        totalTranscriptions={dashboardStats.totalTranscriptions}
+        charsPerMinute={charsPerMinute}
+        avgCharacters={avgCharacters}
+        quotaPercent={Math.round(quotaInfo.percent)}
+        quotaColorClass={quotaInfo.colorClass}
+        quotaDimensionList={quotaInfo.dimensions}
+        vocabularyAnalysisRequestCount={dashboardStats.dailyQuotaUsage.vocabularyAnalysisRequestCount}
+        vocabularyAnalysisTotalTokens={dashboardStats.dailyQuotaUsage.vocabularyAnalysisTotalTokens}
+      />
 
-            <div className="mt-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {t("dashboard.timeSaved")}
-              </p>
-              <p className="text-2xl font-bold text-primary">
-                {formatDurationFromMs(dashboardStats.estimatedTimeSavedMs)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Stats cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>{t("dashboard.totalCharacters")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-foreground">
-              {formatNumber(dashboardStats.totalCharacters)} {t("dashboard.characterUnit")}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>{t("dashboard.totalTranscriptions")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-foreground">
-              {formatNumber(dashboardStats.totalTranscriptions)} {t("dashboard.transcriptionUnit")}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>{t("dashboard.charsPerMinute")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-foreground">
-              {formatNumber(charsPerMinute)} {t("dashboard.charsPerMinuteUnit")}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>{t("dashboard.avgCharacters")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-foreground">
-              {formatNumber(avgCharacters)} {t("dashboard.characterUnit")}
-            </p>
-          </CardContent>
-        </Card>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Card className="cursor-default">
-                <CardHeader className="pb-2">
-                  <CardDescription>{t("dashboard.dailyQuota")}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-foreground">
-                    {Math.round(quotaRemainingPercent * 100)}%
-                  </p>
-                  <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-                    <div
-                      className={`h-full rounded-full transition-all ${quotaBarColorClass}`}
-                      style={{
-                        width: `${Math.round(quotaRemainingPercent * 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="mt-1.5 truncate text-xs text-muted-foreground">
-                    {quotaBottleneckLabel}
-                  </p>
-                </CardContent>
-              </Card>
-            </TooltipTrigger>
-            <TooltipContent
-              className="w-72 border border-border bg-card p-3 text-card-foreground"
-              side="bottom"
-              sideOffset={6}
-            >
-              <p className="mb-2 text-xs font-medium">{t("dashboard.dailyQuotaDetail")}</p>
-              <div className="space-y-2">
-                {quotaDimensionList.map((dim, idx) => (
-                  <div key={idx}>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{dim.label}</span>
-                      <span className="font-medium">
-                        {Math.round(Math.max(0, dim.remaining) * 100)}%
-                      </span>
-                    </div>
-                    <div className="mt-0.5 h-1 w-full rounded-full bg-muted">
-                      <div
-                        className={`h-full rounded-full transition-all ${quotaBarColorClass}`}
-                        style={{
-                          width: `${Math.round(Math.max(0, dim.remaining) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {dashboardStats.dailyQuotaUsage.vocabularyAnalysisRequestCount > 0 && (
-                <div className="mt-2 border-t border-border pt-2">
-                  <span className="text-xs text-muted-foreground">
-                    {t("dashboard.vocabularyAnalysisUsage", {
-                      requests: dashboardStats.dailyQuotaUsage.vocabularyAnalysisRequestCount,
-                      tokens: formatNumber(
-                        dashboardStats.dailyQuotaUsage.vocabularyAnalysisTotalTokens,
-                      ),
-                    })}
-                  </span>
-                </div>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <Card
-          className="cursor-pointer transition-colors hover:bg-muted/50"
-          onClick={openCommunityUrl}
-        >
-          <CardContent className="flex items-center gap-3 pt-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <MessageCircle className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">{t("dashboard.communityTitle")}</p>
-              <p className="text-xs text-muted-foreground">{t("dashboard.communityDescription")}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Feature tips */}
+      <FeatureTipCards />
 
       {/* Daily usage trend */}
-      <Card className="mt-5">
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">{t("dashboard.usageTrend")}</CardTitle>
@@ -324,8 +173,8 @@ export default function DashboardView() {
                   const isToday = i === dailyUsageTrendList.length - 1;
                   return (
                     <div key={i} className="group relative flex-1" style={{ height: "100%" }}>
-                      {/* Hover tooltip: count prominent, date below */}
-                      <div className="pointer-events-none absolute -top-12 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center rounded-md border border-border bg-popover px-2.5 py-1.5 shadow-md group-hover:flex whitespace-nowrap">
+                      {/* Hover tooltip */}
+                      <div className="pointer-events-none absolute -top-12 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1.5 shadow-md group-hover:flex">
                         <span className="text-sm font-bold tabular-nums text-popover-foreground">
                           {day.count} {t("dashboard.transcriptionUnit")}
                         </span>
@@ -364,7 +213,7 @@ export default function DashboardView() {
       </Card>
 
       {/* Recent transcriptions */}
-      <Card className="mt-5">
+      <Card>
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle className="text-base">{t("dashboard.recentTranscriptions")}</CardTitle>
           {recentTranscriptionList.length > 0 && (
@@ -404,6 +253,22 @@ export default function DashboardView() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Community card */}
+      <Card
+        className="cursor-pointer transition-colors hover:bg-muted/50"
+        onClick={openCommunityUrl}
+      >
+        <CardContent className="flex items-center gap-3 pt-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+            <MessageCircle className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{t("dashboard.communityTitle")}</p>
+            <p className="text-xs text-muted-foreground">{t("dashboard.communityDescription")}</p>
+          </div>
         </CardContent>
       </Card>
     </div>

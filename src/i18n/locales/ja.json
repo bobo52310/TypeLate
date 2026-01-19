@@ -232,6 +232,19 @@
       "analysisModelLabel": "辞書分析モデル",
       "analysisModelDescription": "修正された語彙を辞書に追加すべきかを判断する AI モデル（テキスト整理モデルとは独立）",
       "analysisModelUpdated": "辞書分析モデルを更新しました"
+    },
+    "contextAware": {
+      "title": "コンテキスト対応強化",
+      "description": "使用中のアプリに応じてトーンを自動調整（メールはフォーマル、チャットはカジュアル、IDEは技術的）",
+      "enabled": "コンテキスト対応強化を有効にしました",
+      "disabled": "コンテキスト対応強化を無効にしました",
+      "categoriesTitle": "アプリカテゴリ",
+      "categories": {
+        "email": "メール",
+        "chat": "チャット",
+        "ide": "コードエディタ",
+        "notes": "ノート"
+      }
     }
   },
   "dashboard": {
@@ -272,7 +285,39 @@
     "charsPerMinute": "1分あたりの文字数",
     "charsPerMinuteUnit": "文字/分",
     "communityTitle": "お困りですか？",
-    "communityDescription": "アイデアがありましたら、バグ報告や機能リクエストをお寄せください"
+    "communityDescription": "アイデアがありましたら、バグ報告や機能リクエストをお寄せください",
+    "heroMultiplierLabel": "高速",
+    "heroEmptyTitle": "生産性を向上させる準備ができました",
+    "heroEmptyDescription": "音声入力を始めて、スピードの優位性を体感しましょう",
+    "badgeLocalFirst": "ローカルファースト",
+    "badgeNoSessionLimit": "時間制限なし",
+    "tips": {
+      "vocabulary": {
+        "title": "カスタム語彙",
+        "description": "専門用語や人名を追加して認識精度を向上"
+      },
+      "customPrompt": {
+        "title": "AI 整理プロンプト",
+        "description": "AI による音声処理とフォーマットをカスタマイズ"
+      },
+      "hotkeyModes": {
+        "title": "ホットキーモード",
+        "description": "ホールド、トグル、ダブルタップから録音トリガーを選択"
+      },
+      "historyPlayback": {
+        "title": "録音再生",
+        "description": "過去の録音を再生し、異なる設定で再文字起こし"
+      },
+      "smartDictionary": {
+        "title": "スマート辞書",
+        "description": "AI がペースト後の修正から新しい用語を自動学習"
+      },
+      "soundThemes": {
+        "title": "サウンドテーマ",
+        "description": "内蔵テーマで録音開始/終了音をカスタマイズ"
+      },
+      "tryIt": "試す"
+    }
   },
   "history": {
     "searchPlaceholder": "文字起こし履歴を検索...",

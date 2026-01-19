@@ -48,6 +48,10 @@ const MINIMUM_RECORDING_DURATION_MS = 300;
 
 let abortController: AbortController | null = null;
 
+// ── Context-aware: capture frontmost app at recording start ──
+
+let lastRecordingBundleId: string | null = null;
+
 export function getAbortController(): AbortController | null {
   return abortController;
 }
@@ -370,6 +374,17 @@ export async function handleStartRecording(): Promise<void> {
   abortController = new AbortController();
 
   try {
+    // Capture frontmost app before HUD takes focus (for context-aware enhancement)
+    if (getSettingsStore().isContextAwareEnabled) {
+      try {
+        lastRecordingBundleId = await invoke<string | null>("get_frontmost_app_bundle_id");
+      } catch {
+        lastRecordingBundleId = null;
+      }
+    } else {
+      lastRecordingBundleId = null;
+    }
+
     playSoundIfEnabled("start");
     setDelayedMuteTimer(() => {
       void muteSystemAudioIfEnabled();
@@ -612,7 +627,9 @@ export async function handleStopRecording(): Promise<void> {
       try {
         const enhancementTermList = await vocabularyStore.getTopTermListByWeight(50);
         const enhanceOptions = {
-          systemPrompt: settingsStore.getAiPrompt(),
+          systemPrompt: settingsStore.isContextAwareEnabled
+            ? settingsStore.getContextAwarePrompt(lastRecordingBundleId)
+            : settingsStore.getAiPrompt(),
           vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
           modelId: settingsStore.selectedLlmModelId,
           signal: abortController?.signal,

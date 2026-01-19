@@ -232,6 +232,19 @@
       "analysisModelLabel": "字典分析模型",
       "analysisModelDescription": "用于判断修正词汇是否应加入字典的 AI 模型（独立于文字整理模型）",
       "analysisModelUpdated": "字典分析模型已更新"
+    },
+    "contextAware": {
+      "title": "情境感知增强",
+      "description": "根据使用中的应用程序自动调整语气（邮件用正式语气、聊天用轻松语气、IDE 用技术语气）",
+      "enabled": "情境感知增强已启用",
+      "disabled": "情境感知增强已停用",
+      "categoriesTitle": "应用程序分类",
+      "categories": {
+        "email": "电子邮件",
+        "chat": "聊天",
+        "ide": "代码编辑器",
+        "notes": "笔记"
+      }
     }
   },
   "dashboard": {
@@ -272,7 +285,39 @@
     "charsPerMinute": "每分钟字数",
     "charsPerMinuteUnit": "字/分",
     "communityTitle": "需要帮助？",
-    "communityDescription": "有建议？欢迎反馈问题或提出功能需求"
+    "communityDescription": "有建议？欢迎反馈问题或提出功能需求",
+    "heroMultiplierLabel": "更快",
+    "heroEmptyTitle": "准备好提升你的生产力",
+    "heroEmptyDescription": "开始使用语音输入，感受速度优势",
+    "badgeLocalFirst": "本地优先隐私",
+    "badgeNoSessionLimit": "无时间限制",
+    "tips": {
+      "vocabulary": {
+        "title": "自定义词汇",
+        "description": "添加专业术语和人名，提升识别准确度"
+      },
+      "customPrompt": {
+        "title": "AI 整理提示词",
+        "description": "自定义 AI 处理和格式化语音内容的方式"
+      },
+      "hotkeyModes": {
+        "title": "快捷键模式",
+        "description": "选择按住、切换或双击来触发录音"
+      },
+      "historyPlayback": {
+        "title": "录音回放",
+        "description": "重新播放过去的录音，用不同设置重新转录"
+      },
+      "smartDictionary": {
+        "title": "智能字典",
+        "description": "AI 自动从你的修正中学习新词汇"
+      },
+      "soundThemes": {
+        "title": "音效主题",
+        "description": "用内置主题自定义录音开始/结束音效"
+      },
+      "tryIt": "试试看"
+    }
   },
   "history": {
     "searchPlaceholder": "搜索转录记录...",

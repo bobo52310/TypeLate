@@ -232,6 +232,19 @@
       "analysisModelLabel": "사전 분석 모델",
       "analysisModelDescription": "수정된 용어를 사전에 추가할지 판단하는 AI 모델 (텍스트 정리 모델과 독립)",
       "analysisModelUpdated": "사전 분석 모델이 업데이트되었습니다"
+    },
+    "contextAware": {
+      "title": "컨텍스트 인식 향상",
+      "description": "사용 중인 앱에 따라 어조를 자동 조정 (이메일은 격식체, 채팅은 구어체, IDE는 기술적)",
+      "enabled": "컨텍스트 인식 향상 활성화됨",
+      "disabled": "컨텍스트 인식 향상 비활성화됨",
+      "categoriesTitle": "앱 카테고리",
+      "categories": {
+        "email": "이메일",
+        "chat": "채팅",
+        "ide": "코드 에디터",
+        "notes": "노트"
+      }
     }
   },
   "dashboard": {
@@ -272,7 +285,39 @@
     "charsPerMinute": "분당 글자 수",
     "charsPerMinuteUnit": "자/분",
     "communityTitle": "도움이 필요하세요?",
-    "communityDescription": "아이디어가 있으시면 버그 제보나 기능 요청을 보내주세요"
+    "communityDescription": "아이디어가 있으시면 버그 제보나 기능 요청을 보내주세요",
+    "heroMultiplierLabel": "더 빠르게",
+    "heroEmptyTitle": "생산성을 높일 준비가 되었습니다",
+    "heroEmptyDescription": "음성 입력을 시작하여 속도 이점을 경험하세요",
+    "badgeLocalFirst": "로컬 우선 프라이버시",
+    "badgeNoSessionLimit": "시간 제한 없음",
+    "tips": {
+      "vocabulary": {
+        "title": "맞춤 어휘",
+        "description": "전문 용어와 이름을 추가하여 인식 정확도 향상"
+      },
+      "customPrompt": {
+        "title": "AI 정리 프롬프트",
+        "description": "AI가 음성을 처리하고 포맷하는 방식을 맞춤 설정"
+      },
+      "hotkeyModes": {
+        "title": "단축키 모드",
+        "description": "홀드, 토글 또는 더블탭 중 녹음 트리거 선택"
+      },
+      "historyPlayback": {
+        "title": "녹음 재생",
+        "description": "과거 녹음을 재생하고 다른 설정으로 다시 전사"
+      },
+      "smartDictionary": {
+        "title": "스마트 사전",
+        "description": "AI가 붙여넣기 후 수정에서 새 용어를 자동 학습"
+      },
+      "soundThemes": {
+        "title": "사운드 테마",
+        "description": "내장 테마로 녹음 시작/종료 소리를 맞춤 설정"
+      },
+      "tryIt": "사용해보기"
+    }
   },
   "history": {
     "searchPlaceholder": "전사 기록 검색...",

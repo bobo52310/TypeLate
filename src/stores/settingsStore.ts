@@ -57,6 +57,8 @@ import {
 
 import { APP_VERSION } from "@/lib/version";
 import { IS_MAC } from "@/lib/platform";
+import { type AppCategory, resolveAppCategory } from "@/lib/appContextMap";
+import { composeContextAwarePrompt } from "@/lib/contextPrompts";
 
 const STORE_NAME = "settings.json";
 
@@ -116,6 +118,8 @@ interface SettingsState {
   recordingRetentionPolicy: RecordingRetentionPolicy;
   selectedAudioInputDeviceName: string;
   pasteMode: "auto-paste" | "copy-only";
+  isContextAwareEnabled: boolean;
+  contextAppOverrides: Record<string, AppCategory>;
 
   // -- Derived getters --
   triggerMode: () => TriggerMode;
@@ -134,6 +138,7 @@ interface SettingsState {
   // -- Actions --
   getApiKey: () => string;
   getAiPrompt: () => string;
+  getContextAwarePrompt: (bundleId: string | null) => string;
   getEffectivePromptLocale: () => SupportedLocale;
   getTriggerKeyDisplayName: (key: TriggerKey) => string;
   getWhisperLanguageCode: () => string | null;
@@ -160,6 +165,7 @@ interface SettingsState {
   saveCustomSoundPath: (slot: string, filePath: string) => Promise<void>;
   getSoundForSlot: (slot: "start" | "stop" | "error" | "learned") => string;
   saveSmartDictionaryEnabled: (enabled: boolean) => Promise<void>;
+  saveContextAwareEnabled: (enabled: boolean) => Promise<void>;
   saveRecordingRetentionPolicy: (policy: RecordingRetentionPolicy) => Promise<void>;
   getRecordingsStorageInfo: () => Promise<RecordingsStorageInfo>;
   openRecordingsFolder: () => Promise<void>;
@@ -213,6 +219,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   recordingRetentionPolicy: DEFAULT_RECORDING_RETENTION_POLICY,
   selectedAudioInputDeviceName: "",
   pasteMode: "auto-paste" as const,
+  isContextAwareEnabled: false,
+  contextAppOverrides: {} as Record<string, AppCategory>,
 
   // -- Derived getters --
   triggerMode: () => get().hotkeyConfig?.triggerMode ?? "hold",
@@ -240,6 +248,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const { promptMode, aiPrompt, getEffectivePromptLocale: getLocale } = get();
     if (promptMode === "custom") return aiPrompt;
     return getPromptForModeAndLocale(promptMode, getLocale());
+  },
+
+  getContextAwarePrompt: (bundleId: string | null) => {
+    const basePrompt = get().getAiPrompt();
+    if (!get().isContextAwareEnabled) return basePrompt;
+    const category = resolveAppCategory(bundleId, get().contextAppOverrides);
+    return composeContextAwarePrompt(basePrompt, category, get().getEffectivePromptLocale());
   },
 
   getTriggerKeyDisplayName: (key: TriggerKey) => {
@@ -388,6 +403,10 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const savedAudioInputDeviceName = await store.get<string>("audioInputDeviceName");
       const savedPasteMode = await store.get<string>("pasteMode");
 
+      // Context-aware enhancement
+      const savedContextAwareEnabled = await store.get<boolean>("contextAwareEnabled");
+      const savedContextAppOverrides = await store.get<Record<string, AppCategory>>("contextAppOverrides");
+
       set({
         hotkeyConfig: { triggerKey: key, triggerMode: mode },
         apiKey: savedApiKey?.trim() ?? "",
@@ -414,6 +433,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         pasteMode: (savedPasteMode === "copy-only" ? "copy-only" : "auto-paste") as
           | "auto-paste"
           | "copy-only",
+        isContextAwareEnabled: savedContextAwareEnabled ?? false,
+        contextAppOverrides: savedContextAppOverrides ?? {},
       });
 
       // Sync saved config to Rust on startup
@@ -944,6 +965,33 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       captureError(err, {
         source: "settings",
         step: "save-smart-dictionary",
+      });
+      throw err;
+    }
+  },
+
+  saveContextAwareEnabled: async (enabled: boolean) => {
+    try {
+      const store = await load(STORE_NAME);
+      await store.set("contextAwareEnabled", enabled);
+      await store.save();
+      set({ isContextAwareEnabled: enabled });
+
+      const payload: SettingsUpdatedPayload = {
+        key: "contextAwareEnabled",
+        value: enabled,
+      };
+      await emitEvent(SETTINGS_UPDATED, payload);
+      logInfo("settings", `contextAwareEnabled saved: ${enabled}`);
+    } catch (err) {
+      logError(
+        "settings",
+        "[settingsStore] saveContextAwareEnabled failed:",
+        extractErrorMessage(err),
+      );
+      captureError(err, {
+        source: "settings",
+        step: "save-context-aware",
       });
       throw err;
     }
