@@ -232,6 +232,19 @@
       "analysisModelLabel": "Dictionary Analysis Model",
       "analysisModelDescription": "AI model for determining whether corrected terms should be added to the dictionary (independent from text enhancement model)",
       "analysisModelUpdated": "Dictionary analysis model updated"
+    },
+    "contextAware": {
+      "title": "Context-Aware Enhancement",
+      "description": "Automatically adjust tone based on the active app (formal for email, casual for chat, technical for IDE)",
+      "enabled": "Context-aware enhancement enabled",
+      "disabled": "Context-aware enhancement disabled",
+      "categoriesTitle": "App Categories",
+      "categories": {
+        "email": "Email",
+        "chat": "Chat",
+        "ide": "Code Editor",
+        "notes": "Notes"
+      }
     }
   },
   "dashboard": {
@@ -272,7 +285,39 @@
     "charsPerMinute": "Chars/Minute",
     "charsPerMinuteUnit": "chars/min",
     "communityTitle": "Need Help?",
-    "communityDescription": "Got ideas? Report bugs or request features"
+    "communityDescription": "Got ideas? Report bugs or request features",
+    "heroMultiplierLabel": "Faster",
+    "heroEmptyTitle": "Ready to boost your productivity",
+    "heroEmptyDescription": "Start using voice input to see your speed advantage",
+    "badgeLocalFirst": "Local-first Privacy",
+    "badgeNoSessionLimit": "No Session Limit",
+    "tips": {
+      "vocabulary": {
+        "title": "Custom Vocabulary",
+        "description": "Add industry terms and names to boost recognition accuracy"
+      },
+      "customPrompt": {
+        "title": "AI Enhancement Prompt",
+        "description": "Customize how AI processes and formats your speech"
+      },
+      "hotkeyModes": {
+        "title": "Hotkey Modes",
+        "description": "Choose Hold, Toggle, or Double-Tap recording triggers"
+      },
+      "historyPlayback": {
+        "title": "Recording Playback",
+        "description": "Replay past recordings and re-transcribe with different settings"
+      },
+      "smartDictionary": {
+        "title": "Smart Dictionary",
+        "description": "AI auto-learns new terms from your corrections after paste"
+      },
+      "soundThemes": {
+        "title": "Sound Themes",
+        "description": "Customize recording start/stop sounds with built-in themes"
+      },
+      "tryIt": "Try it"
+    }
   },
   "history": {
     "searchPlaceholder": "Search transcriptions...",

@@ -24,6 +24,8 @@ export interface SettingsStoreAccessor {
   getApiKey: () => string;
   refreshApiKey: () => Promise<void>;
   getAiPrompt: () => string;
+  isContextAwareEnabled: boolean;
+  getContextAwarePrompt: (bundleId: string | null) => string;
   getWhisperLanguageCode: () => string | null;
   pasteMode: "auto-paste" | "copy-only";
   recordingRetentionPolicy: import("@/stores/settingsStore").RecordingRetentionPolicy;

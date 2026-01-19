@@ -1,3 +1,19 @@
+/// 取得最前方應用程式的 bundle identifier。
+/// macOS: 透過 NSWorkspace.sharedWorkspace.frontmostApplication
+/// 其他平台: 回傳 None
+#[tauri::command]
+pub fn get_frontmost_app_bundle_id() -> Result<Option<String>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        macos::get_frontmost_app_bundle_id_impl()
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        Ok(None)
+    }
+}
+
 /// 讀取當前 focused text field 游標附近的文字。
 /// macOS: 透過 AXUIElement Accessibility API
 /// Windows: 目前為 no-op placeholder（後續補上 UI Automation）
@@ -146,6 +162,36 @@ mod macos {
             role,
             "AXTextField" | "AXTextArea" | "AXComboBox" | "AXWebArea"
         )
+    }
+
+    pub fn get_frontmost_app_bundle_id_impl() -> Result<Option<String>, String> {
+        use objc::runtime::{Class, Object};
+        use objc::{msg_send, sel, sel_impl};
+
+        unsafe {
+            let ns_workspace_class = match Class::get("NSWorkspace") {
+                Some(c) => c,
+                None => return Ok(None),
+            };
+            let workspace: *mut Object = msg_send![ns_workspace_class, sharedWorkspace];
+            if workspace.is_null() {
+                return Ok(None);
+            }
+            let app: *mut Object = msg_send![workspace, frontmostApplication];
+            if app.is_null() {
+                return Ok(None);
+            }
+            let bundle_id: *mut Object = msg_send![app, bundleIdentifier];
+            if bundle_id.is_null() {
+                return Ok(None);
+            }
+            let utf8: *const std::os::raw::c_char = msg_send![bundle_id, UTF8String];
+            if utf8.is_null() {
+                return Ok(None);
+            }
+            let s = std::ffi::CStr::from_ptr(utf8).to_string_lossy().into_owned();
+            Ok(Some(s))
+        }
     }
 
     pub fn read_focused_text_field_impl() -> Result<Option<String>, String> {

@@ -232,6 +232,19 @@
       "analysisModelLabel": "字典分析模型",
       "analysisModelDescription": "用於判斷修正詞彙是否應加入字典的 AI 模型（獨立於文字整理模型）",
       "analysisModelUpdated": "字典分析模型已更新"
+    },
+    "contextAware": {
+      "title": "情境感知增強",
+      "description": "根據使用中的應用程式自動調整語氣（郵件用正式語氣、聊天用輕鬆語氣、IDE 用技術語氣）",
+      "enabled": "情境感知增強已啟用",
+      "disabled": "情境感知增強已停用",
+      "categoriesTitle": "應用程式分類",
+      "categories": {
+        "email": "電子郵件",
+        "chat": "聊天",
+        "ide": "程式編輯器",
+        "notes": "筆記"
+      }
     }
   },
   "dashboard": {
@@ -272,7 +285,39 @@
     "charsPerMinute": "每分鐘字數",
     "charsPerMinuteUnit": "字/分",
     "communityTitle": "需要幫助？",
-    "communityDescription": "有建議？歡迎回報問題或提出功能需求"
+    "communityDescription": "有建議？歡迎回報問題或提出功能需求",
+    "heroMultiplierLabel": "更快",
+    "heroEmptyTitle": "準備好提升你的生產力",
+    "heroEmptyDescription": "開始使用語音輸入，感受速度優勢",
+    "badgeLocalFirst": "本地優先隱私",
+    "badgeNoSessionLimit": "無時間限制",
+    "tips": {
+      "vocabulary": {
+        "title": "自訂詞彙",
+        "description": "加入專業術語和人名，提升辨識準確度"
+      },
+      "customPrompt": {
+        "title": "AI 整理提示詞",
+        "description": "自訂 AI 處理和格式化語音內容的方式"
+      },
+      "hotkeyModes": {
+        "title": "快捷鍵模式",
+        "description": "選擇按住、切換或雙擊來觸發錄音"
+      },
+      "historyPlayback": {
+        "title": "錄音回放",
+        "description": "重新播放過去的錄音，用不同設定重新轉錄"
+      },
+      "smartDictionary": {
+        "title": "智慧字典",
+        "description": "AI 自動從你的修正中學習新詞彙"
+      },
+      "soundThemes": {
+        "title": "音效主題",
+        "description": "用內建主題自訂錄音開始/結束音效"
+      },
+      "tryIt": "試試看"
+    }
   },
   "history": {
     "searchPlaceholder": "搜尋轉錄記錄...",
