@@ -26,12 +26,14 @@ tauri-plugin-sql = { version = "2.3.1", features = ["sqlite"] }
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-updater = "~2.10.0"
 tauri-plugin-store = "~2.4"
+tauri-plugin-dialog = "2"
 tauri-plugin-process = "2"
 sentry = "0.46"
 cpal = "0.15"
 hound = "3.5"
 rustfft = "6"
 reqwest = { version = "0.12", features = ["multipart", "json"] }
+tokio = { version = "1", features = ["net", "time", "sync", "io-util"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-graphics = "0.24"

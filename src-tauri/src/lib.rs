@@ -442,7 +442,9 @@ pub fn run() {
             plugins::sound_feedback::play_stop_sound,
             plugins::sound_feedback::play_error_sound,
             plugins::sound_feedback::play_learned_sound,
-            plugins::sound_feedback::play_sound
+            plugins::sound_feedback::play_sound,
+            plugins::google_auth::start_oauth_listener,
+            plugins::google_auth::await_oauth_code
         ])
         .setup(|app| {
             // 初始化 keyboard monitor 狀態
@@ -453,6 +455,8 @@ pub fn run() {
             app.manage(plugins::audio_recorder::AudioRecorderState::new());
             // 初始化 transcription 狀態（共用 HTTP client）
             app.manage(plugins::transcription::TranscriptionState::new());
+            // 初始化 Google OAuth listener 狀態
+            app.manage(plugins::google_auth::OAuthListenerState::new());
 
             let open_dashboard_item =
                 MenuItem::with_id(app, "open-dashboard", "Open Dashboard", true, None::<&str>)?;
