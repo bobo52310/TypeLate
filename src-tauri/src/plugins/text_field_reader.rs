@@ -240,7 +240,33 @@ mod macos {
         }
     }
 
-    /// Extract app icon as base64-encoded PNG string.
+    /// Geometry types matching macOS CGGeometry (CGFloat = f64 on 64-bit).
+    /// Only used as pointers in msg_send!, so no Encode trait needed.
+    #[repr(C)]
+    #[derive(Copy, Clone)]
+    struct CGPoint {
+        x: f64,
+        y: f64,
+    }
+
+    #[repr(C)]
+    #[derive(Copy, Clone)]
+    struct CGSize {
+        width: f64,
+        height: f64,
+    }
+
+    #[repr(C)]
+    #[derive(Copy, Clone)]
+    struct CGRect {
+        origin: CGPoint,
+        size: CGSize,
+    }
+
+    /// Icon display size (logical points). On Retina, the CGImage may be 2x pixels.
+    const ICON_SIZE: f64 = 32.0;
+
+    /// Extract app icon as base64-encoded PNG string, constrained to ~32x32.
     unsafe fn get_app_icon_base64(app: *mut Object) -> String {
         use objc::runtime::Class;
         use objc::{msg_send, sel, sel_impl};
@@ -250,24 +276,37 @@ mod macos {
             return String::new();
         }
 
-        // Get TIFF representation (contains the icon bitmap data)
-        let tiff_data: *mut Object = msg_send![icon, TIFFRepresentation];
-        if tiff_data.is_null() {
+        // Request a CGImage at 32×32 logical size (may return @2x on Retina)
+        let mut proposed_rect = CGRect {
+            origin: CGPoint { x: 0.0, y: 0.0 },
+            size: CGSize {
+                width: ICON_SIZE,
+                height: ICON_SIZE,
+            },
+        };
+        let nil: *mut Object = std::ptr::null_mut();
+        let cg_image: *mut std::ffi::c_void = msg_send![
+            icon,
+            CGImageForProposedRect: &mut proposed_rect as *mut CGRect
+            context: nil
+            hints: nil
+        ];
+        if cg_image.is_null() {
             return String::new();
         }
 
-        // Create NSBitmapImageRep from TIFF (picks first/primary representation)
+        // Create NSBitmapImageRep from the size-constrained CGImage
         let bitmap_class = match Class::get("NSBitmapImageRep") {
             Some(c) => c,
             None => return String::new(),
         };
-        let bitmap: *mut Object = msg_send![bitmap_class, imageRepWithData: tiff_data];
+        let bitmap: *mut Object = msg_send![bitmap_class, alloc];
+        let bitmap: *mut Object = msg_send![bitmap, initWithCGImage: cg_image];
         if bitmap.is_null() {
             return String::new();
         }
 
         // Convert to PNG (NSBitmapImageFileType.png = 4)
-        let nil: *mut Object = std::ptr::null_mut();
         let png_data: *mut Object =
             msg_send![bitmap, representationUsingType: 4u64 properties: nil];
         if png_data.is_null() {
@@ -279,6 +318,9 @@ mod macos {
             msg_send![png_data, base64EncodedStringWithOptions: 0u64];
         nsstring_to_string(base64_ns)
     }
+
+    /// TypeLate's own bundle ID — skip showing our own icon in the HUD.
+    const SELF_BUNDLE_ID: &str = "com.typelate.app";
 
     pub fn get_frontmost_app_info_impl() -> Result<Option<super::FrontmostAppInfo>, String> {
         use objc::{msg_send, sel, sel_impl};
@@ -292,7 +334,8 @@ mod macos {
             let bundle_id = nsstring_to_string(msg_send![app, bundleIdentifier]);
             let name = nsstring_to_string(msg_send![app, localizedName]);
 
-            if name.is_empty() && bundle_id.is_empty() {
+            // Skip if no identifying info or if TypeLate itself is frontmost
+            if (name.is_empty() && bundle_id.is_empty()) || bundle_id == SELF_BUNDLE_ID {
                 return Ok(None);
             }
 
