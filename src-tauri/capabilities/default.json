@@ -25,6 +25,15 @@
       "allow": [
         {
           "url": "https://api.groq.com/*"
+        },
+        {
+          "url": "https://accounts.google.com/*"
+        },
+        {
+          "url": "https://oauth2.googleapis.com/*"
+        },
+        {
+          "url": "https://www.googleapis.com/*"
         }
       ]
     },
