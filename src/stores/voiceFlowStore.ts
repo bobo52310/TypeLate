@@ -112,6 +112,8 @@ export interface VoiceFlowState {
   recordingElapsedSeconds: number;
   canRetry: boolean;
   lastWasModified: boolean | null;
+  frontmostAppName: string | null;
+  frontmostAppIconBase64: string | null;
 
   // Internal state (used by sub-modules, prefixed with _ to indicate internal)
   /** @internal */ _isAborted: boolean;
@@ -306,6 +308,8 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
   recordingElapsedSeconds: 0,
   canRetry: false,
   lastWasModified: null,
+  frontmostAppName: null,
+  frontmostAppIconBase64: null,
 
   // Internal state
   _isAborted: false,
