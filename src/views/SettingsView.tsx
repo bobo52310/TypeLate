@@ -10,9 +10,6 @@ import ApiKeySection from "@/views/settings/ApiKeySection";
 import ModelSection from "@/views/settings/ModelSection";
 import PromptSection from "@/views/settings/PromptSection";
 import EnhancementSection from "@/views/settings/EnhancementSection";
-import SmartDictionarySection from "@/views/settings/SmartDictionarySection";
-import VocabularyListSection from "@/views/settings/VocabularyListSection";
-import GoogleDriveSyncSection from "@/views/settings/GoogleDriveSyncSection";
 import PasteModeSection from "@/views/settings/PasteModeSection";
 import ContextAwareSection from "@/views/settings/ContextAwareSection";
 import AboutSection from "@/views/settings/AboutSection";
@@ -26,7 +23,6 @@ const SETTINGS_TABS: SettingsTab[] = [
   { id: "general", labelKey: "settings.group.general" },
   { id: "voice", labelKey: "settings.group.voice" },
   { id: "ai", labelKey: "settings.group.ai" },
-  { id: "dictionary", labelKey: "settings.group.dictionary" },
   { id: "about", labelKey: "settings.group.about" },
 ];
 
@@ -91,14 +87,6 @@ export default function SettingsView() {
               <PromptSection />
               <EnhancementSection />
               <ContextAwareSection />
-            </>
-          )}
-
-          {activeTab === "dictionary" && (
-            <>
-              <SmartDictionarySection />
-              <VocabularyListSection />
-              <GoogleDriveSyncSection />
             </>
           )}
 

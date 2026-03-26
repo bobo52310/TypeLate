@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const OnboardingView = lazy(() => import("@/views/OnboardingView"));
-import { Download, FileText, LayoutDashboard, Settings, type LucideIcon } from "lucide-react";
+import { BookOpen, Download, FileText, LayoutDashboard, Settings, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { path: "/dashboard", labelKey: "mainApp.nav.dashboard", icon: LayoutDashboard },
   { path: "/history", labelKey: "mainApp.nav.history", icon: FileText },
+  { path: "/dictionary", labelKey: "mainApp.nav.dictionary", icon: BookOpen },
   { path: "/settings", labelKey: "mainApp.nav.settings", icon: Settings },
 ];
 
@@ -88,6 +89,10 @@ export function DashboardApp() {
           navigate("/history");
           break;
         case "3":
+          e.preventDefault();
+          navigate("/dictionary");
+          break;
+        case "4":
         case ",":
           e.preventDefault();
           navigate("/settings");

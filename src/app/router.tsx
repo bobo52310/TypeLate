@@ -2,15 +2,17 @@ import { useSyncExternalStore, useCallback, lazy, Suspense } from "react";
 
 const DashboardView = lazy(() => import("@/views/DashboardView"));
 const HistoryView = lazy(() => import("@/views/HistoryView"));
+const DictionaryView = lazy(() => import("@/views/DictionaryView"));
 const SettingsView = lazy(() => import("@/views/SettingsView"));
 
-export type RoutePath = "/dashboard" | "/history" | "/settings";
+export type RoutePath = "/dashboard" | "/history" | "/dictionary" | "/settings";
 
-export const ROUTES: RoutePath[] = ["/dashboard", "/history", "/settings"];
+export const ROUTES: RoutePath[] = ["/dashboard", "/history", "/dictionary", "/settings"];
 
 const ROUTE_COMPONENTS: Record<RoutePath, React.LazyExoticComponent<React.ComponentType>> = {
   "/dashboard": DashboardView,
   "/history": HistoryView,
+  "/dictionary": DictionaryView,
   "/settings": SettingsView,
 };
 
