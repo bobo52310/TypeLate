@@ -1,20 +1,42 @@
 import type { Migration } from "./index";
+import { tableExists } from "./utils";
 
 /**
  * v9: Expand trigger_mode CHECK constraint to include 'doubleTap'.
  *
- * SQLite doesn't support ALTER TABLE ... DROP CONSTRAINT, so we recreate
- * the table with the updated CHECK and copy all data over.
+ * Strategy: RENAME old → _old, CREATE new, COPY, DROP _old.
+ * If DROP _old fails the new table is already functional, so the
+ * migration still succeeds. Handles partial state from prior failures.
  */
 export const v9TriggerModeDoubleTap: Migration = {
   version: 9,
   description: "Allow doubleTap in trigger_mode CHECK constraint",
   up: async (db) => {
-    // Clean up partial state from a previous failed attempt
-    await db.execute("DROP TABLE IF EXISTS transcriptions_new;");
+    // If a previous run already completed the rename+create but failed on
+    // cleanup, the correct "transcriptions" table already exists with the
+    // new constraint. Detect this by checking if _old lingers.
+    const oldExists = await tableExists(db, "transcriptions_old");
+    const newExists = await tableExists(db, "transcriptions_new");
 
+    // Clean up any leftover temp tables from previous failed attempts
+    if (newExists) {
+      await db.execute("DROP TABLE transcriptions_new;");
+    }
+
+    if (oldExists) {
+      // Previous run renamed original → _old and may have created the
+      // new table already. Just make sure _old is gone.
+      await db.execute("DROP TABLE transcriptions_old;");
+      // If transcriptions (the new one) already exists, we're done.
+      if (await tableExists(db, "transcriptions")) return;
+    }
+
+    // Step 1: Rename original out of the way
+    await db.execute("ALTER TABLE transcriptions RENAME TO transcriptions_old;");
+
+    // Step 2: Create replacement with updated CHECK constraint
     await db.execute(`
-      CREATE TABLE transcriptions_new (
+      CREATE TABLE transcriptions (
         id TEXT PRIMARY KEY,
         timestamp INTEGER NOT NULL,
         raw_text TEXT NOT NULL,
@@ -34,27 +56,32 @@ export const v9TriggerModeDoubleTap: Migration = {
       );
     `);
 
+    // Step 3: Copy all existing data
     await db.execute(`
-      INSERT INTO transcriptions_new
+      INSERT INTO transcriptions
       SELECT id, timestamp, raw_text, processed_text,
              recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
              char_count, trigger_mode, was_enhanced, was_modified, created_at,
              audio_file_path, status, whisper_model_id, llm_model_id
-      FROM transcriptions;
+      FROM transcriptions_old;
     `);
 
-    await db.execute("DROP TABLE transcriptions;");
-    await db.execute("ALTER TABLE transcriptions_new RENAME TO transcriptions;");
+    // Step 4: Recreate indexes on new table
+    await db.execute(
+      "CREATE INDEX idx_transcriptions_timestamp ON transcriptions(timestamp DESC);",
+    );
+    await db.execute(
+      "CREATE INDEX idx_transcriptions_created_at ON transcriptions(created_at);",
+    );
+    await db.execute(
+      "CREATE INDEX idx_transcriptions_status ON transcriptions(status);",
+    );
 
-    // Recreate indexes
-    await db.execute(`
-      CREATE INDEX idx_transcriptions_timestamp ON transcriptions(timestamp DESC);
-    `);
-    await db.execute(`
-      CREATE INDEX idx_transcriptions_created_at ON transcriptions(created_at);
-    `);
-    await db.execute(`
-      CREATE INDEX idx_transcriptions_status ON transcriptions(status);
-    `);
+    // Step 5: Drop old table (best-effort — new table is already usable)
+    try {
+      await db.execute("DROP TABLE transcriptions_old;");
+    } catch {
+      // Non-fatal: _old lingers but will be cleaned up on next startup
+    }
   },
 };
