@@ -33,16 +33,16 @@ This starts both the Vite dev server (frontend) and the Tauri Rust backend. The 
 
 ### Useful Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm tauri dev` | Start the app in development mode |
-| `pnpm build` | TypeScript check + Vite production build |
-| `pnpm tauri build` | Full native application build |
-| `pnpm test` | Run all tests |
-| `pnpm test:watch` | Run tests in watch mode |
-| `pnpm test:coverage` | Run tests with coverage report |
-| `pnpm lint` | Run ESLint |
-| `pnpm format` | Run Prettier |
+| Command              | Description                              |
+| -------------------- | ---------------------------------------- |
+| `pnpm tauri dev`     | Start the app in development mode        |
+| `pnpm build`         | TypeScript check + Vite production build |
+| `pnpm tauri build`   | Full native application build            |
+| `pnpm test`          | Run all tests                            |
+| `pnpm test:watch`    | Run tests in watch mode                  |
+| `pnpm test:coverage` | Run tests with coverage report           |
+| `pnpm lint`          | Run ESLint                               |
+| `pnpm format`        | Run Prettier                             |
 
 ## Project Structure
 
@@ -117,6 +117,7 @@ lib/ --> External APIs (Groq, Tauri plugins)
 ```
 
 Rules:
+
 - **Views must not import from `lib/` directly.** All data access and side effects go through Zustand stores.
 - **Components must not execute SQL queries directly.** Use store actions instead.
 - **Do not call Tauri event APIs directly.** Use the `useTauriEvent` hook from `hooks/useTauriEvent.ts`.
@@ -174,6 +175,7 @@ export const useMyStore = create<MyStore>()((set, get) => ({
 TypeLate uses [shadcn/ui](https://ui.shadcn.com/) (New York style) for UI components. These components live in `src/components/ui/`.
 
 Rules:
+
 - **Use shadcn/ui components instead of raw HTML elements.** For example, use `<Button>` instead of `<button>`, `<Input>` instead of `<input>`.
 - **Use component variants** via props rather than overriding styles. For example, `variant="destructive"` instead of `className="text-destructive"`.
 - **Do not hand-write UI components** that shadcn/ui already provides (buttons, inputs, selects, switches, tables, dialogs, etc.).
@@ -192,12 +194,12 @@ Rules:
 
 ### Type Naming Conventions
 
-| Suffix | Usage | Example |
-|--------|-------|---------|
-| `*Payload` | Tauri event payloads | `VoiceFlowStateChangedPayload` |
-| `*Record` | SQLite database rows | `TranscriptionRecord` |
-| `*Config` | Configuration objects | `HotkeyConfig` |
-| `*Entry` | Dictionary/list items | `VocabularyEntry` |
+| Suffix     | Usage                 | Example                        |
+| ---------- | --------------------- | ------------------------------ |
+| `*Payload` | Tauri event payloads  | `VoiceFlowStateChangedPayload` |
+| `*Record`  | SQLite database rows  | `TranscriptionRecord`          |
+| `*Config`  | Configuration objects | `HotkeyConfig`                 |
+| `*Entry`   | Dictionary/list items | `VocabularyEntry`              |
 
 ### SQLite Conventions
 
