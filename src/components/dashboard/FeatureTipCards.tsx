@@ -26,7 +26,7 @@ const ALL_TIPS: TipDef[] = [
     icon: BookOpen,
     titleKey: "dashboard.tips.vocabulary.title",
     descriptionKey: "dashboard.tips.vocabulary.description",
-    navigateTo: "#/settings?tab=dictionary",
+    navigateTo: "#/dictionary",
   },
   {
     id: "customPrompt",
@@ -54,7 +54,7 @@ const ALL_TIPS: TipDef[] = [
     icon: Brain,
     titleKey: "dashboard.tips.smartDictionary.title",
     descriptionKey: "dashboard.tips.smartDictionary.description",
-    navigateTo: "#/settings?tab=dictionary",
+    navigateTo: "#/dictionary",
   },
   {
     id: "soundThemes",

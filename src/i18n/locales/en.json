@@ -504,6 +504,7 @@
     "nav": {
       "dashboard": "Dashboard",
       "history": "History",
+      "dictionary": "Dictionary",
       "settings": "Settings"
     },
     "update": {
