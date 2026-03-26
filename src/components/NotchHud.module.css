@@ -454,55 +454,24 @@
   transition: opacity 0.15s ease;
 }
 
-/* ---- App Indicator (below notch during recording) ---- */
-.appIndicator {
-  position: fixed;
-  top: 46px;
-  left: 0;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  animation: appIndicatorFadeIn 0.4s ease-out;
-  pointer-events: none;
+/* ---- App Icon (inline inside notch, left of waveform) ---- */
+.appIconInline {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  animation: appIconFadeIn 0.3s ease-out;
 }
 
-.appIcon {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  opacity: 0.85;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-}
-
-.appName {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
-}
-
-.appIndicatorFading {
-  opacity: 0;
-  transform: translateY(-2px);
-  transition:
-    opacity 0.25s ease-out,
-    transform 0.25s ease-out;
-}
-
-@keyframes appIndicatorFadeIn {
+@keyframes appIconFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: scale(0.5);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
 }
 
@@ -542,7 +511,7 @@
     animation: none !important;
   }
 
-  .appIndicator {
+  .appIconInline {
     animation: none !important;
   }
 }

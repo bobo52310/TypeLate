@@ -458,6 +458,13 @@ export function NotchHud({
 
     return (
       <>
+        {visualMode === "recording" && appIconBase64 && (
+          <img
+            src={`data:image/png;base64,${appIconBase64}`}
+            className={styles.appIconInline}
+            alt={appName ?? ""}
+          />
+        )}
         <div className={styles.waveformContainer} style={waveformContainerStyle}>
           {WAVEFORM_BAR_STYLES.map((barStyle, index) => (
             <span
@@ -528,9 +535,7 @@ export function NotchHud({
       ? `${t("voiceFlow.recording")} ${formattedElapsedTime}`
       : (message ?? undefined);
 
-  const showAppIndicator =
-    (visualMode === "recording" || visualMode === "morphing") && appIconBase64;
-  const isAppIndicatorFading = visualMode === "morphing";
+  // App icon is now rendered inline inside the notch (in renderLeftContent)
 
   return (
     <>
@@ -578,20 +583,6 @@ export function NotchHud({
           )}
         </div>
       </div>
-      {showAppIndicator && (
-        <div
-          className={cn(styles.appIndicator, {
-            [styles.appIndicatorFading]: isAppIndicatorFading,
-          })}
-        >
-          <img
-            src={`data:image/png;base64,${appIconBase64}`}
-            className={styles.appIcon}
-            alt=""
-          />
-          {appName && <span className={styles.appName}>{appName}</span>}
-        </div>
-      )}
     </>
   );
 }
