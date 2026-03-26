@@ -1,70 +1,31 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
-
 import AppSection from "@/views/settings/AppSection";
 import HotkeySection from "@/views/settings/HotkeySection";
 import AudioSection from "@/views/settings/AudioSection";
 import RecordingSection from "@/views/settings/RecordingSection";
-import ApiKeySection from "@/views/settings/ApiKeySection";
-import ModelSection from "@/views/settings/ModelSection";
-import PromptSection from "@/views/settings/PromptSection";
-import EnhancementSection from "@/views/settings/EnhancementSection";
 import PasteModeSection from "@/views/settings/PasteModeSection";
-import ContextAwareSection from "@/views/settings/ContextAwareSection";
 import AboutSection from "@/views/settings/AboutSection";
+import { useHashRouter } from "@/app/router";
 
-interface SettingsTab {
-  id: string;
-  labelKey: string;
+function getSettingsTab(): string {
+  const hash = window.location.hash;
+  if (hash.includes("/settings/voice")) return "voice";
+  if (hash.includes("/settings/about")) return "about";
+  return "general";
 }
 
-const SETTINGS_TABS: SettingsTab[] = [
-  { id: "general", labelKey: "settings.group.general" },
-  { id: "voice", labelKey: "settings.group.voice" },
-  { id: "ai", labelKey: "settings.group.ai" },
-  { id: "about", labelKey: "settings.group.about" },
-];
-
 export default function SettingsView() {
-  const { t } = useTranslation();
-
-  // Support deep-linking via hash param: #/settings?tab=ai
-  const [activeTab, setActiveTab] = useState(() => {
-    const hash = window.location.hash;
-    const match = hash.match(/[?&]tab=(\w+)/);
-    if (match) {
-      const tab = match[1];
-      if (SETTINGS_TABS.some((t) => t.id === tab)) return tab;
-    }
-    return "general";
-  });
+  // Subscribe to route changes so the view re-renders on navigation
+  useHashRouter();
+  const activeTab = getSettingsTab();
 
   return (
     <div className="flex h-full flex-col">
-      {/* Tab bar */}
-      <div className="shrink-0 border-b border-border px-5 pt-4">
-        <div className="flex gap-1">
-          {SETTINGS_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              className={cn(
-                "rounded-t-md px-3 py-1.5 text-sm transition-colors",
-                activeTab === tab.id
-                  ? "border-b-2 border-primary font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {t(tab.labelKey)}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="space-y-6 p-6">
+      <div className="relative flex-1 overflow-y-auto">
+        {/* Top scroll shadow */}
+        <div className="pointer-events-none sticky top-0 z-10 h-3 bg-gradient-to-b from-background to-transparent" />
+
+        <div className="space-y-8 px-6 pb-8">
           {activeTab === "general" && (
             <>
               <AppSection />
@@ -80,18 +41,11 @@ export default function SettingsView() {
             </>
           )}
 
-          {activeTab === "ai" && (
-            <>
-              <ApiKeySection />
-              <ModelSection />
-              <PromptSection />
-              <EnhancementSection />
-              <ContextAwareSection />
-            </>
-          )}
-
           {activeTab === "about" && <AboutSection />}
         </div>
+
+        {/* Bottom scroll shadow */}
+        <div className="pointer-events-none sticky bottom-0 z-10 h-3 bg-gradient-to-t from-background to-transparent" />
       </div>
     </div>
   );
