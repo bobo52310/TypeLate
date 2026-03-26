@@ -29,7 +29,7 @@ export default function DashboardView() {
   const recentTranscriptionList = useHistoryStore((s) => s.recentTranscriptionList);
   const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
 
-  const hasApiKey = useSettingsStore((s) => s.hasApiKey);
+  const apiKey = useSettingsStore((s) => s.apiKey);
 
   const quotaInfo = useQuotaInfo();
 
@@ -76,7 +76,7 @@ export default function DashboardView() {
     void open(COMMUNITY_URL);
   }
 
-  const apiKeyMissing = !hasApiKey();
+  const apiKeyMissing = !apiKey;
 
   function navigateToSettings() {
     window.location.hash = "#/settings?tab=ai";
