@@ -17,11 +17,11 @@ TypeLate is a cross-platform desktop voice-to-text tool built with Tauri v2, Rea
 
 ## Download
 
-| Platform | Link |
-|----------|------|
-| macOS (Apple Silicon) | [TypeLate-mac-arm64.dmg](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-mac-arm64.dmg) |
-| macOS (Intel) | [TypeLate-mac-x64.dmg](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-mac-x64.dmg) |
-| Windows | [TypeLate-windows-x64.exe](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-windows-x64.exe) |
+| Platform              | Link                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| macOS (Apple Silicon) | [TypeLate-mac-arm64.dmg](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-mac-arm64.dmg)     |
+| macOS (Intel)         | [TypeLate-mac-x64.dmg](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-mac-x64.dmg)         |
+| Windows               | [TypeLate-windows-x64.exe](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-windows-x64.exe) |
 
 ## Quick Start
 
@@ -100,22 +100,22 @@ Communication between the Rust backend and React frontend uses Tauri's IPC syste
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Desktop framework | [Tauri v2](https://v2.tauri.app/) (Rust backend) |
-| Frontend | [React 19](https://react.dev/) + TypeScript |
-| State management | [Zustand 5](https://zustand.docs.pmnd.rs/) |
-| Routing | [TanStack Router](https://tanstack.com/router) |
-| UI components | [shadcn/ui](https://ui.shadcn.com/) (New York style) + [Radix UI](https://www.radix-ui.com/) |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com/) |
-| Icons | [Lucide React](https://lucide.dev/) |
-| Charts | [Recharts](https://recharts.org/) |
-| Database | SQLite via [tauri-plugin-sql](https://v2.tauri.app/plugin/sql/) |
-| Settings storage | [tauri-plugin-store](https://v2.tauri.app/plugin/store/) |
-| AI / Speech | [Groq API](https://groq.com/) (Whisper for STT, LLM for text enhancement) |
-| Internationalization | [i18next](https://www.i18next.com/) + [react-i18next](https://react.i18next.com/) |
-| Error tracking | [Sentry](https://sentry.io/) |
-| Testing | [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/) |
+| Layer                | Technology                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| Desktop framework    | [Tauri v2](https://v2.tauri.app/) (Rust backend)                                             |
+| Frontend             | [React 19](https://react.dev/) + TypeScript                                                  |
+| State management     | [Zustand 5](https://zustand.docs.pmnd.rs/)                                                   |
+| Routing              | [TanStack Router](https://tanstack.com/router)                                               |
+| UI components        | [shadcn/ui](https://ui.shadcn.com/) (New York style) + [Radix UI](https://www.radix-ui.com/) |
+| Styling              | [Tailwind CSS v4](https://tailwindcss.com/)                                                  |
+| Icons                | [Lucide React](https://lucide.dev/)                                                          |
+| Charts               | [Recharts](https://recharts.org/)                                                            |
+| Database             | SQLite via [tauri-plugin-sql](https://v2.tauri.app/plugin/sql/)                              |
+| Settings storage     | [tauri-plugin-store](https://v2.tauri.app/plugin/store/)                                     |
+| AI / Speech          | [Groq API](https://groq.com/) (Whisper for STT, LLM for text enhancement)                    |
+| Internationalization | [i18next](https://www.i18next.com/) + [react-i18next](https://react.i18next.com/)            |
+| Error tracking       | [Sentry](https://sentry.io/)                                                                 |
+| Testing              | [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/)              |
 
 ## Contributing
 
