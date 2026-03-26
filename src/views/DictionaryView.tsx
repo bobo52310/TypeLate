@@ -4,7 +4,7 @@ import GoogleDriveSyncSection from "@/views/settings/GoogleDriveSyncSection";
 
 export default function DictionaryView() {
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-8 p-6">
       <VocabularyListSection />
       <SmartDictionarySection />
       <GoogleDriveSyncSection />

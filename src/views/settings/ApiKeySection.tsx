@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { SettingsGroup, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 
@@ -82,22 +82,20 @@ export default function ApiKeySection() {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between border-b border-border">
-        <div className="flex items-center gap-2">
-          <CardTitle className="text-base">Groq API Key</CardTitle>
+    <SettingsGroup title="Groq API Key">
+      <div className="space-y-3 px-4 py-3">
+        <div className="flex items-center justify-between">
           <Badge className={cn("border-0", apiKeyStatusClass)}>{apiKeyStatusLabel}</Badge>
+          <a
+            href="https://console.groq.com/keys"
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t("settings.apiKey.goToConsole")} &rarr;
+          </a>
         </div>
-        <a
-          href="https://console.groq.com/keys"
-          target="_blank"
-          rel="noreferrer"
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {t("settings.apiKey.goToConsole")} &rarr;
-        </a>
-      </CardHeader>
-      <CardContent className="space-y-4">
+
         <p className="text-sm leading-relaxed text-muted-foreground">
           {t("settings.apiKey.instruction")}
         </p>
@@ -133,19 +131,11 @@ export default function ApiKeySection() {
         </div>
 
         <div className="flex items-center justify-between">
-          {feedback.message && (
-            <p
-              className={`text-sm ${
-                feedback.type === "success" ? "text-primary" : "text-destructive"
-              }`}
-            >
-              {feedback.message}
-            </p>
-          )}
-
+          <SettingsFeedback message={feedback.message} type={feedback.type} className="px-0" />
           {hasApiKey && (
             <Button
               variant="outline"
+              size="sm"
               className={cn(
                 isConfirmingDelete
                   ? "border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -160,7 +150,7 @@ export default function ApiKeySection() {
             </Button>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsGroup>
   );
 }

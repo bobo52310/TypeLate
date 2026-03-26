@@ -209,16 +209,22 @@ interface HistoryState {
   resetAndFetch: () => Promise<void>;
   loadMore: () => Promise<void>;
   setSearchQuery: (query: string) => void;
-  addTranscription: (record: TranscriptionRecord) => Promise<void>;
-  updateTranscriptionOnRetrySuccess: (params: {
-    id: string;
-    rawText: string;
-    processedText: string | null;
-    transcriptionDurationMs: number;
-    enhancementDurationMs: number | null;
-    wasEnhanced: boolean;
-    charCount: number;
-  }) => Promise<void>;
+  addTranscription: (
+    record: TranscriptionRecord,
+    options?: { skipEmit?: boolean },
+  ) => Promise<void>;
+  updateTranscriptionOnRetrySuccess: (
+    params: {
+      id: string;
+      rawText: string;
+      processedText: string | null;
+      transcriptionDurationMs: number;
+      enhancementDurationMs: number | null;
+      wasEnhanced: boolean;
+      charCount: number;
+    },
+    options?: { skipEmit?: boolean },
+  ) => Promise<void>;
   addApiUsage: (record: ApiUsageRecord) => Promise<void>;
   fetchDashboardStats: () => Promise<DashboardStats>;
   fetchRecentTranscriptionList: (limit?: number) => Promise<TranscriptionRecord[]>;
@@ -382,7 +388,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     }
   },
 
-  addTranscription: async (record: TranscriptionRecord) => {
+  addTranscription: async (record: TranscriptionRecord, options?: { skipEmit?: boolean }) => {
     const db = getDatabase();
     try {
       await db.execute(INSERT_SQL, [
@@ -408,25 +414,27 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       throw err;
     }
 
-    try {
-      const payload: TranscriptionCompletedPayload = {
-        id: record.id,
-        rawText: record.rawText,
-        processedText: record.processedText,
-        recordingDurationMs: record.recordingDurationMs,
-        transcriptionDurationMs: record.transcriptionDurationMs,
-        enhancementDurationMs: record.enhancementDurationMs,
-        charCount: record.charCount,
-        wasEnhanced: record.wasEnhanced,
-      };
-      await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
-    } catch (emitErr) {
-      logError("history", "emitToWindow failed (INSERT succeeded)", emitErr);
-      captureError(emitErr, { source: "history", step: "add-emit" });
+    if (!options?.skipEmit) {
+      try {
+        const payload: TranscriptionCompletedPayload = {
+          id: record.id,
+          rawText: record.rawText,
+          processedText: record.processedText,
+          recordingDurationMs: record.recordingDurationMs,
+          transcriptionDurationMs: record.transcriptionDurationMs,
+          enhancementDurationMs: record.enhancementDurationMs,
+          charCount: record.charCount,
+          wasEnhanced: record.wasEnhanced,
+        };
+        await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
+      } catch (emitErr) {
+        logError("history", "emitToWindow failed (INSERT succeeded)", emitErr);
+        captureError(emitErr, { source: "history", step: "add-emit" });
+      }
     }
   },
 
-  updateTranscriptionOnRetrySuccess: async (params) => {
+  updateTranscriptionOnRetrySuccess: async (params, options?: { skipEmit?: boolean }) => {
     const db = getDatabase();
     try {
       await db.execute(UPDATE_ON_RETRY_SUCCESS_SQL, [
@@ -444,21 +452,23 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       throw err;
     }
 
-    try {
-      const payload: TranscriptionCompletedPayload = {
-        id: params.id,
-        rawText: params.rawText,
-        processedText: params.processedText,
-        recordingDurationMs: 0,
-        transcriptionDurationMs: params.transcriptionDurationMs,
-        enhancementDurationMs: params.enhancementDurationMs,
-        charCount: params.charCount,
-        wasEnhanced: params.wasEnhanced,
-      };
-      await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
-    } catch (emitErr) {
-      logError("history", "emitToWindow failed (UPDATE succeeded)", emitErr);
-      captureError(emitErr, { source: "history", step: "update-retry-emit" });
+    if (!options?.skipEmit) {
+      try {
+        const payload: TranscriptionCompletedPayload = {
+          id: params.id,
+          rawText: params.rawText,
+          processedText: params.processedText,
+          recordingDurationMs: 0,
+          transcriptionDurationMs: params.transcriptionDurationMs,
+          enhancementDurationMs: params.enhancementDurationMs,
+          charCount: params.charCount,
+          wasEnhanced: params.wasEnhanced,
+        };
+        await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
+      } catch (emitErr) {
+        logError("history", "emitToWindow failed (UPDATE succeeded)", emitErr);
+        captureError(emitErr, { source: "history", step: "update-retry-emit" });
+      }
     }
   },
 

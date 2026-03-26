@@ -373,8 +373,9 @@ export function DashboardApp() {
       {/* macOS custom title bar: fixed overlay for window dragging */}
       <div
         data-tauri-drag-region
-        className="fixed top-0 left-0 right-0 z-20 flex h-9 items-center justify-center border-b border-border bg-background"
+        className="fixed top-0 left-0 right-0 z-20 flex h-9 items-center justify-center gap-1.5 border-b border-border bg-background"
       >
+        <img src={logoTypeLate} alt="" className="h-4 w-4 rounded pointer-events-none select-none" data-tauri-drag-region />
         <span
           data-tauri-drag-region
           className="text-xs font-medium text-muted-foreground select-none"

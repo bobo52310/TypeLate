@@ -95,10 +95,12 @@ export function startCorrectionDetectionFlow(
             }
           } catch (err) {
             consecutiveSnapshotErrors++;
-            if (consecutiveSnapshotErrors === 5) {
-              writeErrorLog(
-                `correctionDetection: read_focused_text_field failed 5 times consecutively: ${String(err)}`,
+            if (consecutiveSnapshotErrors === 3) {
+              // AX focus is lost (HUD stole it) — stop polling to avoid noise
+              writeInfoLog(
+                `correctionDetection: read_focused_text_field unavailable, using last snapshot`,
               );
+              stopCorrectionSnapshotPolling();
             }
           }
         })();

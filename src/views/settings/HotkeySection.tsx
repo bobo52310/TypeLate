@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -12,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { IS_MAC } from "@/lib/platform";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 
@@ -261,140 +260,138 @@ export default function HotkeySection() {
   }, []);
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">{t("settings.hotkey.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Preset / Custom mode toggle */}
-        <div className="flex items-center justify-between">
-          <Label>{t("settings.hotkey.triggerKeyMode")}</Label>
-          <div className="flex overflow-hidden rounded-lg border border-border">
-            <button
-              type="button"
-              className={cn(
-                "px-4 py-2 text-sm font-medium transition-colors",
-                !isCustomMode
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent",
-              )}
-              onClick={switchToPreset}
-            >
-              {t("settings.hotkey.preset")}
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "px-4 py-2 text-sm font-medium transition-colors",
-                isCustomMode
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent",
-              )}
-              onClick={switchToCustom}
-            >
-              {t("settings.hotkey.custom")}
-            </button>
-          </div>
+    <SettingsGroup title={t("settings.hotkey.title")}>
+      {/* Preset / Custom mode toggle */}
+      <SettingsRow label={t("settings.hotkey.triggerKeyMode")}>
+        <div className="flex overflow-hidden rounded-lg border border-border">
+          <button
+            type="button"
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium transition-colors",
+              !isCustomMode
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent",
+            )}
+            onClick={switchToPreset}
+          >
+            {t("settings.hotkey.preset")}
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium transition-colors",
+              isCustomMode
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent",
+            )}
+            onClick={switchToCustom}
+          >
+            {t("settings.hotkey.custom")}
+          </button>
         </div>
+      </SettingsRow>
 
-        {/* Preset mode: Select dropdown */}
-        {!isCustomMode && (
-          <div className="flex items-center justify-between">
-            <Label htmlFor="trigger-key">{t("settings.hotkey.triggerKey")}</Label>
-            <Select
-              value={currentPresetKey}
-              onValueChange={(val) => void handleTriggerKeyChange(val)}
+      {/* Preset mode: Select dropdown */}
+      {!isCustomMode && (
+        <SettingsRow label={t("settings.hotkey.triggerKey")} htmlFor="trigger-key">
+          <Select
+            value={currentPresetKey}
+            onValueChange={(val) => void handleTriggerKeyChange(val)}
+          >
+            <SelectTrigger id="trigger-key" className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {triggerKeyOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
+      )}
+
+      {/* Custom mode: Key recording */}
+      {isCustomMode && (
+        <SettingsRow label={t("settings.hotkey.customTriggerKey")}>
+          <div className="flex items-center gap-3">
+            {hasCustomKey ? (
+              <span className="text-sm font-medium text-foreground">
+                {currentCustomKeyDisplay}
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">{t("settings.hotkey.notSet")}</span>
+            )}
+            <Button
+              variant={isRecording ? "destructive" : "outline"}
+              size="sm"
+              className={cn(isRecording && "animate-pulse")}
+              onClick={() => (isRecording ? stopKeyRecording() : startRecording())}
             >
-              <SelectTrigger id="trigger-key" className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {triggerKeyOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {isRecording ? t("settings.hotkey.pressKey") : t("settings.hotkey.record")}
+            </Button>
           </div>
-        )}
+        </SettingsRow>
+      )}
 
-        {/* Custom mode: Key recording */}
-        {isCustomMode && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>{t("settings.hotkey.customTriggerKey")}</Label>
-              <div className="flex items-center gap-3">
-                {hasCustomKey ? (
-                  <span className="text-sm font-medium text-foreground">
-                    {currentCustomKeyDisplay}
-                  </span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    {t("settings.hotkey.notSet")}
-                  </span>
-                )}
-                <Button
-                  variant={isRecording ? "destructive" : "outline"}
-                  size="sm"
-                  className={cn(isRecording && "animate-pulse")}
-                  onClick={() => (isRecording ? stopKeyRecording() : startRecording())}
-                >
-                  {isRecording ? t("settings.hotkey.pressKey") : t("settings.hotkey.record")}
-                </Button>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">{t("settings.hotkey.systemKeyHint")}</p>
-
-            {recordingWarning && <p className="text-sm text-destructive">{recordingWarning}</p>}
-
-            {recordingHint && <p className="text-sm text-muted-foreground">{recordingHint}</p>}
-          </div>
-        )}
-
-        {/* Trigger mode */}
-        <div className="flex items-center justify-between">
-          <Label htmlFor="trigger-mode">{t("settings.hotkey.triggerMode")}</Label>
-          <div className="flex overflow-hidden rounded-lg border border-border">
-            <button
-              type="button"
-              className={cn(
-                "px-4 py-2 text-sm font-medium transition-colors",
-                triggerMode === "hold"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent",
-              )}
-              onClick={() => void handleTriggerModeChange("hold")}
-            >
-              Hold
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "px-4 py-2 text-sm font-medium transition-colors",
-                triggerMode === "toggle"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent",
-              )}
-              onClick={() => void handleTriggerModeChange("toggle")}
-            >
-              Toggle
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "px-4 py-2 text-sm font-medium transition-colors",
-                triggerMode === "doubleTap"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent",
-              )}
-              onClick={() => void handleTriggerModeChange("doubleTap")}
-            >
-              {t("settings.hotkey.doubleTap")}
-            </button>
-          </div>
+      {/* Custom mode hints */}
+      {isCustomMode && (
+        <div className="px-4 py-2">
+          <p className="text-xs text-muted-foreground">{t("settings.hotkey.systemKeyHint")}</p>
+          {recordingWarning && (
+            <p className="mt-1 text-sm text-destructive">{recordingWarning}</p>
+          )}
+          {recordingHint && (
+            <p className="mt-1 text-sm text-muted-foreground">{recordingHint}</p>
+          )}
         </div>
+      )}
 
+      {/* Trigger mode */}
+      <SettingsRow label={t("settings.hotkey.triggerMode")} htmlFor="trigger-mode">
+        <div className="flex overflow-hidden rounded-lg border border-border">
+          <button
+            type="button"
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium transition-colors",
+              triggerMode === "hold"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent",
+            )}
+            onClick={() => void handleTriggerModeChange("hold")}
+          >
+            Hold
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium transition-colors",
+              triggerMode === "toggle"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent",
+            )}
+            onClick={() => void handleTriggerModeChange("toggle")}
+          >
+            Toggle
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium transition-colors",
+              triggerMode === "doubleTap"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent",
+            )}
+            onClick={() => void handleTriggerModeChange("doubleTap")}
+          >
+            {t("settings.hotkey.doubleTap")}
+          </button>
+        </div>
+      </SettingsRow>
+
+      {/* Trigger mode description */}
+      <div className="px-4 py-2">
         <p className="text-sm leading-relaxed text-muted-foreground">
           {triggerMode === "hold"
             ? t("settings.hotkey.holdDescription")
@@ -402,17 +399,9 @@ export default function HotkeySection() {
               ? t("settings.hotkey.toggleDescription")
               : t("settings.hotkey.doubleTapDescription")}
         </p>
+      </div>
 
-        {feedback.message && (
-          <p
-            className={`text-sm ${
-              feedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {feedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </SettingsGroup>
   );
 }

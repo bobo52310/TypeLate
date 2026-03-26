@@ -1,8 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -11,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import {
@@ -55,69 +54,56 @@ export default function SmartDictionarySection() {
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">{t("settings.smartDictionary.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {t("settings.smartDictionary.description")}
-        </p>
+    <SettingsGroup
+      title={t("settings.smartDictionary.title")}
+      description={t("settings.smartDictionary.description")}
+    >
+      <SettingsRow
+        label={t("settings.smartDictionary.title")}
+        htmlFor="smart-dictionary-toggle"
+      >
+        <Switch
+          id="smart-dictionary-toggle"
+          checked={isSmartDictionaryEnabled}
+          onCheckedChange={(val) => void handleToggle(val)}
+        />
+      </SettingsRow>
 
-        <div className="flex items-center justify-between">
-          <Label htmlFor="smart-dictionary-toggle">{t("settings.smartDictionary.title")}</Label>
-          <Switch
-            id="smart-dictionary-toggle"
-            checked={isSmartDictionaryEnabled}
-            onCheckedChange={(val) => void handleToggle(val)}
-          />
-        </div>
-
-        {/* Vocabulary analysis model */}
-        {isSmartDictionaryEnabled && (
-          <div className="space-y-2">
-            <Label htmlFor="vocabulary-analysis-model">
-              {t("settings.smartDictionary.analysisModelLabel")}
-            </Label>
-            <Select
-              value={selectedVocabularyAnalysisModelId}
-              onValueChange={(val) => void handleModelChange(val)}
-            >
-              <SelectTrigger id="vocabulary-analysis-model" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {VOCABULARY_ANALYSIS_MODEL_LIST.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    <span className="flex items-center gap-2">
-                      {model.displayName}
-                      <Badge variant="secondary" className="text-xs">
-                        {t(model.badgeKey)}
-                      </Badge>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              {t("settings.smartDictionary.analysisModelDescription")}
-            </p>
-            <p className="text-xs text-muted-foreground">{vocabularyAnalysisModelDescription}</p>
-          </div>
-        )}
-
-        <p className="text-xs text-muted-foreground">{t("settings.smartDictionary.privacyNote")}</p>
-
-        {feedback.message && (
-          <p
-            className={`text-sm ${
-              feedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
+      {/* Vocabulary analysis model */}
+      {isSmartDictionaryEnabled && (
+        <SettingsRow
+          label={t("settings.smartDictionary.analysisModelLabel")}
+          description={`${t("settings.smartDictionary.analysisModelDescription")} · ${vocabularyAnalysisModelDescription}`}
+          htmlFor="vocabulary-analysis-model"
+        >
+          <Select
+            value={selectedVocabularyAnalysisModelId}
+            onValueChange={(val) => void handleModelChange(val)}
           >
-            {feedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+            <SelectTrigger id="vocabulary-analysis-model" className="w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {VOCABULARY_ANALYSIS_MODEL_LIST.map((model) => (
+                <SelectItem key={model.id} value={model.id}>
+                  <span className="flex items-center gap-2">
+                    {model.displayName}
+                    <Badge variant="secondary" className="text-xs">
+                      {t(model.badgeKey)}
+                    </Badge>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
+      )}
+
+      <div className="px-4 py-2">
+        <p className="text-xs text-muted-foreground">{t("settings.smartDictionary.privacyNote")}</p>
+      </div>
+
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </SettingsGroup>
   );
 }

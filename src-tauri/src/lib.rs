@@ -429,6 +429,7 @@ pub fn run() {
             plugins::text_field_reader::get_frontmost_app_bundle_id,
             plugins::text_field_reader::get_frontmost_app_info,
             plugins::text_field_reader::read_focused_text_field,
+            plugins::text_field_reader::get_cached_surrounding_text,
             plugins::audio_recorder::list_audio_input_devices,
             plugins::audio_recorder::start_recording,
             plugins::audio_recorder::stop_recording,
