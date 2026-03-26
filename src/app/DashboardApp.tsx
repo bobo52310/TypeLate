@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const OnboardingView = lazy(() => import("@/views/OnboardingView"));
-import { BookOpen, Download, FileText, LayoutDashboard, Settings, type LucideIcon } from "lucide-react";
+import { BookOpen, Download, FileText, LayoutDashboard, Settings, Sparkles, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
@@ -55,11 +58,30 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { path: "/dashboard", labelKey: "mainApp.nav.dashboard", icon: LayoutDashboard },
-  { path: "/history", labelKey: "mainApp.nav.history", icon: FileText },
-  { path: "/dictionary", labelKey: "mainApp.nav.dictionary", icon: BookOpen },
-  { path: "/settings", labelKey: "mainApp.nav.settings", icon: Settings },
+const NAV_GROUPS: NavItem[][] = [
+  // Overview
+  [
+    { path: "/dashboard", labelKey: "mainApp.nav.dashboard", icon: LayoutDashboard },
+    { path: "/history", labelKey: "mainApp.nav.history", icon: FileText },
+  ],
+  // Tuning
+  [
+    { path: "/dictionary", labelKey: "mainApp.nav.dictionary", icon: BookOpen },
+    { path: "/ai", labelKey: "mainApp.nav.ai", icon: Sparkles },
+  ],
+  // System — Settings parent navigates to /settings/general
+  [
+    { path: "/settings/general", labelKey: "mainApp.nav.settings", icon: Settings },
+  ],
+];
+
+const ALL_NAV_ITEMS = NAV_GROUPS.flat();
+
+// Settings sub-navigation items shown under "Settings" in sidebar
+const SETTINGS_SUB_ITEMS: { path: RoutePath; labelKey: string }[] = [
+  { path: "/settings/general", labelKey: "settings.group.general" },
+  { path: "/settings/voice", labelKey: "settings.group.voice" },
+  { path: "/settings/about", labelKey: "settings.group.about" },
 ];
 
 // ── Update UI types ──
@@ -93,9 +115,13 @@ export function DashboardApp() {
           navigate("/dictionary");
           break;
         case "4":
+          e.preventDefault();
+          navigate("/ai");
+          break;
+        case "5":
         case ",":
           e.preventDefault();
-          navigate("/settings");
+          navigate("/settings/general");
           break;
       }
     }
@@ -376,36 +402,60 @@ export function DashboardApp() {
             </SidebarHeader>
 
             <SidebarContent>
-              <SidebarGroup>
-                <SidebarGroupContent>
-                  <SidebarMenu role="navigation" aria-label="Main navigation">
-                    {NAV_ITEMS.map((item, index) => (
-                      <SidebarMenuItem key={item.path}>
-                        <SidebarMenuButton
-                          isActive={currentPath.startsWith(item.path)}
-                          onClick={() => navigate(item.path)}
-                          onKeyDown={(e) => {
-                            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                              e.preventDefault();
-                              const next =
-                                e.key === "ArrowDown"
-                                  ? (index + 1) % NAV_ITEMS.length
-                                  : (index - 1 + NAV_ITEMS.length) % NAV_ITEMS.length;
-                              const buttons = e.currentTarget
-                                .closest("[role=navigation]")
-                                ?.querySelectorAll("button");
-                              (buttons?.[next] as HTMLElement | undefined)?.focus();
-                            }
-                          }}
-                        >
-                          <item.icon />
-                          <span>{t(item.labelKey)}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
+              {NAV_GROUPS.map((group, groupIndex) => (
+                <SidebarGroup key={groupIndex}>
+                  <SidebarGroupContent>
+                    <SidebarMenu role="navigation" aria-label="Main navigation">
+                      {group.map((item) => {
+                        const globalIndex = ALL_NAV_ITEMS.indexOf(item);
+                        const isSettingsParent = item.path === "/settings/general";
+                        const isActive = isSettingsParent
+                          ? currentPath.startsWith("/settings")
+                          : currentPath === item.path;
+                        return (
+                          <SidebarMenuItem key={item.path}>
+                            <SidebarMenuButton
+                              isActive={isActive}
+                              onClick={() => navigate(item.path)}
+                              onKeyDown={(e) => {
+                                if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                                  e.preventDefault();
+                                  const next =
+                                    e.key === "ArrowDown"
+                                      ? (globalIndex + 1) % ALL_NAV_ITEMS.length
+                                      : (globalIndex - 1 + ALL_NAV_ITEMS.length) %
+                                        ALL_NAV_ITEMS.length;
+                                  const allButtons = document.querySelectorAll(
+                                    "[role=navigation] button",
+                                  );
+                                  (allButtons?.[next] as HTMLElement | undefined)?.focus();
+                                }
+                              }}
+                            >
+                              <item.icon />
+                              <span>{t(item.labelKey)}</span>
+                            </SidebarMenuButton>
+                            {isSettingsParent && currentPath.startsWith("/settings") && (
+                              <SidebarMenuSub>
+                                {SETTINGS_SUB_ITEMS.map((sub) => (
+                                  <SidebarMenuSubItem key={sub.path}>
+                                    <SidebarMenuSubButton
+                                      isActive={currentPath === sub.path}
+                                      onClick={() => navigate(sub.path)}
+                                    >
+                                      <span>{t(sub.labelKey)}</span>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                ))}
+                              </SidebarMenuSub>
+                            )}
+                          </SidebarMenuItem>
+                        );
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              ))}
             </SidebarContent>
 
             <SidebarFooter className="border-t border-sidebar-border px-4 py-2">

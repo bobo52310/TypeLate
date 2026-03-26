@@ -3,21 +3,30 @@ import { useSyncExternalStore, useCallback, lazy, Suspense } from "react";
 const DashboardView = lazy(() => import("@/views/DashboardView"));
 const HistoryView = lazy(() => import("@/views/HistoryView"));
 const DictionaryView = lazy(() => import("@/views/DictionaryView"));
+const AiSettingsView = lazy(() => import("@/views/AiSettingsView"));
 const SettingsView = lazy(() => import("@/views/SettingsView"));
 
-export type RoutePath = "/dashboard" | "/history" | "/dictionary" | "/settings";
+export type RoutePath = "/dashboard" | "/history" | "/dictionary" | "/ai" | "/settings/general" | "/settings/voice" | "/settings/about";
 
-export const ROUTES: RoutePath[] = ["/dashboard", "/history", "/dictionary", "/settings"];
+export const ROUTES: RoutePath[] = ["/dashboard", "/history", "/dictionary", "/ai", "/settings/general", "/settings/voice", "/settings/about"];
 
 const ROUTE_COMPONENTS: Record<RoutePath, React.LazyExoticComponent<React.ComponentType>> = {
   "/dashboard": DashboardView,
   "/history": HistoryView,
   "/dictionary": DictionaryView,
-  "/settings": SettingsView,
+  "/ai": AiSettingsView,
+  "/settings/general": SettingsView,
+  "/settings/voice": SettingsView,
+  "/settings/about": SettingsView,
 };
 
 function getHashPath(): RoutePath {
   const raw = window.location.hash.slice(1).split("?")[0] || "/dashboard";
+  // Redirect legacy /settings to /settings/general
+  if (raw === "/settings") {
+    window.location.hash = "/settings/general";
+    return "/settings/general";
+  }
   if (ROUTES.includes(raw as RoutePath)) return raw as RoutePath;
   return "/dashboard";
 }
