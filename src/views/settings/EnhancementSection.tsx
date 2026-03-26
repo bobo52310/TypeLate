@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 
@@ -51,29 +50,24 @@ export default function EnhancementSection() {
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">{t("settings.threshold.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {t("settings.threshold.description")}
-        </p>
+    <SettingsGroup
+      title={t("settings.threshold.title")}
+      description={t("settings.threshold.description")}
+    >
+      <SettingsRow
+        label={thresholdEnabled ? t("settings.threshold.enabled") : t("settings.threshold.disabled")}
+        htmlFor="threshold-toggle"
+      >
+        <Switch
+          id="threshold-toggle"
+          checked={thresholdEnabled}
+          onCheckedChange={() => void handleToggle()}
+        />
+      </SettingsRow>
 
-        <div className="flex items-center justify-between">
-          <Label htmlFor="threshold-toggle">
-            {thresholdEnabled ? t("settings.threshold.enabled") : t("settings.threshold.disabled")}
-          </Label>
-          <Switch
-            id="threshold-toggle"
-            checked={thresholdEnabled}
-            onCheckedChange={() => void handleToggle()}
-          />
-        </div>
-
-        {thresholdEnabled && (
-          <div className="flex items-center gap-3">
-            <Label htmlFor="threshold-char-count">{t("settings.threshold.charCount")}</Label>
+      {thresholdEnabled && (
+        <SettingsRow label={t("settings.threshold.charCount")} htmlFor="threshold-char-count">
+          <div className="flex items-center gap-2">
             <Input
               id="threshold-char-count"
               type="number"
@@ -90,18 +84,10 @@ export default function EnhancementSection() {
               {t("common.save")}
             </Button>
           </div>
-        )}
+        </SettingsRow>
+      )}
 
-        {feedback.message && (
-          <p
-            className={`text-sm ${
-              feedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {feedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </SettingsGroup>
   );
 }

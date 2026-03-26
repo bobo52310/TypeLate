@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 
@@ -41,15 +41,11 @@ export default function PasteModeSection() {
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">{t("settings.pasteMode.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {t("settings.pasteMode.description")}
-        </p>
-
+    <SettingsGroup
+      title={t("settings.pasteMode.title")}
+      description={t("settings.pasteMode.description")}
+    >
+      <SettingsRow vertical>
         <div className="grid grid-cols-2 gap-2">
           {PASTE_MODES.map((mode) => (
             <button
@@ -63,22 +59,14 @@ export default function PasteModeSection() {
               )}
               onClick={() => void handleChange(mode.value)}
             >
-              <Label className="text-sm font-medium cursor-pointer">{t(mode.labelKey)}</Label>
+              <Label className="cursor-pointer text-sm font-medium">{t(mode.labelKey)}</Label>
               <p className="text-xs leading-relaxed text-muted-foreground">{t(mode.descKey)}</p>
             </button>
           ))}
         </div>
+      </SettingsRow>
 
-        {feedback.message && (
-          <p
-            className={`text-sm ${
-              feedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {feedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </SettingsGroup>
   );
 }

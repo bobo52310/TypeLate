@@ -33,17 +33,23 @@ export interface SettingsStoreAccessor {
 }
 
 export interface HistoryStoreAccessor {
-  addTranscription: (record: import("@/types/transcription").TranscriptionRecord) => Promise<void>;
+  addTranscription: (
+    record: import("@/types/transcription").TranscriptionRecord,
+    options?: { skipEmit?: boolean },
+  ) => Promise<void>;
   addApiUsage: (record: import("@/types/transcription").ApiUsageRecord) => Promise<void>;
-  updateTranscriptionOnRetrySuccess: (params: {
-    id: string;
-    rawText: string;
-    processedText: string | null;
-    transcriptionDurationMs: number;
-    enhancementDurationMs: number | null;
-    wasEnhanced: boolean;
-    charCount: number;
-  }) => Promise<void>;
+  updateTranscriptionOnRetrySuccess: (
+    params: {
+      id: string;
+      rawText: string;
+      processedText: string | null;
+      transcriptionDurationMs: number;
+      enhancementDurationMs: number | null;
+      wasEnhanced: boolean;
+      charCount: number;
+    },
+    options?: { skipEmit?: boolean },
+  ) => Promise<void>;
 }
 
 export interface VocabularyStoreAccessor {

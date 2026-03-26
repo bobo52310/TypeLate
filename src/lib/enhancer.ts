@@ -27,6 +27,7 @@ export function getDefaultSystemPrompt(): string {
 export interface EnhanceOptions {
   systemPrompt?: string;
   vocabularyTermList?: string[];
+  surroundingText?: string;
   modelId?: string;
   signal?: AbortSignal;
 }
@@ -85,8 +86,16 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, signal?: AbortSig
   }
 }
 
-export function buildSystemPrompt(basePrompt: string, vocabularyTermList?: string[]): string {
+export function buildSystemPrompt(
+  basePrompt: string,
+  vocabularyTermList?: string[],
+  surroundingText?: string,
+): string {
   let prompt = basePrompt;
+
+  if (surroundingText) {
+    prompt += `\n\n<surrounding_text>\n${surroundingText}\n</surrounding_text>`;
+  }
 
   if (vocabularyTermList && vocabularyTermList.length > 0) {
     const truncatedTermList = vocabularyTermList.slice(0, MAX_VOCABULARY_TERMS);
@@ -126,7 +135,11 @@ export async function enhanceText(
   }
 
   const basePrompt = options?.systemPrompt || getDefaultSystemPrompt();
-  const fullPrompt = buildSystemPrompt(basePrompt, options?.vocabularyTermList);
+  const fullPrompt = buildSystemPrompt(
+    basePrompt,
+    options?.vocabularyTermList,
+    options?.surroundingText,
+  );
 
   const body = JSON.stringify({
     model: options?.modelId ?? DEFAULT_LLM_MODEL_ID,

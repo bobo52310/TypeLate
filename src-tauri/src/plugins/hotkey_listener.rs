@@ -114,6 +114,7 @@ fn handle_key_event<R: Runtime>(
         TriggerMode::Hold => {
             if pressed {
                 if !state.is_pressed.swap(true, Ordering::SeqCst) {
+                    super::text_field_reader::capture_surrounding_text();
                     println!("[hotkey-listener] Hold: key pressed → start");
                     let _ = app_handle.emit(
                         "hotkey:pressed",
@@ -140,6 +141,7 @@ fn handle_key_event<R: Runtime>(
                 let action = if was_on {
                     HotkeyAction::Stop
                 } else {
+                    super::text_field_reader::capture_surrounding_text();
                     HotkeyAction::Start
                 };
                 println!("[hotkey-listener] Toggle: toggled → {:?}", action);
@@ -181,6 +183,7 @@ fn handle_key_event<R: Runtime>(
                         // Double tap detected → start recording
                         state.double_tap_recording.store(true, Ordering::SeqCst);
                         *last_tap = None;
+                        super::text_field_reader::capture_surrounding_text();
                         println!("[hotkey-listener] DoubleTap: double-tap detected → start");
                         let _ = app_handle.emit(
                             "hotkey:toggled",

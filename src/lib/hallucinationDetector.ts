@@ -1,9 +1,10 @@
 /**
  * 幻覺偵測模組 — 純函式，不依賴 Vue/Pinia/Tauri。
  *
- * 二層偵測邏輯（純物理信號）：
+ * 三層偵測邏輯：
  *  Layer 1: 語速異常（錄音 < 1 秒但文字 > 10 字）
  *  Layer 2: 無人聲偵測（靜音 / 低 RMS + 高 NSP 聯合判斷）
+ *  Layer 3: 已知幻覺文本 blocklist（Whisper 常見字幕浮水印短語）
  */
 
 // ── 常數 ──
@@ -21,6 +22,10 @@ export const SILENCE_NSP_THRESHOLD = 0.7;
 /** Layer 2b peak energy 天花板 — peak >= 此值表示有明確可聽聲音，跳過 RMS+NSP 聯合判斷
  *  （避免小聲說話因 RMS 被靜音段稀釋而誤判為幻覺） */
 export const LAYER2B_PEAK_ENERGY_CEILING = 0.03;
+/** Layer 2c 極高 NSP 門檻 — NSP 超過此值時，無論 peak 多高都視為無人聲。
+ *  背景噪音（風扇、冷氣）會推高 peak，但 Whisper 自己很確定沒語音時應直接攔截。
+ *  真人說話的 NSP 幾乎不會超過 0.9。 */
+export const HIGH_CONFIDENCE_NSP_THRESHOLD = 0.9;
 
 // ── 型別 ──
 
@@ -34,18 +39,61 @@ export interface HallucinationDetectionParams {
 
 export interface HallucinationDetectionResult {
   isHallucination: boolean;
-  reason: "speed-anomaly" | "no-speech-detected" | null;
+  reason: "speed-anomaly" | "no-speech-detected" | "known-hallucination-pattern" | null;
   detectedText: string;
 }
+
+/**
+ * Whisper 已知幻覺文本 blocklist。
+ * 靜音或環境噪音時，Whisper 常「幻覺」出訓練資料中的字幕浮水印或制式短語。
+ * 比對方式：完全匹配（去除空白後）或包含匹配（子字串）。
+ */
+export const KNOWN_HALLUCINATION_EXACT: readonly string[] = [
+  // 中文常見幻覺
+  "謝謝觀看",
+  "谢谢观看",
+  "感謝觀看",
+  "感谢观看",
+  "請訂閱",
+  "请订阅",
+  // 英文常見幻覺
+  "Thank you.",
+  "Thanks for watching!",
+  "Thank you for watching!",
+  "Thank you for watching.",
+  "Please subscribe.",
+  "Like and subscribe.",
+];
+
+export const KNOWN_HALLUCINATION_SUBSTRING: readonly string[] = [
+  // 中文字幕浮水印
+  "明報加拿大",
+  "明報多倫多",
+  "字幕by",
+  "字幕由Amara",
+  "字幕由 Amara",
+  "Amara.org社群提供",
+  "明镜与点点栏目",
+  "请不吝点赞",
+  // 英文字幕浮水印（含 Whisper 回傳英文拼音的情況）
+  "Subtitles by the Amara.org community",
+  "Subtitles by Amara.org",
+  "Amara.org community",
+  "MING PAO CANADA",
+  "MING PAO TORONTO",
+  "Ming Pao Canada",
+  "Ming Pao Toronto",
+];
 
 // ── 核心函式 ──
 
 /**
- * 二層幻覺偵測邏輯（純物理信號）。
+ * 三層幻覺偵測邏輯。
  *
  * Layer 1: 語速異常 — 錄音不到 1 秒但 Whisper 回傳超過 10 字，物理上不可能。
- * Layer 2: 無人聲 — 靜音（peak < 0.02）、或 peak 偏低時（< 0.03）的低 RMS + 高 NSP 聯合判斷。
- *          若 peak >= 0.03 表示有明確可聽聲音，跳過 RMS+NSP 檢查避免小聲說話誤判。
+ * Layer 2: 無人聲 — 靜音（peak < 0.02）、或 peak 偏低時（< 0.03）的低 RMS + 高 NSP 聯合判斷、
+ *          或極高 NSP（> 0.9）無論 peak 多高都攔截（背景噪音會推高 peak 但非人聲）。
+ * Layer 3: 已知幻覺文本 blocklist — Whisper 在靜音/噪音下常輸出的制式浮水印短語。
  */
 // ── 增強後偵測 ──
 
@@ -109,15 +157,32 @@ export function detectHallucination(
   // 2a: 完全靜音 — 麥克風確認無任何聲音（peak < 0.02）
   // 2b: peak 偏低（< 0.03）+ 低 RMS + 高 NSP 聯合判斷
   //     若 peak >= 0.03 表示有明確可聽聲音，跳過此檢查（escape hatch）
+  // 2c: 極高 NSP（> 0.9）— Whisper 非常確定沒語音，無論 peak 多高都攔截。
+  //     背景噪音（風扇、冷氣、環境音）會推高 peak 但不代表有人聲。
   if (
     peakEnergyLevel < SILENCE_PEAK_ENERGY_THRESHOLD ||
     (peakEnergyLevel < LAYER2B_PEAK_ENERGY_CEILING &&
       rmsEnergyLevel < SILENCE_RMS_THRESHOLD &&
-      noSpeechProbability > SILENCE_NSP_THRESHOLD)
+      noSpeechProbability > SILENCE_NSP_THRESHOLD) ||
+    noSpeechProbability > HIGH_CONFIDENCE_NSP_THRESHOLD
   ) {
     return {
       isHallucination: true,
       reason: "no-speech-detected",
+      detectedText: trimmedText,
+    };
+  }
+
+  // Layer 3: 已知幻覺文本 blocklist — 即使物理信號正常，
+  // Whisper 仍可能在背景噪音下幻覺出訓練資料中的字幕浮水印
+  const normalized = trimmedText.replace(/\s+/g, "");
+  if (
+    KNOWN_HALLUCINATION_EXACT.some((p) => p.replace(/\s+/g, "") === normalized) ||
+    KNOWN_HALLUCINATION_SUBSTRING.some((p) => trimmedText.includes(p))
+  ) {
+    return {
+      isHallucination: true,
+      reason: "known-hallucination-pattern",
       detectedText: trimmedText,
     };
   }

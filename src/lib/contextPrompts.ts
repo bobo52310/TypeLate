@@ -38,6 +38,25 @@ const CONTEXT_PROMPT_PREFIXES: Record<AppCategory, Partial<Record<SupportedLocal
 };
 
 /**
+ * Instruction appended to the system prompt when surrounding text is provided.
+ * Tells the LLM to match the writing style and tone of the existing content.
+ */
+const SURROUNDING_TEXT_INSTRUCTIONS: Partial<Record<SupportedLocale, string>> = {
+  en: "When <surrounding_text> is provided, match its writing style, tone, and language. Ensure your output integrates naturally with the surrounding content.",
+  "zh-TW": "當提供 <surrounding_text> 時，請配合其書寫風格、語氣和語言，確保輸出能自然融入周圍內容。",
+  "zh-CN": "当提供 <surrounding_text> 时，请配合其书写风格、语气和语言，确保输出能自然融入周围内容。",
+  ja: "<surrounding_text> が提供された場合、その文体・トーン・言語に合わせてください。出力が周囲の内容に自然に溶け込むようにしてください。",
+  ko: "<surrounding_text>가 제공되면 그 문체, 어조, 언어에 맞추세요. 출력이 주변 내용과 자연스럽게 어우러지도록 하세요.",
+};
+
+/**
+ * Get the surrounding text instruction for a given locale.
+ */
+export function getSurroundingTextInstruction(locale: SupportedLocale): string {
+  return SURROUNDING_TEXT_INSTRUCTIONS[locale] ?? SURROUNDING_TEXT_INSTRUCTIONS["en"] ?? "";
+}
+
+/**
  * Compose a context-aware prompt by prepending the category-specific
  * prefix to the user's base prompt.
  */

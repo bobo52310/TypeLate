@@ -1,8 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -10,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import {
@@ -61,79 +60,69 @@ export default function ModelSection() {
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">{t("settings.model.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {t("settings.model.description")}
-        </p>
-
-        {/* Whisper model */}
-        <div className="space-y-2">
-          <Label htmlFor="whisper-model">{t("settings.model.whisperLabel")}</Label>
-          <Select
-            value={selectedWhisperModelId}
-            onValueChange={(val) => void handleWhisperModelChange(val)}
-          >
-            <SelectTrigger id="whisper-model" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {WHISPER_MODEL_LIST.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  <span className="flex items-center gap-2">
-                    {model.displayName}
-                    {model.isDefault && (
-                      <Badge variant="secondary" className="text-xs">
-                        {t("settings.model.default")}
-                      </Badge>
-                    )}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">{whisperModelDescription}</p>
-        </div>
-
-        {/* LLM model */}
-        <div className="space-y-2">
-          <Label htmlFor="llm-model">{t("settings.model.llmLabel")}</Label>
-          <Select
-            value={selectedLlmModelId}
-            onValueChange={(val) => void handleLlmModelChange(val)}
-          >
-            <SelectTrigger id="llm-model" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LLM_MODEL_LIST.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  <span className="flex items-center gap-2">
-                    {model.displayName}
+    <SettingsGroup
+      title={t("settings.model.title")}
+      description={t("settings.model.description")}
+    >
+      {/* Whisper model */}
+      <SettingsRow
+        label={t("settings.model.whisperLabel")}
+        description={whisperModelDescription}
+        htmlFor="whisper-model"
+      >
+        <Select
+          value={selectedWhisperModelId}
+          onValueChange={(val) => void handleWhisperModelChange(val)}
+        >
+          <SelectTrigger id="whisper-model" className="w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {WHISPER_MODEL_LIST.map((model) => (
+              <SelectItem key={model.id} value={model.id}>
+                <span className="flex items-center gap-2">
+                  {model.displayName}
+                  {model.isDefault && (
                     <Badge variant="secondary" className="text-xs">
-                      {t(model.badgeKey)}
+                      {t("settings.model.default")}
                     </Badge>
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">{llmModelDescription}</p>
-        </div>
+                  )}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
 
-        {feedback.message && (
-          <p
-            className={`text-sm ${
-              feedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {feedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      {/* LLM model */}
+      <SettingsRow
+        label={t("settings.model.llmLabel")}
+        description={llmModelDescription}
+        htmlFor="llm-model"
+      >
+        <Select
+          value={selectedLlmModelId}
+          onValueChange={(val) => void handleLlmModelChange(val)}
+        >
+          <SelectTrigger id="llm-model" className="w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LLM_MODEL_LIST.map((model) => (
+              <SelectItem key={model.id} value={model.id}>
+                <span className="flex items-center gap-2">
+                  {model.displayName}
+                  <Badge variant="secondary" className="text-xs">
+                    {t(model.badgeKey)}
+                  </Badge>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
+
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </SettingsGroup>
   );
 }

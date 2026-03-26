@@ -1,9 +1,8 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { CircleAlert, Download, Github, RefreshCw } from "lucide-react";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import { APP_VERSION } from "@/lib/version";
 import { getSlogans } from "@/lib/slogans";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
@@ -65,47 +64,41 @@ export default function AboutSection() {
   const slogans = getSlogans();
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{t("settings.about.title")}</CardTitle>
+    <SettingsGroup title={t("settings.about.title")}>
+      {showEasterEgg && slogans.length > 0 && (
+        <div className="space-y-1.5 rounded-t-lg border-b border-primary/20 bg-primary/5 px-4 py-3">
+          <p className="text-xs font-medium text-primary">{"\u{1F389}"} TypeLate</p>
+          {slogans.map((slogan, i) => (
+            <p key={i} className="text-sm italic text-foreground/80">
+              &ldquo;{slogan}&rdquo;
+            </p>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-1 px-4 py-3">
+        <p className="text-sm text-muted-foreground">{t("settings.about.description")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("settings.about.author")}
+          <span className="font-medium text-foreground">Bobo Chen</span>
+        </p>
+      </div>
+
+      {/* Update check */}
+      <SettingsRow
+        label={
+          updateState === "ready"
+            ? `v${availableVersion} ${t("mainApp.update.ready").toLowerCase()}`
+            : `v${APP_VERSION}`
+        }
+      >
+        <div className="flex items-center gap-2">
           <button
             onClick={handleVersionClick}
             className="rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground select-none"
           >
             v{APP_VERSION}
           </button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {showEasterEgg && slogans.length > 0 && (
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
-            <p className="text-xs font-medium text-primary">{"\u{1F389}"} TypeLate</p>
-            {slogans.map((slogan, i) => (
-              <p key={i} className="text-sm italic text-foreground/80">
-                &ldquo;{slogan}&rdquo;
-              </p>
-            ))}
-          </div>
-        )}
-
-        <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">{t("settings.about.description")}</p>
-          <p className="text-sm text-muted-foreground">
-            {t("settings.about.author")}
-            <span className="font-medium text-foreground">Bobo Chen</span>
-          </p>
-        </div>
-
-        <Separator />
-
-        {/* Update check */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {updateState === "ready"
-              ? `v${availableVersion} ${t("mainApp.update.ready").toLowerCase()}`
-              : `v${APP_VERSION}`}
-          </div>
           {updateState === "ready" ? (
             <Button size="sm" className="gap-1.5" onClick={() => void handleStartUpdate()}>
               <Download className="h-3.5 w-3.5" />
@@ -130,40 +123,31 @@ export default function AboutSection() {
             </Button>
           )}
         </div>
+      </SettingsRow>
 
-        {feedback.message && (
-          <p
-            className={`text-sm ${
-              feedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {feedback.message}
-          </p>
-        )}
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
 
-        <Separator />
-
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          <a
-            href="https://github.com/bobo52310/TypeLate"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
-          >
-            <Github className="size-4" />
-            <span>{t("settings.about.sourceCode")}</span>
-          </a>
-          <a
-            href="https://github.com/bobo52310/TypeLate/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
-          >
-            <CircleAlert className="size-4" />
-            <span>{t("settings.about.reportIssue")}</span>
-          </a>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Links */}
+      <div className="flex flex-wrap gap-x-4 gap-y-2 px-4 py-3">
+        <a
+          href="https://github.com/bobo52310/TypeLate"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+        >
+          <Github className="size-4" />
+          <span>{t("settings.about.sourceCode")}</span>
+        </a>
+        <a
+          href="https://github.com/bobo52310/TypeLate/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+        >
+          <CircleAlert className="size-4" />
+          <span>{t("settings.about.reportIssue")}</span>
+        </a>
+      </div>
+    </SettingsGroup>
   );
 }

@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import type { AppCategory } from "@/lib/appContextMap";
@@ -56,62 +55,42 @@ export default function ContextAwareSection() {
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">{t("settings.contextAware.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <Label htmlFor="context-aware-toggle" className="text-sm font-medium">
-              {t("settings.contextAware.title")}
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              {t("settings.contextAware.description")}
-            </p>
-          </div>
-          <Switch
-            id="context-aware-toggle"
-            checked={isContextAwareEnabled}
-            onCheckedChange={handleToggle}
-          />
-        </div>
+    <SettingsGroup title={t("settings.contextAware.title")}>
+      <SettingsRow
+        label={t("settings.contextAware.title")}
+        description={t("settings.contextAware.description")}
+        htmlFor="context-aware-toggle"
+      >
+        <Switch
+          id="context-aware-toggle"
+          checked={isContextAwareEnabled}
+          onCheckedChange={handleToggle}
+        />
+      </SettingsRow>
 
-        {feedback.message && (
-          <p
-            className={`mt-2 text-sm ${
-              feedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {feedback.message}
+      {isContextAwareEnabled && (
+        <div className="space-y-2 px-4 py-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t("settings.contextAware.categoriesTitle")}
           </p>
-        )}
-
-        {isContextAwareEnabled && (
-          <div className="mt-4 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">
-              {t("settings.contextAware.categoriesTitle")}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {CATEGORY_LIST.map((cat) => (
-                <div
-                  key={cat.category}
-                  className="rounded-lg border border-border px-3 py-2"
-                >
-                  <p className="text-sm font-medium">{t(cat.labelKey)}</p>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {cat.apps.map((app) => (
-                      <Badge key={app} variant="secondary" className="text-[10px]">
-                        {app}
-                      </Badge>
-                    ))}
-                  </div>
+          <div className="grid grid-cols-2 gap-2">
+            {CATEGORY_LIST.map((cat) => (
+              <div key={cat.category} className="rounded-lg border border-border px-3 py-2">
+                <p className="text-sm font-medium">{t(cat.labelKey)}</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {cat.apps.map((app) => (
+                    <Badge key={app} variant="secondary" className="text-[10px]">
+                      {app}
+                    </Badge>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </SettingsGroup>
   );
 }

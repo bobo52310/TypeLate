@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Cloud, CloudOff, RefreshCw, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +14,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { SettingsGroup, SettingsFeedback } from "@/components/settings-layout";
 import { useGoogleDriveStore } from "@/stores/googleDriveStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 
@@ -67,7 +66,7 @@ export default function GoogleDriveSyncSection() {
     try {
       setIsSavingClientId(true);
       await saveClientId(clientIdInput);
-      feedback.show("success", t("common.save") + " ✓");
+      feedback.show("success", t("common.save") + " \u2713");
     } catch (err) {
       feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
@@ -113,23 +112,15 @@ export default function GoogleDriveSyncSection() {
   const clientIdChanged = clientIdInput.trim() !== storedClientId;
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">
-          <Cloud className="mr-2 inline h-4 w-4" />
-          {t("dictionary.googleDrive.title")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4 pt-4">
+    <SettingsGroup title={t("dictionary.googleDrive.title")}>
+      <div className="space-y-3 px-4 py-3">
         <p className="text-sm text-muted-foreground">
           {t("dictionary.googleDrive.description")}
         </p>
 
         {/* OAuth Client ID */}
         <div className="space-y-2">
-          <Label htmlFor="google-client-id">
-            {t("dictionary.googleDrive.clientIdLabel")}
-          </Label>
+          <label className="text-sm font-medium">{t("dictionary.googleDrive.clientIdLabel")}</label>
           <div className="flex gap-2">
             <Input
               id="google-client-id"
@@ -169,10 +160,7 @@ export default function GoogleDriveSyncSection() {
 
         {/* Connection status */}
         {hasClientId && !isConnected && (
-          <Button
-            onClick={() => void handleConnect()}
-            disabled={isConnecting}
-          >
+          <Button onClick={() => void handleConnect()} disabled={isConnecting}>
             {isConnecting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -184,7 +172,6 @@ export default function GoogleDriveSyncSection() {
 
         {isConnected && (
           <div className="space-y-3">
-            {/* Connected info */}
             <div className="flex items-center gap-2 text-sm">
               <Cloud className="h-4 w-4 text-primary" />
               <span>{t("dictionary.googleDrive.connectedAs", { email: userEmail })}</span>
@@ -192,17 +179,14 @@ export default function GoogleDriveSyncSection() {
 
             {lastSyncAt && (
               <p className="text-xs text-muted-foreground">
-                {t("dictionary.googleDrive.lastSync", { time: formatSyncTime(lastSyncAt, locale) })}
+                {t("dictionary.googleDrive.lastSync", {
+                  time: formatSyncTime(lastSyncAt, locale),
+                })}
               </p>
             )}
 
-            {/* Sync + Disconnect buttons */}
             <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => void handleSync()}
-                disabled={isSyncing}
-              >
+              <Button size="sm" onClick={() => void handleSync()} disabled={isSyncing}>
                 {isSyncing ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -241,20 +225,10 @@ export default function GoogleDriveSyncSection() {
           </div>
         )}
 
-        {/* Error display */}
-        {syncError && (
-          <p className="text-sm text-destructive">{syncError}</p>
-        )}
+        {syncError && <p className="text-sm text-destructive">{syncError}</p>}
+      </div>
 
-        {/* Feedback */}
-        {feedback.message && (
-          <p
-            className={`text-sm ${feedback.type === "success" ? "text-primary" : "text-destructive"}`}
-          >
-            {feedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </SettingsGroup>
   );
 }

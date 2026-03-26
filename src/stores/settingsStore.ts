@@ -58,7 +58,7 @@ import {
 import { APP_VERSION } from "@/lib/version";
 import { IS_MAC } from "@/lib/platform";
 import { type AppCategory, resolveAppCategory } from "@/lib/appContextMap";
-import { composeContextAwarePrompt } from "@/lib/contextPrompts";
+import { composeContextAwarePrompt, getSurroundingTextInstruction } from "@/lib/contextPrompts";
 
 const STORE_NAME = "settings.json";
 
@@ -253,8 +253,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   getContextAwarePrompt: (bundleId: string | null) => {
     const basePrompt = get().getAiPrompt();
     if (!get().isContextAwareEnabled) return basePrompt;
+    const locale = get().getEffectivePromptLocale();
     const category = resolveAppCategory(bundleId, get().contextAppOverrides);
-    return composeContextAwarePrompt(basePrompt, category, get().getEffectivePromptLocale());
+    const prompt = composeContextAwarePrompt(basePrompt, category, locale);
+    const surroundingInstruction = getSurroundingTextInstruction(locale);
+    return surroundingInstruction ? `${prompt}\n${surroundingInstruction}` : prompt;
   },
 
   getTriggerKeyDisplayName: (key: TriggerKey) => {

@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -22,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { FolderOpen, HardDrive, Trash2 } from "lucide-react";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import {
   useSettingsStore,
   type RecordingRetentionPolicy,
@@ -109,21 +108,14 @@ export default function RecordingSection() {
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">{t("settings.recording.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {t("settings.recording.description")}
-        </p>
-
-        {/* Storage statistics */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <HardDrive className="h-4 w-4 text-muted-foreground" />
-            <Label>{t("settings.recording.storageUsed")}</Label>
-          </div>
+    <SettingsGroup
+      title={t("settings.recording.title")}
+      description={t("settings.recording.description")}
+    >
+      {/* Storage statistics */}
+      <SettingsRow label={t("settings.recording.storageUsed")}>
+        <div className="flex items-center gap-2">
+          <HardDrive className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
             {storageInfo
               ? storageInfo.fileCount > 0
@@ -135,62 +127,59 @@ export default function RecordingSection() {
               : "—"}
           </span>
         </div>
+      </SettingsRow>
 
-        {/* Retention policy */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="retention-policy">{t("settings.recording.retentionPolicy")}</Label>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.recording.retentionPolicyDescription")}
-            </p>
-          </div>
-          <Select
-            value={recordingRetentionPolicy}
-            onValueChange={(val) => void handleRetentionChange(val)}
-          >
-            <SelectTrigger id="retention-policy" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RETENTION_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {getRetentionLabel(option)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Retention policy */}
+      <SettingsRow
+        label={t("settings.recording.retentionPolicy")}
+        description={t("settings.recording.retentionPolicyDescription")}
+        htmlFor="retention-policy"
+      >
+        <Select
+          value={recordingRetentionPolicy}
+          onValueChange={(val) => void handleRetentionChange(val)}
+        >
+          <SelectTrigger id="retention-policy" className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {RETENTION_OPTIONS.map((option) => (
+              <SelectItem key={option} value={option}>
+                {getRetentionLabel(option)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
 
-        {recordingRetentionPolicy === "none" && (
+      {recordingRetentionPolicy === "none" && (
+        <div className="px-4 py-2">
           <p className="text-sm text-amber-600 dark:text-amber-400">
             {t("settings.recording.retentionNoneDescription")}
           </p>
-        )}
+        </div>
+      )}
 
-        <div className="border-t border-border" />
-
-        {/* Storage path + Open folder */}
-        <div className="flex items-center justify-between">
-          <div className="min-w-0 flex-1">
-            <Label>{t("settings.recording.storagePath")}</Label>
-            {storageInfo && (
-              <p className="truncate text-sm text-muted-foreground" title={storageInfo.path}>
-                {storageInfo.path}
-              </p>
-            )}
-          </div>
-          <Button variant="outline" size="sm" className="ml-3 shrink-0" onClick={() => void handleOpenFolder()}>
-            <FolderOpen className="mr-2 h-4 w-4" />
+      {/* Storage path + Open folder */}
+      <SettingsRow label={t("settings.recording.storagePath")}>
+        <div className="flex items-center gap-2">
+          {storageInfo && (
+            <span className="max-w-40 truncate text-xs text-muted-foreground" title={storageInfo.path}>
+              {storageInfo.path}
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={() => void handleOpenFolder()}>
+            <FolderOpen className="mr-1 h-3.5 w-3.5" />
             {t("settings.recording.openFolder")}
           </Button>
         </div>
+      </SettingsRow>
 
-        <div className="border-t border-border" />
-
-        {/* Delete all */}
+      {/* Delete all */}
+      <div className="px-4 py-3">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" disabled={isDeletingRecordings}>
+            <Button variant="destructive" size="sm" disabled={isDeletingRecordings}>
               <Trash2 className="mr-2 h-4 w-4" />
               {t("settings.recording.deleteAll")}
             </Button>
@@ -210,17 +199,9 @@ export default function RecordingSection() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      </div>
 
-        {feedback.message && (
-          <p
-            className={`text-sm ${
-              feedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {feedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </SettingsGroup>
   );
 }

@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -10,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import {
@@ -21,9 +20,7 @@ import {
 
 export default function AppSection() {
   const { t } = useTranslation();
-  const localeFeedback = useFeedbackMessage();
-  const transcriptionLocaleFeedback = useFeedbackMessage();
-  const autoStartFeedback = useFeedbackMessage();
+  const feedback = useFeedbackMessage();
 
   const selectedLocale = useSettingsStore((s) => s.selectedLocale);
   const selectedTranscriptionLocale = useSettingsStore((s) => s.selectedTranscriptionLocale);
@@ -42,18 +39,18 @@ export default function AppSection() {
   async function handleLocaleChange(newLocale: string) {
     try {
       await saveLocale(newLocale as SupportedLocale);
-      localeFeedback.show("success", t("settings.app.languageUpdated"));
+      feedback.show("success", t("settings.app.languageUpdated"));
     } catch (err) {
-      localeFeedback.show("error", err instanceof Error ? err.message : String(err));
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
   async function handleTranscriptionLocaleChange(newLocale: string) {
     try {
       await saveTranscriptionLocale(newLocale as TranscriptionLocale);
-      transcriptionLocaleFeedback.show("success", t("settings.app.transcriptionLanguageUpdated"));
+      feedback.show("success", t("settings.app.transcriptionLanguageUpdated"));
     } catch (err) {
-      transcriptionLocaleFeedback.show("error", err instanceof Error ? err.message : String(err));
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -61,117 +58,72 @@ export default function AppSection() {
     try {
       setIsTogglingAutoStart(true);
       await toggleAutoStart();
-      autoStartFeedback.show(
+      feedback.show(
         "success",
         isAutoStartEnabled
           ? t("settings.app.autoStartDisabled")
           : t("settings.app.autoStartEnabled"),
       );
     } catch (err) {
-      autoStartFeedback.show("error", err instanceof Error ? err.message : String(err));
+      feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
       setIsTogglingAutoStart(false);
     }
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">{t("settings.app.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* UI Language */}
-        <div className="flex items-center justify-between">
-          <Label htmlFor="locale-select">{t("settings.app.language")}</Label>
-          <Select value={selectedLocale} onValueChange={(val) => void handleLocaleChange(val)}>
-            <SelectTrigger id="locale-select" className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LANGUAGE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.locale} value={opt.locale}>
-                  {opt.displayName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <SettingsGroup title={t("settings.app.title")}>
+      <SettingsRow label={t("settings.app.language")} htmlFor="locale-select">
+        <Select value={selectedLocale} onValueChange={(val) => void handleLocaleChange(val)}>
+          <SelectTrigger id="locale-select" className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LANGUAGE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.locale} value={opt.locale}>
+                {opt.displayName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
 
-        {localeFeedback.message && (
-          <p
-            className={`text-sm ${
-              localeFeedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {localeFeedback.message}
-          </p>
-        )}
+      <SettingsRow
+        label={t("settings.app.transcriptionLanguage")}
+        description={t("settings.app.transcriptionLanguageDescription")}
+        htmlFor="transcription-locale-select"
+      >
+        <Select
+          value={selectedTranscriptionLocale}
+          onValueChange={(val) => void handleTranscriptionLocaleChange(val)}
+        >
+          <SelectTrigger id="transcription-locale-select" className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TRANSCRIPTION_LANGUAGE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.locale} value={opt.locale}>
+                {opt.locale === "auto" ? t("settings.app.autoDetect") : opt.displayName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
 
-        {/* Transcription Language */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="transcription-locale-select">
-              {t("settings.app.transcriptionLanguage")}
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.app.transcriptionLanguageDescription")}
-            </p>
-          </div>
-          <Select
-            value={selectedTranscriptionLocale}
-            onValueChange={(val) => void handleTranscriptionLocaleChange(val)}
-          >
-            <SelectTrigger id="transcription-locale-select" className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TRANSCRIPTION_LANGUAGE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.locale} value={opt.locale}>
-                  {opt.locale === "auto" ? t("settings.app.autoDetect") : opt.displayName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <SettingsRow
+        label={t("settings.app.autoStart")}
+        description={t("settings.app.autoStartDescription")}
+        htmlFor="auto-start"
+      >
+        <Switch
+          id="auto-start"
+          checked={isAutoStartEnabled}
+          disabled={isTogglingAutoStart}
+          onCheckedChange={() => void handleToggleAutoStart()}
+        />
+      </SettingsRow>
 
-        {transcriptionLocaleFeedback.message && (
-          <p
-            className={`text-sm ${
-              transcriptionLocaleFeedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {transcriptionLocaleFeedback.message}
-          </p>
-        )}
-
-        <div className="border-t border-border" />
-
-        {/* Auto start */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="auto-start">{t("settings.app.autoStart")}</Label>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.app.autoStartDescription")}
-            </p>
-          </div>
-          <Switch
-            id="auto-start"
-            checked={isAutoStartEnabled}
-            disabled={isTogglingAutoStart}
-            onCheckedChange={() => void handleToggleAutoStart()}
-          />
-        </div>
-
-        {autoStartFeedback.message && (
-          <p
-            className={`text-sm ${
-              autoStartFeedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {autoStartFeedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </SettingsGroup>
   );
 }

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { SettingsGroup, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { isKnownDefaultPrompt } from "@/i18n/prompts";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
@@ -35,7 +35,6 @@ export default function PromptSection() {
     setSelectedPromptMode(mode);
     const currentPrompt = getAiPrompt();
     if (mode === "custom" && isKnownDefaultPrompt(currentPrompt)) {
-      // Custom mode but no real custom prompt saved yet → show empty
       setPromptInput("");
       setLastSavedPrompt("");
     } else {
@@ -56,7 +55,6 @@ export default function PromptSection() {
     try {
       await savePromptMode(newMode);
       if (newMode === "custom") {
-        // Switching to custom: start with empty textarea
         setPromptInput("");
         setLastSavedPrompt("");
       } else {
@@ -136,9 +134,6 @@ export default function PromptSection() {
     }
   }
 
-  // Save is disabled when there's nothing new to save:
-  // - Preset mode: text hasn't been edited
-  // - Custom mode: non-empty text that differs from last save
   const hasUnsavedChanges =
     selectedPromptMode === "custom"
       ? promptInput.trim() !== "" && promptInput.trim() !== lastSavedPrompt.trim()
@@ -164,11 +159,8 @@ export default function PromptSection() {
   ];
 
   return (
-    <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle className="text-base">{t("settings.prompt.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SettingsGroup title={t("settings.prompt.title")}>
+      <div className="space-y-4 px-4 py-3">
         <p className="text-sm text-muted-foreground">{t("settings.prompt.description")}</p>
 
         {/* Mode selector */}
@@ -177,14 +169,14 @@ export default function PromptSection() {
           <RadioGroup
             value={selectedPromptMode}
             onValueChange={(val) => void handlePromptModeChange(val)}
-            className="grid grid-cols-3 gap-2"
+            className="flex flex-col gap-2"
           >
             {modes.map((mode) => (
               <Label
                 key={mode.value}
                 htmlFor={`mode-${mode.value}`}
                 className={cn(
-                  "flex cursor-pointer items-start gap-2.5 rounded-md border border-border p-3 transition-colors",
+                  "flex cursor-pointer items-center gap-3 rounded-md border border-border px-4 py-3 transition-colors",
                   selectedPromptMode === mode.value
                     ? "border-primary bg-primary/5"
                     : "hover:bg-muted/50",
@@ -193,7 +185,7 @@ export default function PromptSection() {
                 <RadioGroupItem
                   id={`mode-${mode.value}`}
                   value={mode.value}
-                  className="!size-0 !border-0 !shadow-none overflow-hidden"
+                  className="shrink-0"
                 />
                 <div>
                   <span className="text-sm font-medium">{t(mode.labelKey)}</span>
@@ -207,15 +199,14 @@ export default function PromptSection() {
         <Textarea
           value={promptInput}
           onChange={(e) => handlePromptInput(e.target.value)}
-          placeholder={selectedPromptMode === "custom" ? t("settings.prompt.customPlaceholder") : undefined}
+          placeholder={
+            selectedPromptMode === "custom" ? t("settings.prompt.customPlaceholder") : undefined
+          }
           className="min-h-[120px] font-mono"
         />
 
         <div className="flex justify-end gap-2">
-          <Button
-            disabled={isSaveDisabled}
-            onClick={() => void handleSavePrompt()}
-          >
+          <Button disabled={isSaveDisabled} onClick={() => void handleSavePrompt()}>
             {t("common.save")}
           </Button>
           <Button
@@ -230,16 +221,8 @@ export default function PromptSection() {
           </Button>
         </div>
 
-        {feedback.message && (
-          <p
-            className={`text-sm ${
-              feedback.type === "success" ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {feedback.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+        <SettingsFeedback message={feedback.message} type={feedback.type} className="px-0" />
+      </div>
+    </SettingsGroup>
   );
 }

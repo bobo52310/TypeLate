@@ -14,7 +14,9 @@ import { enhanceText } from "@/lib/enhancer";
 import { detectHallucination } from "@/lib/hallucinationDetector";
 import type { TranscriptionResult } from "@/types/audio";
 import type { ChatUsageData, TranscriptionRecord } from "@/types/transcription";
+import type { TranscriptionCompletedPayload } from "@/types/events";
 import type { HudStatus } from "@/types";
+import { emitToWindow, TRANSCRIPTION_COMPLETED } from "@/hooks/useTauriEvent";
 import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
 import { clearAutoHideTimer } from "./timers";
 import {
@@ -69,6 +71,19 @@ function writeErrorLog(logMessage: string): void {
 
 function isEmptyTranscription(rawText: string): boolean {
   return !rawText || !rawText.trim();
+}
+
+function buildCompletedPayload(record: TranscriptionRecord): TranscriptionCompletedPayload {
+  return {
+    id: record.id,
+    rawText: record.rawText,
+    processedText: record.processedText,
+    recordingDurationMs: record.recordingDurationMs,
+    transcriptionDurationMs: record.transcriptionDurationMs,
+    enhancementDurationMs: record.enhancementDurationMs,
+    charCount: record.charCount,
+    wasEnhanced: record.wasEnhanced,
+  };
 }
 
 function escapeRegex(str: string): string {
@@ -282,26 +297,30 @@ export async function handleRetryTranscription(): Promise<void> {
           chatUsage: enhanceResult.usage,
         });
 
-        // Update DB status (UPDATE not INSERT)
+        // Update DB, save api_usage, then emit event so dashboard gets fresh quota data
         const historyStore = getHistoryStore();
-        void historyStore
-          .updateTranscriptionOnRetrySuccess({
-            id: transcriptionId,
-            rawText: result.rawText,
-            processedText: enhanceResult.text,
-            transcriptionDurationMs: Math.round(result.transcriptionDurationMs),
-            enhancementDurationMs: Math.round(enhancementDurationMs),
-            wasEnhanced: true,
-            charCount: result.rawText.length,
-          })
-          .then(() => {
-            saveApiUsageRecordList(record, enhanceResult.usage);
-          })
-          .catch((err: unknown) =>
+        void (async () => {
+          try {
+            await historyStore.updateTranscriptionOnRetrySuccess(
+              {
+                id: transcriptionId,
+                rawText: result.rawText,
+                processedText: enhanceResult.text,
+                transcriptionDurationMs: Math.round(result.transcriptionDurationMs),
+                enhancementDurationMs: Math.round(enhancementDurationMs),
+                wasEnhanced: true,
+                charCount: result.rawText.length,
+              },
+              { skipEmit: true },
+            );
+            await saveApiUsageRecordList(record, enhanceResult.usage);
+            await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, buildCompletedPayload(record));
+          } catch (err) {
             writeErrorLog(
               `voiceFlowStore: updateTranscriptionOnRetrySuccess failed: ${extractErrorMessage(err)}`,
-            ),
-          );
+            );
+          }
+        })();
       } catch (enhanceError) {
         if (getState()._isAborted) return;
         const fallbackEnhancementDurationMs = performance.now() - enhancementStartTime;
@@ -333,24 +352,28 @@ export async function handleRetryTranscription(): Promise<void> {
         });
 
         const historyStore = getHistoryStore();
-        void historyStore
-          .updateTranscriptionOnRetrySuccess({
-            id: transcriptionId,
-            rawText: result.rawText,
-            processedText: null,
-            transcriptionDurationMs: Math.round(result.transcriptionDurationMs),
-            enhancementDurationMs: Math.round(fallbackEnhancementDurationMs),
-            wasEnhanced: false,
-            charCount: result.rawText.length,
-          })
-          .then(() => {
-            saveApiUsageRecordList(fallbackRecord, null);
-          })
-          .catch((err: unknown) =>
+        void (async () => {
+          try {
+            await historyStore.updateTranscriptionOnRetrySuccess(
+              {
+                id: transcriptionId,
+                rawText: result.rawText,
+                processedText: null,
+                transcriptionDurationMs: Math.round(result.transcriptionDurationMs),
+                enhancementDurationMs: Math.round(fallbackEnhancementDurationMs),
+                wasEnhanced: false,
+                charCount: result.rawText.length,
+              },
+              { skipEmit: true },
+            );
+            await saveApiUsageRecordList(fallbackRecord, null);
+            await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, buildCompletedPayload(fallbackRecord));
+          } catch (err) {
             writeErrorLog(
               `voiceFlowStore: updateTranscriptionOnRetrySuccess failed: ${extractErrorMessage(err)}`,
-            ),
-          );
+            );
+          }
+        })();
       }
     } else {
       // No enhancement needed
@@ -374,24 +397,28 @@ export async function handleRetryTranscription(): Promise<void> {
       });
 
       const historyStore = getHistoryStore();
-      void historyStore
-        .updateTranscriptionOnRetrySuccess({
-          id: transcriptionId,
-          rawText: result.rawText,
-          processedText: null,
-          transcriptionDurationMs: Math.round(result.transcriptionDurationMs),
-          enhancementDurationMs: null,
-          wasEnhanced: false,
-          charCount: result.rawText.length,
-        })
-        .then(() => {
-          saveApiUsageRecordList(record, null);
-        })
-        .catch((err: unknown) =>
+      void (async () => {
+        try {
+          await historyStore.updateTranscriptionOnRetrySuccess(
+            {
+              id: transcriptionId,
+              rawText: result.rawText,
+              processedText: null,
+              transcriptionDurationMs: Math.round(result.transcriptionDurationMs),
+              enhancementDurationMs: null,
+              wasEnhanced: false,
+              charCount: result.rawText.length,
+            },
+            { skipEmit: true },
+          );
+          await saveApiUsageRecordList(record, null);
+          await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, buildCompletedPayload(record));
+        } catch (err) {
           writeErrorLog(
             `voiceFlowStore: updateTranscriptionOnRetrySuccess failed: ${extractErrorMessage(err)}`,
-          ),
-        );
+          );
+        }
+      })();
     }
 
     // Retry success -- reset all retry state

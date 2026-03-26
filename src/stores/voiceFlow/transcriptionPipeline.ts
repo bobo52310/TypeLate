@@ -25,8 +25,10 @@ import { detectHallucination, detectEnhancementAnomaly } from "@/lib/hallucinati
 import { calculateWhisperCostCeiling, calculateChatCostCeiling } from "@/lib/apiPricing";
 import { retryWithBackoff } from "@/lib/retryWithBackoff";
 import type { StopRecordingResult, TranscriptionResult, FrontmostAppInfo } from "@/types/audio";
-import type { TranscriptionRecord, ChatUsageData, ApiUsageRecord } from "@/types/transcription";
+import type { TranscriptionRecord, ChatUsageData } from "@/types/transcription";
+import type { TranscriptionCompletedPayload } from "@/types/events";
 import type { HudStatus } from "@/types";
+import { emitToWindow, TRANSCRIPTION_COMPLETED } from "@/hooks/useTauriEvent";
 import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
 import {
   startElapsedTimer,
@@ -48,9 +50,10 @@ const MINIMUM_RECORDING_DURATION_MS = 300;
 
 let abortController: AbortController | null = null;
 
-// ── Context-aware: capture frontmost app at recording start ──
+// ── Context-aware: capture frontmost app + surrounding text at recording start ──
 
 let lastRecordingBundleId: string | null = null;
+let lastSurroundingText: string | null = null;
 
 export function getAbortController(): AbortController | null {
   return abortController;
@@ -185,70 +188,75 @@ export function buildTranscriptionRecord(params: {
 
 // ── Save helpers ──
 
-async function saveTranscriptionRecord(record: TranscriptionRecord): Promise<void> {
+async function saveTranscriptionRecord(
+  record: TranscriptionRecord,
+  options?: { skipEmit?: boolean },
+): Promise<void> {
   const historyStore = getHistoryStore();
   try {
-    await historyStore.addTranscription(record);
+    await historyStore.addTranscription(record, options);
   } catch (err) {
     writeErrorLog(`voiceFlowStore: addTranscription failed: ${extractErrorMessage(err)}`);
     captureError(err, { source: "voice-flow", step: "save-transcription" });
   }
 }
 
-export function saveApiUsageRecordList(
+export async function saveApiUsageRecordList(
   record: TranscriptionRecord,
   chatUsage: ChatUsageData | null,
-): void {
+): Promise<void> {
   const historyStore = getHistoryStore();
   const settingsStore = getSettingsStore();
   const roundedAudioMs = record.recordingDurationMs;
 
-  function fireAndForget(usageRecord: ApiUsageRecord): void {
-    historyStore
-      .addApiUsage(usageRecord)
-      .catch((err: unknown) =>
-        writeErrorLog(
-          `voiceFlowStore: addApiUsage(${usageRecord.apiType}) failed: ${extractErrorMessage(err)}`,
-        ),
-      );
-  }
-
-  fireAndForget({
-    id: crypto.randomUUID(),
-    transcriptionId: record.id,
-    apiType: "whisper",
-    model: settingsStore.selectedWhisperModelId,
-    promptTokens: null,
-    completionTokens: null,
-    totalTokens: null,
-    promptTimeMs: null,
-    completionTimeMs: null,
-    totalTimeMs: null,
-    audioDurationMs: roundedAudioMs,
-    estimatedCostCeiling: calculateWhisperCostCeiling(
-      roundedAudioMs,
-      settingsStore.selectedWhisperModelId,
-    ),
-  });
-
-  if (chatUsage) {
-    fireAndForget({
+  try {
+    await historyStore.addApiUsage({
       id: crypto.randomUUID(),
       transcriptionId: record.id,
-      apiType: "chat",
-      model: settingsStore.selectedLlmModelId,
-      promptTokens: chatUsage.promptTokens,
-      completionTokens: chatUsage.completionTokens,
-      totalTokens: chatUsage.totalTokens,
-      promptTimeMs: chatUsage.promptTimeMs,
-      completionTimeMs: chatUsage.completionTimeMs,
-      totalTimeMs: chatUsage.totalTimeMs,
-      audioDurationMs: null,
-      estimatedCostCeiling: calculateChatCostCeiling(
-        chatUsage.totalTokens,
-        settingsStore.selectedLlmModelId,
+      apiType: "whisper",
+      model: settingsStore.selectedWhisperModelId,
+      promptTokens: null,
+      completionTokens: null,
+      totalTokens: null,
+      promptTimeMs: null,
+      completionTimeMs: null,
+      totalTimeMs: null,
+      audioDurationMs: roundedAudioMs,
+      estimatedCostCeiling: calculateWhisperCostCeiling(
+        roundedAudioMs,
+        settingsStore.selectedWhisperModelId,
       ),
     });
+  } catch (err) {
+    writeErrorLog(
+      `voiceFlowStore: addApiUsage(whisper) failed: ${extractErrorMessage(err)}`,
+    );
+  }
+
+  if (chatUsage) {
+    try {
+      await historyStore.addApiUsage({
+        id: crypto.randomUUID(),
+        transcriptionId: record.id,
+        apiType: "chat",
+        model: settingsStore.selectedLlmModelId,
+        promptTokens: chatUsage.promptTokens,
+        completionTokens: chatUsage.completionTokens,
+        totalTokens: chatUsage.totalTokens,
+        promptTimeMs: chatUsage.promptTimeMs,
+        completionTimeMs: chatUsage.completionTimeMs,
+        totalTimeMs: chatUsage.totalTimeMs,
+        audioDurationMs: null,
+        estimatedCostCeiling: calculateChatCostCeiling(
+          chatUsage.totalTokens,
+          settingsStore.selectedLlmModelId,
+        ),
+      });
+    } catch (err) {
+      writeErrorLog(
+        `voiceFlowStore: addApiUsage(chat) failed: ${extractErrorMessage(err)}`,
+      );
+    }
   }
 }
 
@@ -319,11 +327,29 @@ async function completePasteFlow(params: {
     transitionTo("success", successWithPreview);
     startQualityMonitorAfterPaste();
 
-    // api_usage FK depends on transcriptions -- must wait for transcription write
+    // Save records then emit event — api_usage must be committed before
+    // the dashboard refreshes so daily quota reads up-to-date data.
     if (!params.skipRecordSaving) {
-      void saveTranscriptionRecord(params.record).then(() => {
-        saveApiUsageRecordList(params.record, params.chatUsage);
-      });
+      void (async () => {
+        await saveTranscriptionRecord(params.record, { skipEmit: true });
+        await saveApiUsageRecordList(params.record, params.chatUsage);
+        try {
+          const payload: TranscriptionCompletedPayload = {
+            id: params.record.id,
+            rawText: params.record.rawText,
+            processedText: params.record.processedText,
+            recordingDurationMs: params.record.recordingDurationMs,
+            transcriptionDurationMs: params.record.transcriptionDurationMs,
+            enhancementDurationMs: params.record.enhancementDurationMs,
+            charCount: params.record.charCount,
+            wasEnhanced: params.record.wasEnhanced,
+          };
+          await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
+        } catch (emitErr) {
+          writeErrorLog("voiceFlowStore: emitToWindow failed (records saved)");
+          captureError(emitErr, { source: "voice-flow", step: "complete-paste-emit" });
+        }
+      })();
     }
 
     // Weight update (fire-and-forget)
@@ -374,17 +400,32 @@ export async function handleStartRecording(): Promise<void> {
   abortController = new AbortController();
 
   try {
-    // Capture frontmost app before HUD takes focus (for context-aware enhancement + icon display)
-    try {
-      const appInfo = await invoke<FrontmostAppInfo | null>("get_frontmost_app_info");
+    // Capture frontmost app + surrounding text in parallel before HUD takes focus
+    {
+      const isContextAware = getSettingsStore().isContextAwareEnabled;
+      const appInfoPromise = invoke<FrontmostAppInfo | null>("get_frontmost_app_info").catch(
+        () => null,
+      );
+      // Surrounding text is captured in Rust at hotkey-press time (before HUD activation)
+      // and cached there. We just retrieve the cached value here.
+      const textFieldPromise = isContextAware
+        ? invoke<string | null>("get_cached_surrounding_text").catch(() => null)
+        : Promise.resolve(null);
+
+      const [appInfo, surroundingText] = await Promise.all([appInfoPromise, textFieldPromise]);
+
       lastRecordingBundleId = appInfo?.bundleId ?? null;
+      lastSurroundingText = surroundingText;
       setState({
         frontmostAppName: appInfo?.name ?? null,
         frontmostAppIconBase64: appInfo?.iconBase64 ?? null,
       });
-    } catch {
-      lastRecordingBundleId = null;
-      setState({ frontmostAppName: null, frontmostAppIconBase64: null });
+
+      if (isContextAware) {
+        writeInfoLog(
+          `voiceFlowStore: context-aware capture — app=${appInfo?.name ?? "none"}, surroundingText=${surroundingText ? `"${surroundingText.slice(0, 40)}..."` : "null"}`,
+        );
+      }
     }
 
     playSoundIfEnabled("start");
@@ -633,6 +674,7 @@ export async function handleStopRecording(): Promise<void> {
             ? settingsStore.getContextAwarePrompt(lastRecordingBundleId)
             : settingsStore.getAiPrompt(),
           vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
+          surroundingText: lastSurroundingText ?? undefined,
           modelId: settingsStore.selectedLlmModelId,
           signal: abortController?.signal,
         };

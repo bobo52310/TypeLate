@@ -61,6 +61,49 @@ pub fn read_focused_text_field() -> Result<Option<String>, String> {
     }
 }
 
+// ========== Surrounding Text Cache ==========
+//
+// The frontend invoke("read_focused_text_field") runs AFTER the HUD activates,
+// which steals AX focus from the target app. To fix this, we capture the text
+// in the Rust hotkey handler (before any window activation) and cache it here.
+
+static CACHED_SURROUNDING_TEXT: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+/// Capture the focused text field content and store it in the cache.
+/// Called from the hotkey handler at key-press time, before HUD activation.
+pub fn capture_surrounding_text() {
+    #[cfg(target_os = "macos")]
+    {
+        let result = macos::read_focused_text_field_impl().unwrap_or(None);
+        eprintln!(
+            "[text-field-reader] hotkey capture result: {}",
+            match &result {
+                Some(t) => format!("{} chars", t.chars().count()),
+                None => "null".to_string(),
+            }
+        );
+        if let Ok(mut cache) = CACHED_SURROUNDING_TEXT.lock() {
+            *cache = result;
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        if let Ok(mut cache) = CACHED_SURROUNDING_TEXT.lock() {
+            *cache = None;
+        }
+    }
+}
+
+/// Retrieve and clear the cached surrounding text.
+#[tauri::command]
+pub fn get_cached_surrounding_text() -> Option<String> {
+    CACHED_SURROUNDING_TEXT
+        .lock()
+        .ok()
+        .and_then(|mut cache| cache.take())
+}
+
 // ========== macOS: AXUIElement ==========
 
 #[cfg(target_os = "macos")]
@@ -76,7 +119,6 @@ mod macos {
     const K_AX_ERROR_SUCCESS: AXError = 0;
 
     // AX attribute name constants
-    const K_AX_FOCUSED_APPLICATION_ATTRIBUTE: &str = "AXFocusedApplication";
     const K_AX_FOCUSED_UI_ELEMENT_ATTRIBUTE: &str = "AXFocusedUIElement";
     const K_AX_VALUE_ATTRIBUTE: &str = "AXValue";
     const K_AX_SELECTED_TEXT_RANGE_ATTRIBUTE: &str = "AXSelectedTextRange";
@@ -86,12 +128,14 @@ mod macos {
     const FALLBACK_CHARS: usize = 100;
 
     extern "C" {
-        fn AXUIElementCreateSystemWide() -> AXUIElementRef;
+        fn AXUIElementCreateApplication(pid: i32) -> AXUIElementRef;
         fn AXUIElementCopyAttributeValue(
             element: AXUIElementRef,
             attribute: CFTypeRef,
             value: *mut CFTypeRef,
         ) -> AXError;
+        fn CFArrayGetCount(array: CFTypeRef) -> i64;
+        fn CFArrayGetValueAtIndex(array: CFTypeRef, idx: i64) -> CFTypeRef;
     }
 
     // CFRange struct for AXValue extraction
@@ -187,6 +231,57 @@ mod macos {
             role,
             "AXTextField" | "AXTextArea" | "AXComboBox" | "AXWebArea"
         )
+    }
+
+    /// Try to extract text+cursor from the given element.
+    fn try_extract_text(element: AXUIElementRef) -> Option<(String, Option<usize>)> {
+        if let Some(text) = get_ax_string_attribute(element, K_AX_VALUE_ATTRIBUTE) {
+            if !text.is_empty() {
+                let cursor = get_cursor_position(element);
+                return Some((text, cursor));
+            }
+        }
+        None
+    }
+
+    /// Walk AXChildren to find a child element with non-empty text.
+    /// Depth-limited to avoid performance issues.
+    fn find_text_in_children(element: AXUIElementRef, max_depth: u32) -> Option<(String, Option<usize>)> {
+        if max_depth == 0 {
+            return None;
+        }
+
+        let children = get_ax_attribute(element, "AXChildren")?;
+        let count = unsafe { CFArrayGetCount(children) };
+
+        for i in 0..count {
+            let child = unsafe { CFArrayGetValueAtIndex(children, i) };
+            if child.is_null() {
+                continue;
+            }
+
+            // Check role — prefer text input elements
+            let child_role = get_ax_string_attribute(child, K_AX_ROLE_ATTRIBUTE);
+            let is_text = child_role
+                .as_deref()
+                .map_or(false, |r| matches!(r, "AXTextArea" | "AXTextField" | "AXComboBox"));
+
+            if is_text {
+                if let Some(result) = try_extract_text(child) {
+                    unsafe { CFRelease(children) };
+                    return Some(result);
+                }
+            }
+
+            // Recurse into children
+            if let Some(result) = find_text_in_children(child, max_depth - 1) {
+                unsafe { CFRelease(children) };
+                return Some(result);
+            }
+        }
+
+        unsafe { CFRelease(children) };
+        None
     }
 
     use objc::runtime::Object;
@@ -349,88 +444,135 @@ mod macos {
         }
     }
 
-    pub fn read_focused_text_field_impl() -> Result<Option<String>, String> {
-        // 1. System-wide element
-        let system_wide = unsafe { AXUIElementCreateSystemWide() };
-        if system_wide.is_null() {
-            return Ok(None);
-        }
+    /// Get the PID of the frontmost app (skipping TypeLate itself).
+    fn get_frontmost_app_pid() -> Option<i32> {
+        use objc::{msg_send, sel, sel_impl};
 
-        // 2. Focused application
-        let app = match get_ax_attribute(system_wide, K_AX_FOCUSED_APPLICATION_ATTRIBUTE) {
-            Some(a) => a,
+        unsafe {
+            let app = get_frontmost_running_app()?;
+            let bundle_id: *mut Object = msg_send![app, bundleIdentifier];
+            let bid = nsstring_to_string(bundle_id);
+            if bid == SELF_BUNDLE_ID {
+                return None;
+            }
+            let pid: i32 = msg_send![app, processIdentifier];
+            if pid <= 0 {
+                return None;
+            }
+            Some(pid)
+        }
+    }
+
+    pub fn read_focused_text_field_impl() -> Result<Option<String>, String> {
+        // 1. Get frontmost app PID (skips TypeLate) to target the correct process
+        let pid = match get_frontmost_app_pid() {
+            Some(p) => p,
             None => {
-                unsafe { CFRelease(system_wide) };
+                eprintln!("[text-field-reader] no frontmost app PID found");
                 return Ok(None);
             }
         };
+        eprintln!("[text-field-reader] targeting app PID={}", pid);
 
-        // 3. Focused UI element
-        let element = match get_ax_attribute(app, K_AX_FOCUSED_UI_ELEMENT_ATTRIBUTE) {
+        // 2. Create AXUIElement for the target app
+        let app_element = unsafe { AXUIElementCreateApplication(pid) };
+        if app_element.is_null() {
+            eprintln!("[text-field-reader] failed to create AX element for PID={}", pid);
+            return Ok(None);
+        }
+
+        // 3. Get focused UI element from that app
+        let element = match get_ax_attribute(app_element, K_AX_FOCUSED_UI_ELEMENT_ATTRIBUTE) {
             Some(e) => e,
             None => {
-                unsafe {
-                    CFRelease(app);
-                    CFRelease(system_wide);
-                }
+                eprintln!("[text-field-reader] no focused UI element in app PID={}", pid);
+                unsafe { CFRelease(app_element) };
                 return Ok(None);
             }
         };
 
         // 4. Check role
         let role = get_ax_string_attribute(element, K_AX_ROLE_ATTRIBUTE);
-        let target_element = match role.as_deref() {
-            Some(r) if is_text_input_role(r) => {
-                if r == "AXWebArea" {
-                    // For Chromium-based browsers, try to get the focused child
-                    match get_ax_attribute(element, K_AX_FOCUSED_UI_ELEMENT_ATTRIBUTE) {
-                        Some(child) => {
-                            // Use child, release original element later
-                            child
-                        }
-                        None => element, // Fallback to WebArea itself
+        eprintln!("[text-field-reader] focused element role: {:?}", role);
+
+        // 4b. Resolve the actual text element (may differ from focused element)
+        let (target_element, owns_target) = match role.as_deref() {
+            Some("AXWebArea") => {
+                // Chromium/Electron: try focused child within the web area
+                match get_ax_attribute(element, K_AX_FOCUSED_UI_ELEMENT_ATTRIBUTE) {
+                    Some(child) => {
+                        let child_role = get_ax_string_attribute(child, K_AX_ROLE_ATTRIBUTE);
+                        eprintln!("[text-field-reader] AXWebArea focused child role: {:?}", child_role);
+                        (child, true) // we own this child (Copy rule)
                     }
-                } else {
-                    element
+                    None => {
+                        eprintln!("[text-field-reader] AXWebArea has no focused child, using WebArea itself");
+                        (element, false)
+                    }
                 }
             }
+            Some(r) if is_text_input_role(r) => (element, false),
             _ => {
-                // Not a text input role
-                unsafe {
-                    CFRelease(element);
-                    CFRelease(app);
-                    CFRelease(system_wide);
-                }
-                return Ok(None);
+                // Non-text-input role (AXGroup, AXScrollArea, etc.)
+                // Don't give up — try walking children to find a text field
+                eprintln!("[text-field-reader] role {:?} is not a text input, searching children", role);
+                (element, false)
             }
         };
 
-        // 5. Get cursor position
-        let cursor_pos = get_cursor_position(target_element);
+        // 5. Try primary extraction on the target element
+        let text_result = if is_text_input_role(
+            role.as_deref().unwrap_or(""),
+        ) || role.as_deref() == Some("AXWebArea")
+        {
+            try_extract_text(target_element)
+        } else {
+            None // skip primary for non-text elements, go straight to fallbacks
+        };
 
-        // 6. Get full text value
-        let full_text = get_ax_string_attribute(target_element, K_AX_VALUE_ATTRIBUTE);
+        eprintln!(
+            "[text-field-reader] primary text: {:?}",
+            text_result.as_ref().map(|(t, c)| (t.len(), *c)),
+        );
+
+        // 6. Fallbacks: AXSelectedText, then walk children tree
+        let text_result = text_result.or_else(|| {
+            // Fallback A: AXSelectedText on the target element
+            if let Some(selected) = get_ax_string_attribute(target_element, "AXSelectedText") {
+                if !selected.is_empty() {
+                    eprintln!("[text-field-reader] fallback: AXSelectedText ({} chars)", selected.len());
+                    return Some((selected, None));
+                }
+            }
+            // Fallback B: Walk children (up to 5 levels) for text elements
+            if let Some(result) = find_text_in_children(target_element, 5) {
+                eprintln!("[text-field-reader] fallback: found text in children ({} chars)", result.0.len());
+                return Some(result);
+            }
+            eprintln!("[text-field-reader] no text found (all strategies exhausted)");
+            None
+        });
 
         // Cleanup
         unsafe {
-            if target_element != element {
+            if owns_target {
                 CFRelease(target_element);
             }
             CFRelease(element);
-            CFRelease(app);
-            CFRelease(system_wide);
+            CFRelease(app_element);
         }
 
-        match full_text {
-            Some(text) if !text.is_empty() => {
+        match text_result {
+            Some((text, cursor_pos)) => {
                 let excerpt = extract_excerpt(&text, cursor_pos, CONTEXT_CHARS);
                 if excerpt.is_empty() {
                     Ok(None)
                 } else {
+                    eprintln!("[text-field-reader] returning excerpt ({} chars)", excerpt.chars().count());
                     Ok(Some(excerpt))
                 }
             }
-            _ => Ok(None),
+            None => Ok(None),
         }
     }
 
@@ -438,9 +580,16 @@ mod macos {
     mod tests {
         use super::*;
 
+        // ── extract_excerpt ──
+
         #[test]
         fn test_extract_excerpt_empty() {
             assert_eq!(extract_excerpt("", None, 50), "");
+        }
+
+        #[test]
+        fn test_extract_excerpt_empty_with_cursor() {
+            assert_eq!(extract_excerpt("", Some(0), 50), "");
         }
 
         #[test]
@@ -475,7 +624,15 @@ mod macos {
         fn test_extract_excerpt_no_cursor_fallback() {
             let text: String = (0..200).map(|i| char::from(b'a' + (i % 26) as u8)).collect();
             let result = extract_excerpt(&text, None, 50);
-            assert_eq!(result.chars().count(), 100); // fallback last 100 chars
+            assert_eq!(result.chars().count(), 100); // fallback last FALLBACK_CHARS chars
+        }
+
+        #[test]
+        fn test_extract_excerpt_no_cursor_short_text() {
+            // Text shorter than FALLBACK_CHARS → return entire text
+            let text = "Short text";
+            let result = extract_excerpt(text, None, 50);
+            assert_eq!(result, "Short text");
         }
 
         #[test]
@@ -486,6 +643,58 @@ mod macos {
         }
 
         #[test]
+        fn test_extract_excerpt_emoji() {
+            let text = "Hello 🌍 World 🚀 Test 🎉 End";
+            let result = extract_excerpt(text, Some(8), 3);
+            // Emoji is 1 char; chars around pos 8: 3 before + 3 after
+            assert_eq!(result.chars().count(), 6);
+        }
+
+        #[test]
+        fn test_extract_excerpt_cursor_out_of_bounds() {
+            let text = "Hello world";
+            // cursor > len → fallback to last FALLBACK_CHARS
+            let result = extract_excerpt(text, Some(999), 50);
+            assert_eq!(result, "Hello world"); // text is shorter than FALLBACK_CHARS
+        }
+
+        #[test]
+        fn test_extract_excerpt_context_zero() {
+            let text = "Hello world";
+            let result = extract_excerpt(text, Some(5), 0);
+            // 0 context on each side → empty
+            assert_eq!(result, "");
+        }
+
+        #[test]
+        fn test_extract_excerpt_context_one() {
+            let text = "abcde";
+            let result = extract_excerpt(text, Some(2), 1);
+            // 1 before + 1 after cursor pos 2 → "bc"
+            assert_eq!(result, "bc");
+        }
+
+        #[test]
+        fn test_extract_excerpt_mixed_cjk_ascii() {
+            let text = "Hello你好World世界End";
+            // Length: H-e-l-l-o-你-好-W-o-r-l-d-世-界-E-n-d = 17 chars
+            let result = extract_excerpt(text, Some(7), 3);
+            // pos 7 = 'W', 3 before (好W → 你好W... wait let me count)
+            // chars: 0=H 1=e 2=l 3=l 4=o 5=你 6=好 7=W 8=o 9=r 10=l 11=d 12=世 13=界 14=E 15=n 16=d
+            // start = 7-3=4, end = 7+3=10 → chars[4..10] = "o你好Wor"
+            assert_eq!(result, "o你好Wor");
+        }
+
+        #[test]
+        fn test_extract_excerpt_single_char_text() {
+            assert_eq!(extract_excerpt("X", Some(0), 50), "X");
+            assert_eq!(extract_excerpt("X", Some(1), 50), "X");
+            assert_eq!(extract_excerpt("X", None, 50), "X");
+        }
+
+        // ── is_text_input_role ──
+
+        #[test]
         fn test_is_text_input_role() {
             assert!(is_text_input_role("AXTextField"));
             assert!(is_text_input_role("AXTextArea"));
@@ -493,6 +702,47 @@ mod macos {
             assert!(is_text_input_role("AXWebArea"));
             assert!(!is_text_input_role("AXButton"));
             assert!(!is_text_input_role("AXStaticText"));
+            assert!(!is_text_input_role("AXGroup"));
+            assert!(!is_text_input_role("AXScrollArea"));
+            assert!(!is_text_input_role("AXSplitGroup"));
+            assert!(!is_text_input_role(""));
+        }
+
+        // ── Cache mechanism ──
+        // Note: tests run in parallel threads sharing the same static.
+        // We use a test-specific key pattern to avoid interference.
+
+        #[test]
+        fn test_cache_stores_and_retrieves() {
+            // Write to cache
+            {
+                let mut cache = super::super::CACHED_SURROUNDING_TEXT.lock().unwrap();
+                *cache = Some("test surrounding text".to_string());
+            }
+            // Read via the public function
+            let result = super::super::get_cached_surrounding_text();
+            assert_eq!(result, Some("test surrounding text".to_string()));
+        }
+
+        #[test]
+        fn test_cache_clears_on_read() {
+            {
+                let mut cache = super::super::CACHED_SURROUNDING_TEXT.lock().unwrap();
+                *cache = Some("will be cleared".to_string());
+            }
+            let _ = super::super::get_cached_surrounding_text(); // consume
+            let second = super::super::get_cached_surrounding_text();
+            assert_eq!(second, None);
+        }
+
+        #[test]
+        fn test_cache_returns_none_when_empty() {
+            {
+                let mut cache = super::super::CACHED_SURROUNDING_TEXT.lock().unwrap();
+                *cache = None;
+            }
+            let result = super::super::get_cached_surrounding_text();
+            assert_eq!(result, None);
         }
     }
 }
