@@ -28,9 +28,6 @@ declare const styles: {
   readonly errorMessage: string;
   readonly retryIcon: string;
   readonly notchCollapsing: string;
-  readonly appIndicator: string;
-  readonly appIndicatorFading: string;
-  readonly appIcon: string;
-  readonly appName: string;
+  readonly appIconInline: string;
 };
 export default styles;
