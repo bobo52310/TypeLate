@@ -1,19 +1,86 @@
-# TypeLate
+[繁體中文](README_zh-TW.md) | **English**
 
-> Press, speak, release -- your voice becomes text, right where you type.
+<div align="center">
+  <img src="src-tauri/icons/icon.png" width="120" alt="TypeLate Logo" />
 
-TypeLate is a cross-platform desktop voice-to-text tool built with Tauri v2, React 19, and Rust. Hold a hotkey in any application, speak naturally, and release. Your speech is transcribed via Groq Whisper API, optionally enhanced by an LLM to convert spoken language into polished written text, and auto-pasted at the cursor position.
+  # TypeLate
+
+  **Press, speak, release — your voice becomes text, right where you type.**
+
+  [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+  [![GitHub Release](https://img.shields.io/github/v/release/bobo52310/TypeLate)](https://github.com/bobo52310/TypeLate/releases/latest)
+
+  <img src="screenshots/desktop-viewport.png" width="700" alt="TypeLate Dashboard" />
+</div>
+
+> Android version is also open source: [TypeLate-android](https://github.com/bobo52310/TypeLate-android) — same Groq Whisper transcription, LLM enhancement, and vocabulary sync, built with Kotlin + Jetpack Compose.
 
 ## Features
 
-- **Global hotkey activation** -- Trigger voice input from any application with a configurable hotkey. Supports both hold-to-record and toggle modes.
-- **Spoken-to-written conversion** -- AI automatically removes filler words, restructures sentences, and corrects punctuation so the result reads as clean written text.
-- **Low latency** -- Powered by Groq's inference engine, end-to-end processing completes in under 3 seconds, including LLM enhancement.
-- **Custom vocabulary dictionary** -- Teach TypeLate your proper nouns, technical terms, and jargon to improve transcription accuracy. Includes smart dictionary learning from transcription context.
-- **History and analytics** -- All transcriptions are saved with full history search. A dashboard provides usage statistics and cost tracking.
-- **Notch-style HUD overlay** -- A minimal, always-on-top overlay displays recording and transcription status without interrupting your workflow.
-- **Multi-language support** -- Interface available in English, Japanese, Korean, Simplified Chinese, and Traditional Chinese.
-- **Cross-platform** -- Runs on macOS (Apple Silicon and Intel) and Windows.
+### Use anywhere
+
+Trigger voice input from any application with a configurable global hotkey. Supports **hold-to-record**, **toggle**, and **double-click** trigger modes.
+
+### Spoken-to-written conversion
+
+AI automatically removes filler words, restructures sentences, and corrects punctuation. Three enhancement modes:
+- **Clean** — Fix errors only, preserve your original tone
+- **Format** — Restructure into paragraphs, lists, or structured text
+- **Custom** — Write your own prompt for full control over output
+
+### Under 3 seconds
+
+End-to-end processing powered by Groq — currently the fastest inference engine. Speech transcription plus LLM enhancement completes in under 3 seconds.
+
+### Context-aware enhancement
+
+Automatically adjusts tone based on the active application:
+- **Email** (Mail, Outlook) — formal and professional
+- **Chat** (Slack, Discord, Teams) — casual and concise
+- **Code Editor** (VS Code, Xcode, Terminal) — technically precise
+- **Notes** (Obsidian, Notion, Bear) — natural writing
+
+Also reads surrounding text near the cursor so the AI produces more coherent output.
+
+### Smart dictionary
+
+- **Custom vocabulary** — Teach TypeLate your proper nouns, technical terms, and jargon to improve transcription accuracy. Supports batch import.
+- **Auto-learning** — When the AI detects you corrected transcribed text after pasting, it automatically learns the correct terms.
+- **Google Drive sync** — Two-way sync keeps vocabulary consistent across devices.
+
+### Recording management
+
+- Configurable retention policy: keep forever, 30 / 14 / 7 days, or don't keep
+- Play back past recordings directly from history
+- Re-transcribe existing audio with different settings
+
+### Sound feedback
+
+Five built-in sound themes (Default, Gentle, Minimal, Retro, Custom) with support for custom sound files. Can auto-mute system audio during recording to prevent echo.
+
+### History and analytics
+
+All transcriptions are saved automatically with full-text search. The dashboard provides:
+- Usage statistics (total recording time, total characters, transcription count)
+- 30-day usage trend chart
+- Per-model cost tracking
+- Daily free quota monitoring
+
+### Notch-style HUD overlay
+
+A minimal, always-on-top overlay displays recording status, waveform, and transcription results without interrupting your workflow. Shows the current application's icon during recording.
+
+### Multi-language support
+
+Interface available in English, Japanese, Korean, Simplified Chinese, and Traditional Chinese.
+
+### Privacy-first
+
+Your API key goes directly to Groq — voice data never passes through our servers. All transcriptions and recordings are stored locally on your device.
+
+### Cross-platform
+
+Runs on macOS (Apple Silicon and Intel) and Windows.
 
 ## Download
 
@@ -124,6 +191,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, code conventi
 ## Security
 
 See [SECURITY.md](SECURITY.md) for reporting security vulnerabilities.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
