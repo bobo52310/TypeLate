@@ -5,25 +5,46 @@
 
   # TypeLate
 
-  **Press, speak, release — your voice becomes text, right where you type.**
+  **Too late to type — just speak.**
+
+  Press a hotkey, speak naturally, release. Your voice becomes polished text in under 3 seconds — right where you type.
 
   [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![GitHub Release](https://img.shields.io/github/v/release/bobo52310/TypeLate)](https://github.com/bobo52310/TypeLate/releases/latest)
+  ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
 
   <img src="screenshots/desktop-viewport.png" width="700" alt="TypeLate Dashboard" />
 </div>
 
 > Android version is also open source: [TypeLate-android](https://github.com/bobo52310/TypeLate-android) — same Groq Whisper transcription, LLM enhancement, and vocabulary sync, built with Kotlin + Jetpack Compose.
 
+## How It Works
+
+| Step | Action |
+| :--: | ------ |
+| **1. Hold Hotkey** | Press `Fn` (or your custom hotkey) in any application. |
+| **2. Speak Naturally** | Talk as you normally would. No need to articulate perfectly. |
+| **3. Text Appears** | AI transcribes, polishes with your custom prompt, and pastes at your cursor in under 3 seconds. |
+
+### See the Difference
+
+> **Raw voice input**
+>
+> *"so um I was thinking like maybe we should uh probably move the meeting to like Thursday or something because um you know the client isn't going to be available on Monday"*
+>
+> **AI-polished output**
+>
+> "I'd suggest moving the meeting to Thursday, as the client won't be available on Monday."
+
 ## Features
 
-### Use anywhere
+### Works everywhere
 
-Trigger voice input from any application with a configurable global hotkey. Supports **hold-to-record**, **toggle**, and **double-click** trigger modes.
+Hold, toggle, or double-tap in any app. `Fn` key default, fully customizable. System-wide integration — if you can type there, you can speak there.
 
-### Spoken-to-written conversion
+### AI post-processing
 
-AI automatically removes filler words, restructures sentences, and corrects punctuation. Three enhancement modes:
+AI polishes your speech into clean text — removing fillers, fixing grammar. Fully customizable prompts to match your style. Three enhancement modes:
 - **Clean** — Fix errors only, preserve your original tone
 - **Format** — Restructure into paragraphs, lists, or structured text
 - **Custom** — Write your own prompt for full control over output
@@ -32,9 +53,9 @@ AI automatically removes filler words, restructures sentences, and corrects punc
 
 End-to-end processing powered by Groq — currently the fastest inference engine. Speech transcription plus LLM enhancement completes in under 3 seconds.
 
-### Context-aware enhancement
+### Knows your context
 
-Automatically adjusts tone based on the active application:
+Auto-adjusts tone based on the active app — formal in email, casual in chat, technical in IDE:
 - **Email** (Mail, Outlook) — formal and professional
 - **Chat** (Slack, Discord, Teams) — casual and concise
 - **Code Editor** (VS Code, Xcode, Terminal) — technically precise
@@ -42,9 +63,10 @@ Automatically adjusts tone based on the active application:
 
 Also reads surrounding text near the cursor so the AI produces more coherent output.
 
-### Smart dictionary
+### Your dictionary, every device
 
-- **Custom vocabulary** — Teach TypeLate your proper nouns, technical terms, and jargon to improve transcription accuracy. Supports batch import.
+Build a custom vocabulary for names, jargon, and technical terms. Synced via Google Drive across macOS and Android — your personal dictionary follows you everywhere.
+- **Custom vocabulary** — Teach TypeLate your proper nouns and technical terms. Supports batch import.
 - **Auto-learning** — When the AI detects you corrected transcribed text after pasting, it automatically learns the correct terms.
 - **Google Drive sync** — Two-way sync keeps vocabulary consistent across devices.
 
@@ -74,13 +96,22 @@ A minimal, always-on-top overlay displays recording status, waveform, and transc
 
 Interface available in English, Japanese, Korean, Simplified Chinese, and Traditional Chinese.
 
-### Privacy-first
+### Your keys, your data
 
-Your API key goes directly to Groq — voice data never passes through our servers. All transcriptions and recordings are stored locally on your device.
+Your API key stays on your machine. Voice data goes directly from your mic to the AI provider — never through us. Zero telemetry servers. TypeLate is open source — you can verify this yourself.
 
 ### Cross-platform
 
 Runs on macOS (Apple Silicon and Intel) and Windows.
+
+## Who It's For
+
+| Persona | Use Case | Apps |
+| ------- | -------- | ---- |
+| **Developer** | Dictate PR descriptions, Slack replies, and code comments without switching context. | VS Code, Slack, GitHub |
+| **Writer** | Draft blog posts, emails, and documents at the speed of thought. Let AI clean up the rest. | Notion, Gmail, Pages |
+| **Multilingual** | Switch between languages mid-sentence. Perfect for bilingual meeting notes and cross-team communication. | LINE, Telegram, Notes |
+| **Accessibility** | Type anywhere with your voice. Reduce strain from repetitive typing — RSI-friendly and fully hands-free capable. | Any App |
 
 ## Download
 
