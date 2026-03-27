@@ -9,3 +9,8 @@ coverage/
 vite.config.d.ts
 vite.config.d.ts.map
 vite.config.js
+
+# Environment variables
+.env
+.env.local
+.env.*.local
