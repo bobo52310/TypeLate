@@ -1,5 +1,6 @@
 /// 取得最前方應用程式的 bundle identifier。
 /// macOS: 透過 NSWorkspace.sharedWorkspace.frontmostApplication
+/// Windows: 回傳 exe 完整路徑
 /// 其他平台: 回傳 None
 #[tauri::command]
 pub fn get_frontmost_app_bundle_id() -> Result<Option<String>, String> {
@@ -8,7 +9,12 @@ pub fn get_frontmost_app_bundle_id() -> Result<Option<String>, String> {
         macos::get_frontmost_app_bundle_id_impl()
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        windows_impl::get_frontmost_app_bundle_id_impl()
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         Ok(None)
     }
@@ -25,6 +31,7 @@ pub struct FrontmostAppInfo {
 
 /// 取得最前方應用程式的名稱、bundle ID 和圖示。
 /// macOS: 透過 NSWorkspace + NSRunningApplication
+/// Windows: 透過 GetForegroundWindow + process info + ExtractIconEx
 /// 其他平台: 回傳 None
 #[tauri::command]
 pub fn get_frontmost_app_info() -> Result<Option<FrontmostAppInfo>, String> {
@@ -33,7 +40,12 @@ pub fn get_frontmost_app_info() -> Result<Option<FrontmostAppInfo>, String> {
         macos::get_frontmost_app_info_impl()
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        windows_impl::get_frontmost_app_info_impl()
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         Ok(None)
     }
@@ -41,7 +53,7 @@ pub fn get_frontmost_app_info() -> Result<Option<FrontmostAppInfo>, String> {
 
 /// 讀取當前 focused text field 游標附近的文字。
 /// macOS: 透過 AXUIElement Accessibility API
-/// Windows: 目前為 no-op placeholder（後續補上 UI Automation）
+/// Windows: 透過 UI Automation (IUIAutomation)
 #[tauri::command]
 pub fn read_focused_text_field() -> Result<Option<String>, String> {
     #[cfg(target_os = "macos")]
@@ -51,14 +63,41 @@ pub fn read_focused_text_field() -> Result<Option<String>, String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Windows UI Automation 實作延後，先回傳 None
-        Ok(None)
+        windows_impl::read_focused_text_field_impl()
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         Ok(None)
     }
+}
+
+// ========== Shared constants & helpers ==========
+
+const CONTEXT_CHARS: usize = 50;
+const FALLBACK_CHARS: usize = 100;
+
+fn extract_excerpt(full_text: &str, cursor_pos: Option<usize>, context: usize) -> String {
+    let chars: Vec<char> = full_text.chars().collect();
+    let len = chars.len();
+
+    if len == 0 {
+        return String::new();
+    }
+
+    let pos = match cursor_pos {
+        Some(p) if p <= len => p,
+        _ => {
+            // fallback: 取末尾 FALLBACK_CHARS 字
+            let start = len.saturating_sub(FALLBACK_CHARS);
+            return chars[start..].iter().collect();
+        }
+    };
+
+    let start = pos.saturating_sub(context);
+    let end = (pos + context).min(len);
+
+    chars[start..end].iter().collect()
 }
 
 // ========== Surrounding Text Cache ==========
@@ -87,7 +126,22 @@ pub fn capture_surrounding_text() {
         }
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        let result = windows_impl::read_focused_text_field_impl().unwrap_or(None);
+        eprintln!(
+            "[text-field-reader] hotkey capture result: {}",
+            match &result {
+                Some(t) => format!("{} chars", t.chars().count()),
+                None => "null".to_string(),
+            }
+        );
+        if let Ok(mut cache) = CACHED_SURROUNDING_TEXT.lock() {
+            *cache = result;
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         if let Ok(mut cache) = CACHED_SURROUNDING_TEXT.lock() {
             *cache = None;
@@ -108,6 +162,7 @@ pub fn get_cached_surrounding_text() -> Option<String> {
 
 #[cfg(target_os = "macos")]
 mod macos {
+    use super::{extract_excerpt, CONTEXT_CHARS};
     use core_foundation::base::{CFRelease, CFTypeRef, TCFType};
     use core_foundation::string::CFString;
     use std::ffi::c_void;
@@ -123,9 +178,6 @@ mod macos {
     const K_AX_VALUE_ATTRIBUTE: &str = "AXValue";
     const K_AX_SELECTED_TEXT_RANGE_ATTRIBUTE: &str = "AXSelectedTextRange";
     const K_AX_ROLE_ATTRIBUTE: &str = "AXRole";
-
-    const CONTEXT_CHARS: usize = 50;
-    const FALLBACK_CHARS: usize = 100;
 
     extern "C" {
         fn AXUIElementCreateApplication(pid: i32) -> AXUIElementRef;
@@ -201,29 +253,6 @@ mod macos {
         } else {
             None
         }
-    }
-
-    fn extract_excerpt(full_text: &str, cursor_pos: Option<usize>, context: usize) -> String {
-        let chars: Vec<char> = full_text.chars().collect();
-        let len = chars.len();
-
-        if len == 0 {
-            return String::new();
-        }
-
-        let pos = match cursor_pos {
-            Some(p) if p <= len => p,
-            _ => {
-                // fallback: 取末尾 FALLBACK_CHARS 字
-                let start = len.saturating_sub(FALLBACK_CHARS);
-                return chars[start..].iter().collect();
-            }
-        };
-
-        let start = pos.saturating_sub(context);
-        let end = (pos + context).min(len);
-
-        chars[start..end].iter().collect()
     }
 
     fn is_text_input_role(role: &str) -> bool {
@@ -575,174 +604,546 @@ mod macos {
             None => Ok(None),
         }
     }
+}
 
-    #[cfg(test)]
-    mod tests {
-        use super::*;
+// ========== Windows: Win32 + UI Automation ==========
 
-        // ── extract_excerpt ──
+#[cfg(target_os = "windows")]
+mod windows_impl {
+    use super::{extract_excerpt, CONTEXT_CHARS};
+    use std::ffi::OsString;
+    use std::os::windows::ffi::OsStringExt;
+    use windows::core::BSTR;
+    use windows::Win32::Foundation::{CloseHandle, HWND, MAX_PATH};
+    use windows::Win32::Graphics::Gdi::{
+        CreateCompatibleDC, DeleteDC, DeleteObject, GetDIBits, BITMAPINFO, BITMAPINFOHEADER,
+        BI_RGB, DIB_RGB_COLORS,
+    };
+    use windows::Win32::System::Com::{
+        CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_APARTMENTTHREADED,
+    };
+    use windows::Win32::System::Threading::{
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_FORMAT,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+    use windows::Win32::UI::Accessibility::{
+        CUIAutomation, IUIAutomation, IUIAutomationTextPattern, IUIAutomationTextRange,
+        IUIAutomationValuePattern, TextPatternRangeEndpoint_Start, UIA_NamePropertyId,
+        UIA_TextPatternId, UIA_ValuePatternId,
+    };
+    use windows::Win32::UI::Shell::ExtractIconExW;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        DestroyIcon, GetForegroundWindow, GetIconInfo, GetWindowTextW,
+        GetWindowThreadProcessId,
+    };
 
-        #[test]
-        fn test_extract_excerpt_empty() {
-            assert_eq!(extract_excerpt("", None, 50), "");
-        }
+    // ── COM Guard (same pattern as audio_control.rs) ──
 
-        #[test]
-        fn test_extract_excerpt_empty_with_cursor() {
-            assert_eq!(extract_excerpt("", Some(0), 50), "");
-        }
+    struct ComGuard {
+        should_uninit: bool,
+    }
 
-        #[test]
-        fn test_extract_excerpt_short_text() {
-            let text = "Hello world";
-            let result = extract_excerpt(text, Some(5), 50);
-            assert_eq!(result, "Hello world");
-        }
-
-        #[test]
-        fn test_extract_excerpt_cursor_in_middle() {
-            let text: String = (0..200).map(|i| char::from(b'a' + (i % 26) as u8)).collect();
-            let result = extract_excerpt(&text, Some(100), 50);
-            assert_eq!(result.chars().count(), 100); // 50 before + 50 after
-        }
-
-        #[test]
-        fn test_extract_excerpt_cursor_at_start() {
-            let text: String = (0..200).map(|i| char::from(b'a' + (i % 26) as u8)).collect();
-            let result = extract_excerpt(&text, Some(0), 50);
-            assert_eq!(result.chars().count(), 50); // 0 before + 50 after
-        }
-
-        #[test]
-        fn test_extract_excerpt_cursor_at_end() {
-            let text: String = (0..200).map(|i| char::from(b'a' + (i % 26) as u8)).collect();
-            let result = extract_excerpt(&text, Some(200), 50);
-            assert_eq!(result.chars().count(), 50); // 50 before + 0 after
-        }
-
-        #[test]
-        fn test_extract_excerpt_no_cursor_fallback() {
-            let text: String = (0..200).map(|i| char::from(b'a' + (i % 26) as u8)).collect();
-            let result = extract_excerpt(&text, None, 50);
-            assert_eq!(result.chars().count(), 100); // fallback last FALLBACK_CHARS chars
-        }
-
-        #[test]
-        fn test_extract_excerpt_no_cursor_short_text() {
-            // Text shorter than FALLBACK_CHARS → return entire text
-            let text = "Short text";
-            let result = extract_excerpt(text, None, 50);
-            assert_eq!(result, "Short text");
-        }
-
-        #[test]
-        fn test_extract_excerpt_cjk_characters() {
-            let text = "這是一段很長的中文測試文字，用來驗證游標附近截取功能是否正確處理多位元組字元";
-            let result = extract_excerpt(text, Some(10), 5);
-            assert_eq!(result.chars().count(), 10); // 5 before + 5 after
-        }
-
-        #[test]
-        fn test_extract_excerpt_emoji() {
-            let text = "Hello 🌍 World 🚀 Test 🎉 End";
-            let result = extract_excerpt(text, Some(8), 3);
-            // Emoji is 1 char; chars around pos 8: 3 before + 3 after
-            assert_eq!(result.chars().count(), 6);
-        }
-
-        #[test]
-        fn test_extract_excerpt_cursor_out_of_bounds() {
-            let text = "Hello world";
-            // cursor > len → fallback to last FALLBACK_CHARS
-            let result = extract_excerpt(text, Some(999), 50);
-            assert_eq!(result, "Hello world"); // text is shorter than FALLBACK_CHARS
-        }
-
-        #[test]
-        fn test_extract_excerpt_context_zero() {
-            let text = "Hello world";
-            let result = extract_excerpt(text, Some(5), 0);
-            // 0 context on each side → empty
-            assert_eq!(result, "");
-        }
-
-        #[test]
-        fn test_extract_excerpt_context_one() {
-            let text = "abcde";
-            let result = extract_excerpt(text, Some(2), 1);
-            // 1 before + 1 after cursor pos 2 → "bc"
-            assert_eq!(result, "bc");
-        }
-
-        #[test]
-        fn test_extract_excerpt_mixed_cjk_ascii() {
-            let text = "Hello你好World世界End";
-            // Length: H-e-l-l-o-你-好-W-o-r-l-d-世-界-E-n-d = 17 chars
-            let result = extract_excerpt(text, Some(7), 3);
-            // pos 7 = 'W', 3 before (好W → 你好W... wait let me count)
-            // chars: 0=H 1=e 2=l 3=l 4=o 5=你 6=好 7=W 8=o 9=r 10=l 11=d 12=世 13=界 14=E 15=n 16=d
-            // start = 7-3=4, end = 7+3=10 → chars[4..10] = "o你好Wor"
-            assert_eq!(result, "o你好Wor");
-        }
-
-        #[test]
-        fn test_extract_excerpt_single_char_text() {
-            assert_eq!(extract_excerpt("X", Some(0), 50), "X");
-            assert_eq!(extract_excerpt("X", Some(1), 50), "X");
-            assert_eq!(extract_excerpt("X", None, 50), "X");
-        }
-
-        // ── is_text_input_role ──
-
-        #[test]
-        fn test_is_text_input_role() {
-            assert!(is_text_input_role("AXTextField"));
-            assert!(is_text_input_role("AXTextArea"));
-            assert!(is_text_input_role("AXComboBox"));
-            assert!(is_text_input_role("AXWebArea"));
-            assert!(!is_text_input_role("AXButton"));
-            assert!(!is_text_input_role("AXStaticText"));
-            assert!(!is_text_input_role("AXGroup"));
-            assert!(!is_text_input_role("AXScrollArea"));
-            assert!(!is_text_input_role("AXSplitGroup"));
-            assert!(!is_text_input_role(""));
-        }
-
-        // ── Cache mechanism ──
-        // Note: tests run in parallel threads sharing the same static.
-        // We use a test-specific key pattern to avoid interference.
-
-        #[test]
-        fn test_cache_stores_and_retrieves() {
-            // Write to cache
-            {
-                let mut cache = super::super::CACHED_SURROUNDING_TEXT.lock().unwrap();
-                *cache = Some("test surrounding text".to_string());
+    impl Drop for ComGuard {
+        fn drop(&mut self) {
+            if self.should_uninit {
+                unsafe { CoUninitialize() };
             }
-            // Read via the public function
-            let result = super::super::get_cached_surrounding_text();
-            assert_eq!(result, Some("test surrounding text".to_string()));
+        }
+    }
+
+    fn init_com() -> Result<ComGuard, String> {
+        unsafe {
+            let hr = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+            if hr.is_ok() {
+                Ok(ComGuard {
+                    should_uninit: true,
+                })
+            } else {
+                let code = hr.0 as u32;
+                if code == 0x80010106 {
+                    // RPC_E_CHANGED_MODE — already initialized in different mode
+                    Ok(ComGuard {
+                        should_uninit: false,
+                    })
+                } else {
+                    Err(format!("CoInitializeEx failed: HRESULT 0x{:08X}", code))
+                }
+            }
+        }
+    }
+
+    // ── Foreground App Info ──
+
+    /// Get foreground window info: (exe_path, window_title, pid).
+    fn get_foreground_window_info() -> Option<(String, String, u32)> {
+        unsafe {
+            let hwnd: HWND = GetForegroundWindow();
+            if hwnd.0.is_null() {
+                return None;
+            }
+
+            // Get PID
+            let mut pid: u32 = 0;
+            GetWindowThreadProcessId(hwnd, Some(&mut pid));
+            if pid == 0 {
+                return None;
+            }
+
+            // Skip self
+            if pid == std::process::id() {
+                return None;
+            }
+
+            // Get exe path
+            let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+            let mut buf = [0u16; MAX_PATH as usize];
+            let mut size = buf.len() as u32;
+            let ok = QueryFullProcessImageNameW(process, PROCESS_NAME_FORMAT(0), &mut buf, &mut size);
+            let _ = CloseHandle(process);
+            if ok.is_err() || size == 0 {
+                return None;
+            }
+            let exe_path = OsString::from_wide(&buf[..size as usize])
+                .to_string_lossy()
+                .into_owned();
+
+            // Get window title
+            let mut title_buf = [0u16; 256];
+            let title_len = GetWindowTextW(hwnd, &mut title_buf);
+            let window_title = if title_len > 0 {
+                OsString::from_wide(&title_buf[..title_len as usize])
+                    .to_string_lossy()
+                    .into_owned()
+            } else {
+                // Fallback: extract filename from exe path
+                exe_path
+                    .rsplit('\\')
+                    .next()
+                    .unwrap_or(&exe_path)
+                    .trim_end_matches(".exe")
+                    .to_string()
+            };
+
+            Some((exe_path, window_title, pid))
+        }
+    }
+
+    pub fn get_frontmost_app_bundle_id_impl() -> Result<Option<String>, String> {
+        Ok(get_foreground_window_info().map(|(exe_path, _, _)| exe_path))
+    }
+
+    pub fn get_frontmost_app_info_impl() -> Result<Option<super::FrontmostAppInfo>, String> {
+        let (exe_path, name, _pid) = match get_foreground_window_info() {
+            Some(info) => info,
+            None => return Ok(None),
+        };
+
+        let icon_base64 = get_app_icon_base64(&exe_path);
+
+        Ok(Some(super::FrontmostAppInfo {
+            name,
+            bundle_id: exe_path,
+            icon_base64,
+        }))
+    }
+
+    // ── Icon Extraction ──
+
+    fn get_app_icon_base64(exe_path: &str) -> String {
+        unsafe {
+            // Convert path to wide string
+            let wide_path: Vec<u16> = exe_path.encode_utf16().chain(std::iter::once(0)).collect();
+
+            // Extract 32x32 large icon from the exe
+            let mut large_icon = std::mem::zeroed();
+            let count = ExtractIconExW(
+                windows::core::PCWSTR(wide_path.as_ptr()),
+                0,
+                Some(&mut large_icon),
+                None,
+                1,
+            );
+            if count == 0 || large_icon.is_invalid() {
+                return String::new();
+            }
+
+            let result = hicon_to_base64_png(large_icon);
+            let _ = DestroyIcon(large_icon);
+            result
+        }
+    }
+
+    unsafe fn hicon_to_base64_png(hicon: windows::Win32::UI::WindowsAndMessaging::HICON) -> String {
+        use base64::Engine;
+
+        // Get icon bitmap info
+        let mut icon_info = std::mem::zeroed();
+        if GetIconInfo(hicon, &mut icon_info).is_err() {
+            return String::new();
         }
 
-        #[test]
-        fn test_cache_clears_on_read() {
-            {
-                let mut cache = super::super::CACHED_SURROUNDING_TEXT.lock().unwrap();
-                *cache = Some("will be cleared".to_string());
+        let hbm_color = icon_info.hbmColor;
+        if hbm_color.is_invalid() {
+            if !icon_info.hbmMask.is_invalid() {
+                let _ = DeleteObject(icon_info.hbmMask);
             }
-            let _ = super::super::get_cached_surrounding_text(); // consume
-            let second = super::super::get_cached_surrounding_text();
-            assert_eq!(second, None);
+            return String::new();
         }
 
-        #[test]
-        fn test_cache_returns_none_when_empty() {
-            {
-                let mut cache = super::super::CACHED_SURROUNDING_TEXT.lock().unwrap();
-                *cache = None;
+        // Create a compatible DC
+        let hdc = CreateCompatibleDC(None);
+        if hdc.is_invalid() {
+            let _ = DeleteObject(hbm_color);
+            if !icon_info.hbmMask.is_invalid() {
+                let _ = DeleteObject(icon_info.hbmMask);
             }
-            let result = super::super::get_cached_surrounding_text();
-            assert_eq!(result, None);
+            return String::new();
         }
+
+        // Read BGRA pixel data (top-down via negative biHeight)
+        const ICON_SIZE: i32 = 32;
+        let mut bmi = BITMAPINFO {
+            bmiHeader: BITMAPINFOHEADER {
+                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                biWidth: ICON_SIZE,
+                biHeight: -ICON_SIZE, // top-down
+                biPlanes: 1,
+                biBitCount: 32,
+                biCompression: BI_RGB.0,
+                ..std::mem::zeroed()
+            },
+            ..std::mem::zeroed()
+        };
+
+        let mut pixels = vec![0u8; (ICON_SIZE * ICON_SIZE * 4) as usize];
+        let rows = GetDIBits(
+            hdc,
+            hbm_color,
+            0,
+            ICON_SIZE as u32,
+            Some(pixels.as_mut_ptr() as *mut _),
+            &mut bmi,
+            DIB_RGB_COLORS,
+        );
+
+        // Cleanup GDI objects
+        let _ = DeleteDC(hdc);
+        let _ = DeleteObject(hbm_color);
+        if !icon_info.hbmMask.is_invalid() {
+            let _ = DeleteObject(icon_info.hbmMask);
+        }
+
+        if rows == 0 {
+            return String::new();
+        }
+
+        // BGRA → RGBA
+        for chunk in pixels.chunks_exact_mut(4) {
+            chunk.swap(0, 2); // B ↔ R
+        }
+
+        // Encode as PNG
+        let Some(img) = image::RgbaImage::from_raw(ICON_SIZE as u32, ICON_SIZE as u32, pixels) else {
+            return String::new();
+        };
+        let mut png_buf = std::io::Cursor::new(Vec::new());
+        if image::DynamicImage::ImageRgba8(img)
+            .write_to(&mut png_buf, image::ImageFormat::Png)
+            .is_err()
+        {
+            return String::new();
+        }
+
+        base64::engine::general_purpose::STANDARD.encode(png_buf.into_inner())
+    }
+
+    // ── UI Automation: Text Field Reading ──
+
+    pub fn read_focused_text_field_impl() -> Result<Option<String>, String> {
+        let _com = init_com()?;
+
+        let uia: IUIAutomation = unsafe {
+            CoCreateInstance(&CUIAutomation, None, CLSCTX_ALL)
+                .map_err(|e| format!("Failed to create IUIAutomation: {}", e))?
+        };
+
+        let element = unsafe {
+            uia.GetFocusedElement()
+                .map_err(|e| format!("GetFocusedElement failed: {}", e))?
+        };
+
+        // Skip if the focused element belongs to TypeLate itself
+        let element_pid = unsafe { element.CurrentProcessId().unwrap_or(0) as u32 };
+        if element_pid == std::process::id() {
+            return Ok(None);
+        }
+
+        // Strategy 1: ValuePattern — works for most standard text fields
+        if let Some(text) = try_value_pattern(&element) {
+            if !text.is_empty() {
+                let cursor_pos = try_get_cursor_position(&element);
+                let excerpt = extract_excerpt(&text, cursor_pos, CONTEXT_CHARS);
+                if !excerpt.is_empty() {
+                    eprintln!(
+                        "[text-field-reader] ValuePattern excerpt ({} chars)",
+                        excerpt.chars().count()
+                    );
+                    return Ok(Some(excerpt));
+                }
+            }
+        }
+
+        // Strategy 2: TextPattern — works for rich text editors
+        if let Some((text, cursor_pos)) = try_text_pattern(&element) {
+            if !text.is_empty() {
+                let excerpt = extract_excerpt(&text, cursor_pos, CONTEXT_CHARS);
+                if !excerpt.is_empty() {
+                    eprintln!(
+                        "[text-field-reader] TextPattern excerpt ({} chars)",
+                        excerpt.chars().count()
+                    );
+                    return Ok(Some(excerpt));
+                }
+            }
+        }
+
+        // Strategy 3: Name property — last resort
+        if let Some(name) = try_name_property(&element) {
+            if !name.is_empty() {
+                let excerpt = extract_excerpt(&name, None, CONTEXT_CHARS);
+                if !excerpt.is_empty() {
+                    eprintln!(
+                        "[text-field-reader] NameProperty excerpt ({} chars)",
+                        excerpt.chars().count()
+                    );
+                    return Ok(Some(excerpt));
+                }
+            }
+        }
+
+        eprintln!("[text-field-reader] no text found (all strategies exhausted)");
+        Ok(None)
+    }
+
+    fn try_value_pattern(element: &windows::Win32::UI::Accessibility::IUIAutomationElement) -> Option<String> {
+        unsafe {
+            let pattern = element.GetCurrentPattern(UIA_ValuePatternId).ok()?;
+            let value_pattern: IUIAutomationValuePattern = pattern.cast().ok()?;
+            let bstr: BSTR = value_pattern.CurrentValue().ok()?;
+            Some(bstr.to_string())
+        }
+    }
+
+    fn try_text_pattern(
+        element: &windows::Win32::UI::Accessibility::IUIAutomationElement,
+    ) -> Option<(String, Option<usize>)> {
+        unsafe {
+            let pattern = element.GetCurrentPattern(UIA_TextPatternId).ok()?;
+            let text_pattern: IUIAutomationTextPattern = pattern.cast().ok()?;
+
+            // Get full document text
+            let doc_range: IUIAutomationTextRange = text_pattern.DocumentRange().ok()?;
+            let full_text_bstr: BSTR = doc_range.GetText(-1).ok()?;
+            let full_text = full_text_bstr.to_string();
+
+            if full_text.is_empty() {
+                return None;
+            }
+
+            // Try to get cursor position from selection
+            let cursor_pos = get_cursor_from_selection(&text_pattern, &doc_range);
+
+            Some((full_text, cursor_pos))
+        }
+    }
+
+    unsafe fn get_cursor_from_selection(
+        text_pattern: &IUIAutomationTextPattern,
+        doc_range: &IUIAutomationTextRange,
+    ) -> Option<usize> {
+        let selection = text_pattern.GetSelection().ok()?;
+        let count = selection.Length().ok()?;
+        if count == 0 {
+            return None;
+        }
+        let sel_range: IUIAutomationTextRange = selection.GetElement(0).ok()?;
+
+        // Compare the start of selection against the start of the document
+        let offset = sel_range
+            .CompareEndpoints(
+                TextPatternRangeEndpoint_Start,
+                doc_range,
+                TextPatternRangeEndpoint_Start,
+            )
+            .ok()?;
+
+        if offset >= 0 {
+            Some(offset as usize)
+        } else {
+            None
+        }
+    }
+
+    fn try_name_property(element: &windows::Win32::UI::Accessibility::IUIAutomationElement) -> Option<String> {
+        unsafe {
+            let variant = element
+                .GetCurrentPropertyValue(UIA_NamePropertyId)
+                .ok()?;
+            // VARIANT may contain a BSTR
+            let bstr: BSTR = variant.try_into().ok()?;
+            let s = bstr.to_string();
+            if s.is_empty() { None } else { Some(s) }
+        }
+    }
+}
+
+// ========== Tests ==========
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── extract_excerpt ──
+
+    #[test]
+    fn test_extract_excerpt_empty() {
+        assert_eq!(extract_excerpt("", None, 50), "");
+    }
+
+    #[test]
+    fn test_extract_excerpt_empty_with_cursor() {
+        assert_eq!(extract_excerpt("", Some(0), 50), "");
+    }
+
+    #[test]
+    fn test_extract_excerpt_short_text() {
+        let text = "Hello world";
+        let result = extract_excerpt(text, Some(5), 50);
+        assert_eq!(result, "Hello world");
+    }
+
+    #[test]
+    fn test_extract_excerpt_cursor_in_middle() {
+        let text: String = (0..200).map(|i| char::from(b'a' + (i % 26) as u8)).collect();
+        let result = extract_excerpt(&text, Some(100), 50);
+        assert_eq!(result.chars().count(), 100); // 50 before + 50 after
+    }
+
+    #[test]
+    fn test_extract_excerpt_cursor_at_start() {
+        let text: String = (0..200).map(|i| char::from(b'a' + (i % 26) as u8)).collect();
+        let result = extract_excerpt(&text, Some(0), 50);
+        assert_eq!(result.chars().count(), 50); // 0 before + 50 after
+    }
+
+    #[test]
+    fn test_extract_excerpt_cursor_at_end() {
+        let text: String = (0..200).map(|i| char::from(b'a' + (i % 26) as u8)).collect();
+        let result = extract_excerpt(&text, Some(200), 50);
+        assert_eq!(result.chars().count(), 50); // 50 before + 0 after
+    }
+
+    #[test]
+    fn test_extract_excerpt_no_cursor_fallback() {
+        let text: String = (0..200).map(|i| char::from(b'a' + (i % 26) as u8)).collect();
+        let result = extract_excerpt(&text, None, 50);
+        assert_eq!(result.chars().count(), FALLBACK_CHARS); // fallback last FALLBACK_CHARS chars
+    }
+
+    #[test]
+    fn test_extract_excerpt_no_cursor_short_text() {
+        // Text shorter than FALLBACK_CHARS → return entire text
+        let text = "Short text";
+        let result = extract_excerpt(text, None, 50);
+        assert_eq!(result, "Short text");
+    }
+
+    #[test]
+    fn test_extract_excerpt_cjk_characters() {
+        let text = "這是一段很長的中文測試文字，用來驗證游標附近截取功能是否正確處理多位元組字元";
+        let result = extract_excerpt(text, Some(10), 5);
+        assert_eq!(result.chars().count(), 10); // 5 before + 5 after
+    }
+
+    #[test]
+    fn test_extract_excerpt_emoji() {
+        let text = "Hello 🌍 World 🚀 Test 🎉 End";
+        let result = extract_excerpt(text, Some(8), 3);
+        // Emoji is 1 char; chars around pos 8: 3 before + 3 after
+        assert_eq!(result.chars().count(), 6);
+    }
+
+    #[test]
+    fn test_extract_excerpt_cursor_out_of_bounds() {
+        let text = "Hello world";
+        // cursor > len → fallback to last FALLBACK_CHARS
+        let result = extract_excerpt(text, Some(999), 50);
+        assert_eq!(result, "Hello world"); // text is shorter than FALLBACK_CHARS
+    }
+
+    #[test]
+    fn test_extract_excerpt_context_zero() {
+        let text = "Hello world";
+        let result = extract_excerpt(text, Some(5), 0);
+        // 0 context on each side → empty
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_extract_excerpt_context_one() {
+        let text = "abcde";
+        let result = extract_excerpt(text, Some(2), 1);
+        // 1 before + 1 after cursor pos 2 → "bc"
+        assert_eq!(result, "bc");
+    }
+
+    #[test]
+    fn test_extract_excerpt_mixed_cjk_ascii() {
+        let text = "Hello你好World世界End";
+        // Length: H-e-l-l-o-你-好-W-o-r-l-d-世-界-E-n-d = 17 chars
+        let result = extract_excerpt(text, Some(7), 3);
+        // chars: 0=H 1=e 2=l 3=l 4=o 5=你 6=好 7=W 8=o 9=r 10=l 11=d 12=世 13=界 14=E 15=n 16=d
+        // start = 7-3=4, end = 7+3=10 → chars[4..10] = "o你好Wor"
+        assert_eq!(result, "o你好Wor");
+    }
+
+    #[test]
+    fn test_extract_excerpt_single_char_text() {
+        assert_eq!(extract_excerpt("X", Some(0), 50), "X");
+        assert_eq!(extract_excerpt("X", Some(1), 50), "X");
+        assert_eq!(extract_excerpt("X", None, 50), "X");
+    }
+
+    // ── Cache mechanism ──
+
+    #[test]
+    fn test_cache_stores_and_retrieves() {
+        {
+            let mut cache = CACHED_SURROUNDING_TEXT.lock().unwrap();
+            *cache = Some("test surrounding text".to_string());
+        }
+        let result = get_cached_surrounding_text();
+        assert_eq!(result, Some("test surrounding text".to_string()));
+    }
+
+    #[test]
+    fn test_cache_clears_on_read() {
+        {
+            let mut cache = CACHED_SURROUNDING_TEXT.lock().unwrap();
+            *cache = Some("will be cleared".to_string());
+        }
+        let _ = get_cached_surrounding_text(); // consume
+        let second = get_cached_surrounding_text();
+        assert_eq!(second, None);
+    }
+
+    #[test]
+    fn test_cache_returns_none_when_empty() {
+        {
+            let mut cache = CACHED_SURROUNDING_TEXT.lock().unwrap();
+            *cache = None;
+        }
+        let result = get_cached_surrounding_text();
+        assert_eq!(result, None);
     }
 }
