@@ -48,7 +48,13 @@ windows = { version = "0.61", features = [
     "Win32_Media_Audio",
     "Win32_Media_Audio_Endpoints",
     "Win32_System_Com",
+    "Win32_System_Threading",
+    "Win32_UI_Shell",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_Accessibility",
 ] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+base64 = "0.22"
 
 [profile.dev]
 incremental = true
