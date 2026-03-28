@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const OnboardingView = lazy(() => import("@/views/OnboardingView"));
-import { BookOpen, Download, FileText, LayoutDashboard, Settings, Sparkles, type LucideIcon } from "lucide-react";
+import { BookOpen, Cloud, CloudOff, Download, FileText, LayoutDashboard, Loader2, Settings, Sparkles, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ import { IS_MAC } from "@/lib/platform";
 import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
 import { AccessibilityGuide } from "@/components/AccessibilityGuide";
 import { useHistoryStore } from "@/stores/historyStore";
+import { useSyncStore } from "@/stores/syncStore";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
 import { getRandomSlogan } from "@/lib/slogans";
 
@@ -183,6 +184,11 @@ export function DashboardApp() {
   // Store subscriptions
   const showPromptUpgradeNotice = useSettingsStore((s) => s.showPromptUpgradeNotice);
   const recordingRetentionPolicy = useSettingsStore((s) => s.recordingRetentionPolicy);
+
+  // Sync state for sidebar indicator
+  const syncIsConnected = useSyncStore((s) => s.isConnected);
+  const syncIsSyncing = useSyncStore((s) => s.isSyncing);
+  const syncError = useSyncStore((s) => s.syncError);
 
   // ── Listen for VOCABULARY_CHANGED from HUD window (debounced) ──
   useDebouncedTauriEvent(VOCABULARY_CHANGED, () => {
@@ -335,13 +341,23 @@ export function DashboardApp() {
           AUTO_CHECK_INTERVAL_MS,
         );
       }, AUTO_CHECK_INITIAL_DELAY_MS);
+
+      // Cloud sync: load status, sync on launch, start auto-sync
+      const syncActions = useSyncStore.getState();
+      await syncActions.loadSyncStatus();
+      if (useSyncStore.getState().isConnected) {
+        void syncActions.syncNow().catch(() => {});
+      }
     }
 
     void bootstrap();
 
+    const cleanupAutoSync = useSyncStore.getState().initAutoSync();
+
     return () => {
       if (autoCheckTimeoutRef.current) clearTimeout(autoCheckTimeoutRef.current);
       if (autoCheckIntervalRef.current) clearInterval(autoCheckIntervalRef.current);
+      cleanupAutoSync();
     };
   }, [autoCheckAndDownload]);
 
@@ -477,6 +493,15 @@ export function DashboardApp() {
                     <span className="text-[10px] text-muted-foreground/70">
                       {t("home.statsBar.todayCount")} {todayCount}
                     </span>
+                  )}
+                  {syncIsConnected && (
+                    syncIsSyncing ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                    ) : syncError ? (
+                      <CloudOff className="h-3 w-3 text-destructive" />
+                    ) : (
+                      <Cloud className="h-3 w-3 text-primary" />
+                    )
                   )}
                 </div>
                 {updateState === "ready-to-install" && (

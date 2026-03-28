@@ -447,7 +447,9 @@ pub fn run() {
             plugins::sound_feedback::play_learned_sound,
             plugins::sound_feedback::play_sound,
             plugins::google_auth::start_oauth_listener,
-            plugins::google_auth::await_oauth_code
+            plugins::google_auth::await_oauth_code,
+            plugins::file_sync::read_sync_file,
+            plugins::file_sync::write_sync_file
         ])
         .setup(|app| {
             // 初始化 keyboard monitor 狀態
