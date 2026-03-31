@@ -613,7 +613,7 @@ mod windows_impl {
     use super::{extract_excerpt, CONTEXT_CHARS};
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
-    use windows::core::BSTR;
+    use windows::core::{Interface, BSTR, PWSTR};
     use windows::Win32::Foundation::{CloseHandle, HWND, MAX_PATH};
     use windows::Win32::Graphics::Gdi::{
         CreateCompatibleDC, DeleteDC, DeleteObject, GetDIBits, BITMAPINFO, BITMAPINFOHEADER,
@@ -628,7 +628,7 @@ mod windows_impl {
     };
     use windows::Win32::UI::Accessibility::{
         CUIAutomation, IUIAutomation, IUIAutomationTextPattern, IUIAutomationTextRange,
-        IUIAutomationValuePattern, TextPatternRangeEndpoint_Start, UIA_NamePropertyId,
+        IUIAutomationValuePattern, TextPatternRangeEndpoint_Start,
         UIA_TextPatternId, UIA_ValuePatternId,
     };
     use windows::Win32::UI::Shell::ExtractIconExW;
@@ -698,7 +698,7 @@ mod windows_impl {
             let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
             let mut buf = [0u16; MAX_PATH as usize];
             let mut size = buf.len() as u32;
-            let ok = QueryFullProcessImageNameW(process, PROCESS_NAME_FORMAT(0), &mut buf, &mut size);
+            let ok = QueryFullProcessImageNameW(process, PROCESS_NAME_FORMAT(0), PWSTR::from_raw(buf.as_mut_ptr()), &mut size);
             let _ = CloseHandle(process);
             if ok.is_err() || size == 0 {
                 return None;
@@ -785,7 +785,7 @@ mod windows_impl {
         let hbm_color = icon_info.hbmColor;
         if hbm_color.is_invalid() {
             if !icon_info.hbmMask.is_invalid() {
-                let _ = DeleteObject(icon_info.hbmMask);
+                let _ = DeleteObject(icon_info.hbmMask.into());
             }
             return String::new();
         }
@@ -793,9 +793,9 @@ mod windows_impl {
         // Create a compatible DC
         let hdc = CreateCompatibleDC(None);
         if hdc.is_invalid() {
-            let _ = DeleteObject(hbm_color);
+            let _ = DeleteObject(hbm_color.into());
             if !icon_info.hbmMask.is_invalid() {
-                let _ = DeleteObject(icon_info.hbmMask);
+                let _ = DeleteObject(icon_info.hbmMask.into());
             }
             return String::new();
         }
@@ -828,9 +828,9 @@ mod windows_impl {
 
         // Cleanup GDI objects
         let _ = DeleteDC(hdc);
-        let _ = DeleteObject(hbm_color);
+        let _ = DeleteObject(hbm_color.into());
         if !icon_info.hbmMask.is_invalid() {
-            let _ = DeleteObject(icon_info.hbmMask);
+            let _ = DeleteObject(icon_info.hbmMask.into());
         }
 
         if rows == 0 {
@@ -925,6 +925,16 @@ mod windows_impl {
         Ok(None)
     }
 
+    fn try_get_cursor_position(element: &windows::Win32::UI::Accessibility::IUIAutomationElement) -> Option<usize> {
+        // Try to get cursor position via TextPattern (even when value comes from ValuePattern)
+        unsafe {
+            let pattern = element.GetCurrentPattern(UIA_TextPatternId).ok()?;
+            let text_pattern: IUIAutomationTextPattern = pattern.cast().ok()?;
+            let doc_range: IUIAutomationTextRange = text_pattern.DocumentRange().ok()?;
+            get_cursor_from_selection(&text_pattern, &doc_range)
+        }
+    }
+
     fn try_value_pattern(element: &windows::Win32::UI::Accessibility::IUIAutomationElement) -> Option<String> {
         unsafe {
             let pattern = element.GetCurrentPattern(UIA_ValuePatternId).ok()?;
@@ -986,12 +996,8 @@ mod windows_impl {
 
     fn try_name_property(element: &windows::Win32::UI::Accessibility::IUIAutomationElement) -> Option<String> {
         unsafe {
-            let variant = element
-                .GetCurrentPropertyValue(UIA_NamePropertyId)
-                .ok()?;
-            // VARIANT may contain a BSTR
-            let bstr: BSTR = variant.try_into().ok()?;
-            let s = bstr.to_string();
+            let name: BSTR = element.CurrentName().ok()?;
+            let s = name.to_string();
             if s.is_empty() { None } else { Some(s) }
         }
     }
