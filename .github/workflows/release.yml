@@ -153,7 +153,50 @@ jobs:
           fi
 
           RAW_TAG="${RAW_TAG#refs/tags/}"
+          RELEASE_VERSION="${RAW_TAG#v}"
           echo "RELEASE_TAG=$RAW_TAG" >> "$GITHUB_ENV"
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
+
+      - name: Clean up duplicate and unnecessary assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${GITHUB_REPOSITORY}"
+          TAG="${RELEASE_TAG}"
+          VER="${RELEASE_VERSION}"
+
+          # Delete Tauri-named DMGs (replaced by custom-named ones)
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_aarch64.dmg" --yes 2>/dev/null || true
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64.dmg" --yes 2>/dev/null || true
+
+          # Delete Tauri-named NSIS exe (replaced by custom-named one)
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64-setup.exe" --yes 2>/dev/null || true
+
+          # Delete .sig files (signatures are already embedded in latest.json)
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64-setup.exe.sig" --yes 2>/dev/null || true
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_aarch64.app.tar.gz.sig" --yes 2>/dev/null || true
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_x64.app.tar.gz.sig" --yes 2>/dev/null || true
+
+          # Delete MSI artifacts (in case they were built)
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64_en-US.msi" --yes 2>/dev/null || true
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64_en-US.msi.sig" --yes 2>/dev/null || true
+
+      - name: Update latest.json to reference custom-named Windows installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${GITHUB_REPOSITORY}"
+          TAG="${RELEASE_TAG}"
+
+          # Download current latest.json
+          gh release download "$TAG" --repo "$REPO" -p "latest.json" -D /tmp --clobber
+
+          # Replace Tauri-named Windows exe URL with custom name
+          sed -i 's|TypeLate_[0-9.]*_x64-setup\.exe|TypeLate-windows-x64.exe|g' /tmp/latest.json
+
+          # Re-upload modified latest.json
+          gh release delete-asset "$TAG" --repo "$REPO" "latest.json" --yes 2>/dev/null || true
+          gh release upload "$TAG" --repo "$REPO" /tmp/latest.json
 
       - name: Publish GitHub Release
         env:
