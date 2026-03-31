@@ -93,7 +93,7 @@ export function startCorrectionDetectionFlow(
               latestSnapshot = text;
               consecutiveSnapshotErrors = 0;
             }
-          } catch (err) {
+          } catch {
             consecutiveSnapshotErrors++;
             if (consecutiveSnapshotErrors === 3) {
               // AX focus is lost (HUD stole it) — stop polling to avoid noise
