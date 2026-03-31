@@ -277,7 +277,7 @@
       "action": "설정",
       "guide": "설정 가이드"
     },
-    "heroPrefix": "TypeLate으로",
+    "heroPrefix": "말하면",
     "heroMultiplier": "{value}배 빠르게",
     "heroSuffix": "입력할 수 있습니다",
     "speakingTime": "구술 시간",

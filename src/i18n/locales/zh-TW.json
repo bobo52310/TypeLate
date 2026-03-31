@@ -277,7 +277,7 @@
       "action": "前往設定",
       "guide": "設定導引"
     },
-    "heroPrefix": "TypeLate 讓你用嘴砲輸出，比打字快了",
+    "heroPrefix": "用嘴砲輸出，比打字快了",
     "heroMultiplier": "{value} 倍",
     "heroSuffix": "",
     "speakingTime": "口述時間",

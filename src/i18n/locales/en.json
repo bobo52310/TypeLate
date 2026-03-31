@@ -277,9 +277,9 @@
       "action": "Settings",
       "guide": "Setup Guide"
     },
-    "heroPrefix": "You are",
+    "heroPrefix": "Speaking is",
     "heroMultiplier": "{value}x Faster",
-    "heroSuffix": "with TypeLate",
+    "heroSuffix": "than Typing",
     "speakingTime": "Speaking Time",
     "typingTime": "Typing Time (est.)",
     "charsPerMinute": "Chars/Minute",
