@@ -126,14 +126,14 @@ export default function StatCardRow({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">{dim.label}</span>
                     <span className="font-medium">
-                      {Math.round(Math.max(0, dim.remaining) * 100)}%
+                      {Math.floor(Math.max(0, dim.remaining) * 100)}%
                     </span>
                   </div>
                   <div className="mt-0.5 h-1 w-full rounded-full bg-muted">
                     <div
                       className={`h-full rounded-full transition-all ${quotaColorClass}`}
                       style={{
-                        width: `${Math.round(Math.max(0, dim.remaining) * 100)}%`,
+                        width: `${Math.floor(Math.max(0, dim.remaining) * 100)}%`,
                       }}
                     />
                   </div>

@@ -31,6 +31,7 @@ import type { TranscriptionCompletedPayload } from "@/types/events";
 import type { HudStatus } from "@/types";
 import { emitToWindow, TRANSCRIPTION_COMPLETED } from "@/hooks/useTauriEvent";
 import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
+import { useRateLimitStore } from "@/stores/rateLimitStore";
 import {
   startElapsedTimer,
   stopElapsedTimer,
@@ -583,6 +584,11 @@ export async function handleStopRecording(): Promise<void> {
     }
     if (getState()._isAborted) return;
 
+    // Store whisper rate limit from API response headers
+    if (result.rateLimit) {
+      useRateLimitStore.getState().updateWhisper(result.rateLimit);
+    }
+
     writeInfoLog(`Transcription raw: "${result.rawText}"`);
 
     if (isEmptyTranscription(result.rawText)) {
@@ -720,6 +726,11 @@ export async function handleStopRecording(): Promise<void> {
             `voiceFlowStore: enhancement failed after ${String(MAX_ENHANCEMENT_RETRY_COUNT)} retries (reason=${String(finalAnomaly.reason)}), falling back to raw text`,
           );
           enhanceResult = { ...enhanceResult, text: result.rawText };
+        }
+
+        // Store chat rate limit from API response headers
+        if (enhanceResult.rateLimit) {
+          useRateLimitStore.getState().updateChat(enhanceResult.rateLimit);
         }
 
         const enhancementDurationMs = performance.now() - enhancementStartTime;

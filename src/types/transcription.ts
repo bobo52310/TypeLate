@@ -38,6 +38,15 @@ export interface DashboardStats {
   dailyQuotaUsage: DailyQuotaUsage;
 }
 
+// ── Rate limit info from Groq API response headers ──
+
+export interface RateLimitInfo {
+  limitRequests: number | null;
+  remainingRequests: number | null;
+  limitTokens: number | null;
+  remainingTokens: number | null;
+}
+
 export type ApiType = "whisper" | "chat" | "vocabulary_analysis";
 
 export interface ChatUsageData {
@@ -52,6 +61,7 @@ export interface ChatUsageData {
 export interface EnhanceResult {
   text: string;
   usage: ChatUsageData | null;
+  rateLimit: RateLimitInfo | null;
 }
 
 export interface ApiUsageRecord {

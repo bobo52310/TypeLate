@@ -60,10 +60,20 @@ impl serde::Serialize for TranscriptionError {
 
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RateLimitInfo {
+    pub limit_requests: Option<u64>,
+    pub remaining_requests: Option<u64>,
+    pub limit_tokens: Option<u64>,
+    pub remaining_tokens: Option<u64>,
+}
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TranscriptionResult {
     pub raw_text: String,
     pub transcription_duration_ms: f64,
     pub no_speech_probability: f64,
+    pub rate_limit: Option<RateLimitInfo>,
 }
 
 // ========== Groq API Response ==========
@@ -80,6 +90,33 @@ struct WhisperSegment {
 }
 
 // ========== Helpers ==========
+
+fn header_as_u64(response: &reqwest::Response, name: &str) -> Option<u64> {
+    response
+        .headers()
+        .get(name)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.parse::<u64>().ok())
+}
+
+fn extract_rate_limit_headers(response: &reqwest::Response) -> Option<RateLimitInfo> {
+    let info = RateLimitInfo {
+        limit_requests: header_as_u64(response, "x-ratelimit-limit-requests"),
+        remaining_requests: header_as_u64(response, "x-ratelimit-remaining-requests"),
+        limit_tokens: header_as_u64(response, "x-ratelimit-limit-tokens"),
+        remaining_tokens: header_as_u64(response, "x-ratelimit-remaining-tokens"),
+    };
+    // Only return Some if at least one field is present
+    if info.limit_requests.is_some()
+        || info.remaining_requests.is_some()
+        || info.limit_tokens.is_some()
+        || info.remaining_tokens.is_some()
+    {
+        Some(info)
+    } else {
+        None
+    }
+}
 
 fn format_whisper_prompt(term_list: &[String]) -> String {
     let terms: Vec<&str> = term_list
@@ -158,6 +195,9 @@ async fn send_transcription_request(
         return Err(TranscriptionError::ApiError(status, body));
     }
 
+    // Extract rate limit headers before consuming the response body
+    let rate_limit = extract_rate_limit_headers(&response);
+
     // Parse response
     let json: WhisperVerboseResponse = response
         .json()
@@ -191,6 +231,7 @@ async fn send_transcription_request(
         raw_text,
         transcription_duration_ms,
         no_speech_probability,
+        rate_limit,
     })
 }
 
@@ -310,10 +351,18 @@ mod tests {
             raw_text: "hello".to_string(),
             transcription_duration_ms: 320.5,
             no_speech_probability: 0.01,
+            rate_limit: Some(RateLimitInfo {
+                limit_requests: Some(2000),
+                remaining_requests: Some(1999),
+                limit_tokens: None,
+                remaining_tokens: None,
+            }),
         };
         let json = serde_json::to_string(&result).unwrap();
         assert!(json.contains("\"rawText\""));
         assert!(json.contains("\"transcriptionDurationMs\""));
         assert!(json.contains("\"noSpeechProbability\""));
+        assert!(json.contains("\"rateLimit\""));
+        assert!(json.contains("\"remainingRequests\":1999"));
     }
 }

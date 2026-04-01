@@ -16,6 +16,7 @@ export interface TranscriptionResult {
   rawText: string;
   transcriptionDurationMs: number;
   noSpeechProbability: number;
+  rateLimit: import("./transcription").RateLimitInfo | null;
 }
 
 export interface FrontmostAppInfo {
