@@ -110,8 +110,8 @@ const INSERT_API_USAGE_SQL = `
     id, transcription_id, api_type, model,
     prompt_tokens, completion_tokens, total_tokens,
     prompt_time_ms, completion_time_ms, total_time_ms,
-    audio_duration_ms, estimated_cost_ceiling
-  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    audio_duration_ms, estimated_cost_ceiling, created_at
+  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, datetime('now'))
 `;
 
 const DAILY_QUOTA_USAGE_SQL = `
@@ -474,27 +474,45 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
 
   addApiUsage: async (record: ApiUsageRecord) => {
     const db = getDatabase();
-    await db.execute(INSERT_API_USAGE_SQL, [
-      record.id,
-      record.transcriptionId,
-      record.apiType,
-      record.model,
-      record.promptTokens,
-      record.completionTokens,
-      record.totalTokens,
-      record.promptTimeMs,
-      record.completionTimeMs,
-      record.totalTimeMs,
-      record.audioDurationMs,
-      record.estimatedCostCeiling,
-    ]);
+    try {
+      await db.execute(INSERT_API_USAGE_SQL, [
+        record.id,
+        record.transcriptionId,
+        record.apiType,
+        record.model,
+        record.promptTokens,
+        record.completionTokens,
+        record.totalTokens,
+        record.promptTimeMs,
+        record.completionTimeMs,
+        record.totalTimeMs,
+        record.audioDurationMs,
+        record.estimatedCostCeiling,
+      ]);
+    } catch (err) {
+      logError("history", `addApiUsage failed for ${record.apiType}: ${extractErrorMessage(err)}`);
+      captureError(err, { source: "history", step: "add-api-usage" });
+      throw err;
+    }
   },
 
   fetchDashboardStats: async () => {
     const db = getDatabase();
+    const fallbackQuota: DailyQuotaUsage = {
+      whisperRequestCount: 0,
+      whisperBilledAudioMs: 0,
+      llmRequestCount: 0,
+      llmTotalTokens: 0,
+      vocabularyAnalysisRequestCount: 0,
+      vocabularyAnalysisTotalTokens: 0,
+    };
     const [statsRows, dailyQuotaUsage] = await Promise.all([
       db.select<DashboardStatsRow[]>(DASHBOARD_STATS_SQL),
-      fetchDailyQuotaUsage(),
+      fetchDailyQuotaUsage().catch((err) => {
+        logError("history", `fetchDailyQuotaUsage failed: ${extractErrorMessage(err)}`);
+        captureError(err, { source: "history", step: "fetch-daily-quota" });
+        return fallbackQuota;
+      }),
     ]);
     const row = statsRows[0] ?? {
       total_count: 0,
