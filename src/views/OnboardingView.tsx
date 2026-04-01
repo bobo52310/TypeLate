@@ -1,12 +1,17 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
+import { load as loadStore } from "@tauri-apps/plugin-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { logError } from "@/lib/logger";
+import { useAudioWaveform } from "@/hooks/useAudioWaveform";
 import { getRandomSlogan } from "@/lib/slogans";
+import { PROVIDER_LIST, getProviderConfig, type ProviderId } from "@/lib/providerConfig";
 import logoTypeLate from "@/assets/logo-typelate.png";
 import {
   Mic,
@@ -22,35 +27,49 @@ import {
 
 type OnboardingStep =
   | "welcome"
+  | "provider-select"
   | "api-key-intro"
   | "api-key-paste"
   | "hotkey"
-  | "mic-test"
-  | "done";
+  | "mic-test";
 
 interface OnboardingViewProps {
   onComplete: () => void;
 }
 
-const GROQ_CONSOLE_URL = "https://console.groq.com/keys";
-
 export default function OnboardingView({ onComplete }: OnboardingViewProps) {
   const { t } = useTranslation();
   const [step, setStep] = useState<OnboardingStep>("welcome");
+  const [selectedProvider, setSelectedProvider] = useState<ProviderId>("groq");
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [micTestPassed, setMicTestPassed] = useState(false);
-  const [isMicTesting, setIsMicTesting] = useState(false);
+  const [trialText, setTrialText] = useState("");
   const [slogan] = useState(() => getRandomSlogan());
 
   const saveApiKey = useSettingsStore((s) => s.saveApiKey);
-  const hotkeyConfig = useSettingsStore((s) => s.hotkeyConfig);
+  const saveProviderId = useSettingsStore((s) => s.saveProviderId);
 
-  const handleOpenGroqConsole = useCallback(() => {
-    void open(GROQ_CONSOLE_URL);
+  const providerConfig = getProviderConfig(selectedProvider);
+
+  const handleSelectProvider = useCallback(
+    async (id: ProviderId) => {
+      setSelectedProvider(id);
+      try {
+        await saveProviderId(id);
+      } catch {
+        // non-blocking
+      }
+      setStep("api-key-intro");
+    },
+    [saveProviderId],
+  );
+
+  const handleOpenConsole = useCallback(() => {
+    void open(providerConfig.consoleUrl);
     setStep("api-key-paste");
-  }, []);
+  }, [providerConfig.consoleUrl]);
 
   const handleSaveApiKey = useCallback(async () => {
     if (!apiKeyInput.trim()) return;
@@ -58,7 +77,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
     setError("");
     try {
       await saveApiKey(apiKeyInput.trim());
-      setStep("hotkey");
+      setStep("mic-test");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -66,37 +85,100 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
     }
   }, [apiKeyInput, saveApiKey]);
 
-  const handleMicTest = useCallback(async () => {
-    setIsMicTesting(true);
+  const { waveformLevelList, startWaveformAnimation, stopWaveformAnimation } = useAudioWaveform();
+  const isRecordingForTestRef = useRef(false);
+
+  const MIC_DETECT_THRESHOLD = 0.15;
+
+  const stopMicTest = useCallback(async () => {
+    if (!isRecordingForTestRef.current) return;
+    isRecordingForTestRef.current = false;
+    stopWaveformAnimation();
     try {
-      const devices = await invoke<{ name: string }[]>("list_audio_input_devices");
-      setMicTestPassed(devices.length > 0);
-      if (devices.length > 0) {
-        setTimeout(() => setStep("done"), 1000);
-      }
-    } catch (err) {
-      logError("Onboarding", "Mic test failed", err);
-      setMicTestPassed(false);
-    } finally {
-      setIsMicTesting(false);
+      await invoke("stop_recording");
+    } catch {
+      // ignore — might not be recording
     }
+  }, [stopWaveformAnimation]);
+
+  const startMicTest = useCallback(async () => {
+    if (isRecordingForTestRef.current) return;
+    setMicTestPassed(false);
+    try {
+      await invoke("start_recording", { deviceName: "" });
+      isRecordingForTestRef.current = true;
+      await startWaveformAnimation();
+    } catch (err) {
+      logError("Onboarding", "Mic test start failed", err);
+    }
+  }, [startWaveformAnimation]);
+
+  // Auto-start mic test when entering step; stop when leaving
+  useEffect(() => {
+    if (step === "mic-test") {
+      void startMicTest();
+    } else {
+      void stopMicTest();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  // Detect sound → mark as passed (keep waveform visible, no auto-advance)
+  useEffect(() => {
+    if (step !== "mic-test" || micTestPassed || !isRecordingForTestRef.current) return;
+    const hasSound = waveformLevelList.some((level) => level > MIC_DETECT_THRESHOLD);
+    if (hasSound) {
+      setMicTestPassed(true);
+    }
+  }, [waveformLevelList, step, micTestPassed]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      void stopMicTest();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleComplete = useCallback(async () => {
-    try {
-      const { load } = await import("@tauri-apps/plugin-store");
-      const store = await load("settings.json");
-      await store.set("onboardingCompleted", true);
-      await store.save();
-    } catch (err) {
-      logError("Onboarding", "Failed to save onboarding status", err);
-    }
+  // Listen for transcription results to fill the trial textarea
+  useEffect(() => {
+    if (step !== "hotkey") return;
+    let unlisten: (() => void) | undefined;
+    listen<{ processedText: string | null; rawText: string }>(
+      "transcription:completed",
+      (event) => {
+        const text = event.payload.processedText ?? event.payload.rawText;
+        if (text) setTrialText(text);
+      },
+    ).then((fn) => {
+      unlisten = fn;
+    });
+    return () => {
+      unlisten?.();
+    };
+  }, [step]);
+
+  const handleComplete = useCallback(() => {
     onComplete();
+    // Persist in background — don't block UI transition
+    loadStore("settings.json")
+      .then(async (store) => {
+        await store.set("onboardingCompleted", true);
+        await store.save();
+      })
+      .catch((err) => logError("Onboarding", "Failed to save onboarding status", err));
   }, [onComplete]);
 
   const currentStepNum =
-    step === "api-key-intro" || step === "api-key-paste" ? 1 : step === "hotkey" ? 2 : 3;
-  const showStepIndicator = !["welcome", "done"].includes(step);
+    step === "provider-select"
+      ? 1
+      : step === "api-key-intro" || step === "api-key-paste"
+        ? 2
+        : step === "mic-test"
+          ? 3
+          : 4;
+  const totalSteps = 4;
+  const showStepIndicator = step !== "welcome";
 
   return (
     <div className="relative flex h-screen min-h-0 items-center justify-center overflow-hidden bg-background p-8 pt-14">
@@ -107,7 +189,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
 
       {/* Skip button — top right */}
       <button
-        onClick={() => void handleComplete()}
+        onClick={() => handleComplete()}
         className="absolute top-4 right-5 z-20 text-xs text-muted-foreground/50 transition-colors hover:text-muted-foreground"
       >
         {t("onboarding.skipSetup", "Skip setup")} &rarr;
@@ -129,12 +211,8 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
 
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">TypeLate</h1>
-              <p className="mt-3 text-base text-muted-foreground">
-                {t("onboarding.welcomeDescription", "Voice-to-text, right where you type.")}
-              </p>
-              {/* Slogan */}
               {slogan && (
-                <p className="mt-2 text-sm italic text-primary/70">&ldquo;{slogan}&rdquo;</p>
+                <p className="mt-3 text-base italic text-primary/70">&ldquo;{slogan}&rdquo;</p>
               )}
             </div>
 
@@ -142,7 +220,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
               <Button
                 size="lg"
                 className="w-full gap-2 text-base"
-                onClick={() => setStep("api-key-intro")}
+                onClick={() => setStep("provider-select")}
               >
                 {t("onboarding.getStarted", "Get Started")}
                 <ArrowRight className="h-4 w-4" />
@@ -155,9 +233,56 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
         )}
 
         {/* ── Step cards (shared card wrapper) ── */}
-        {step !== "welcome" && step !== "done" && (
+        {step !== "welcome" && (
           <div className="rounded-xl border border-border/50 bg-card/80 p-6 shadow-lg backdrop-blur-sm">
-            {/* ── Step 1a: API Key intro ── */}
+            {/* ── Step 1: Provider selection ── */}
+            {step === "provider-select" && (
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {t("onboarding.providerSelectTitle", "Choose Your AI Provider")}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        "onboarding.providerSelectDescription",
+                        "You can change this later in Settings.",
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {PROVIDER_LIST.map((provider) => (
+                    <button
+                      key={provider.id}
+                      type="button"
+                      onClick={() => void handleSelectProvider(provider.id)}
+                      className="flex w-full items-center gap-4 rounded-lg border border-border/50 p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+                    >
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground">
+                          {provider.displayName}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {t(`settings.provider.${provider.id}Description`)}
+                        </p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+
+                <Button variant="ghost" onClick={() => setStep("welcome")}>
+                  {t("common.back", "Back")}
+                </Button>
+              </div>
+            )}
+
+            {/* ── Step 2a: API Key intro ── */}
             {step === "api-key-intro" && (
               <div className="flex flex-col gap-5">
                 <div className="flex items-center gap-3">
@@ -166,7 +291,10 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">
-                      {t("onboarding.apiKeyTitle", "Step 1: Get a Groq API Key")}
+                      {t("onboarding.apiKeyTitleTemplate", {
+                        provider: providerConfig.displayName,
+                        defaultValue: `Step 2: Get a ${providerConfig.displayName} API Key`,
+                      })}
                     </h2>
                     <p className="text-xs text-muted-foreground">
                       {t("onboarding.apiKeyIntroSubtitle", "Free, takes about 30 seconds")}
@@ -195,25 +323,33 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
 
                 <Button
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                  onClick={handleOpenGroqConsole}
+                  onClick={handleOpenConsole}
                 >
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  {t("onboarding.openGroqConsole", "Open Groq Console")}
+                  {t("onboarding.openConsoleTemplate", {
+                    provider: providerConfig.displayName,
+                    defaultValue: `Open ${providerConfig.displayName} Console`,
+                  })}
                 </Button>
 
-                <p className="text-center text-xs text-muted-foreground">
-                  {t("onboarding.alreadyHaveKey", "Already have a key?")}{" "}
-                  <button
-                    className="text-primary hover:underline"
-                    onClick={() => setStep("api-key-paste")}
-                  >
-                    {t("onboarding.pasteItNow", "Paste it now")}
-                  </button>
-                </p>
+                <div className="flex items-center justify-between">
+                  <Button variant="ghost" onClick={() => setStep("provider-select")}>
+                    {t("common.back", "Back")}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    {t("onboarding.alreadyHaveKey", "Already have a key?")}{" "}
+                    <button
+                      className="text-primary hover:underline"
+                      onClick={() => setStep("api-key-paste")}
+                    >
+                      {t("onboarding.pasteItNow", "Paste it now")}
+                    </button>
+                  </p>
+                </div>
               </div>
             )}
 
-            {/* ── Step 1b: Paste API Key ── */}
+            {/* ── Step 2b: Paste API Key ── */}
             {step === "api-key-paste" && (
               <div className="flex flex-col gap-5">
                 <div className="flex items-center gap-3">
@@ -235,7 +371,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
 
                 <Input
                   type="password"
-                  placeholder="gsk_..."
+                  placeholder={providerConfig.keyPlaceholder}
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -272,7 +408,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
               </div>
             )}
 
-            {/* ── Step 2: Hotkey ── */}
+            {/* ── Step 4: Hotkey — try it now ── */}
             {step === "hotkey" && (
               <div className="flex flex-col gap-5">
                 <div className="flex items-center gap-3">
@@ -281,34 +417,58 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">
-                      {t("onboarding.hotkeyTitle", "Step 2: Hotkey")}
+                      {t("onboarding.hotkeyTitle", "Step 4: Hotkey")}
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                      {t(
-                        "onboarding.hotkeyDescription",
-                        "Press and hold the hotkey to record, release to transcribe.",
-                      )}
+                      {t("onboarding.hotkeyCustomize", "You can customize this later in Settings.")}
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 text-center">
-                  <div className="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-2">
-                    <Keyboard className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium text-primary">Fn</span>
-                  </div>
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    {t("onboarding.hotkeyHint", "Default: Fn key (macOS) / Right Alt (Windows)")}
+                {/* Trial area — combined hotkey hint + input */}
+                <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-center text-sm text-muted-foreground">
+                    {t(
+                      "onboarding.trialInstruction",
+                      "Click the box, press Fn to start recording, press again to stop.",
+                    )}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground/60">
-                    {t("onboarding.hotkeyCustomize", "You can customize this later in Settings.")}
-                  </p>
+
+                  <Textarea
+                    placeholder={t(
+                      "onboarding.trialPlaceholder",
+                      "Press Fn and speak — text will appear here...",
+                    )}
+                    value={trialText}
+                    onChange={(e) => setTrialText(e.target.value)}
+                    className="min-h-20 resize-none border-primary/30 bg-background/60"
+                  />
+
+                  {trialText.trim() ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="text-sm font-medium text-primary">
+                        {t("onboarding.trialSuccess", "It works! You've got the hang of it.")}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-center text-xs text-muted-foreground/60">
+                      {t("onboarding.trialExample", 'Try saying "The weather is nice today"')}
+                    </p>
+                  )}
                 </div>
 
-                <Button className="w-full" onClick={() => setStep("mic-test")}>
-                  {t("common.next", "Next")}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setStep("mic-test")}>
+                    {t("common.back", "Back")}
+                  </Button>
+                  <Button className="flex-1" onClick={() => handleComplete()}>
+                    {trialText.trim()
+                      ? t("common.next", "Next")
+                      : t("onboarding.skip", "Skip")}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -332,31 +492,41 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                   </div>
                 </div>
 
-                {micTestPassed ? (
-                  <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 p-4">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                    <span className="text-sm font-medium text-primary">
-                      {t("onboarding.micSuccess", "Microphone detected!")}
-                    </span>
+                <div className="space-y-3">
+                  {/* Waveform bars — always visible while on this step */}
+                  <div className="flex w-full items-end justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-5">
+                    {waveformLevelList.map((level, i) => (
+                      <div
+                        key={i}
+                        className="w-3 rounded-full bg-primary transition-all duration-75"
+                        style={{
+                          height: `${Math.max(4, Math.round(level * 48))}px`,
+                        }}
+                      />
+                    ))}
+                    <p className="ml-3 text-sm text-muted-foreground">
+                      {t("onboarding.micListening", "Listening...")}
+                    </p>
                   </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full border-primary/30 hover:bg-primary/5"
-                    disabled={isMicTesting}
-                    onClick={() => void handleMicTest()}
-                  >
-                    {isMicTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    <Mic className="mr-2 h-4 w-4" />
-                    {t("onboarding.testMic", "Test Microphone")}
-                  </Button>
-                )}
+                  {micTestPassed ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <p className="text-center text-sm font-medium text-primary">
+                        {t("onboarding.micSuccess", "Microphone detected!")}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-center text-xs text-muted-foreground">
+                      {t("onboarding.micSpeakNow", "Say something to test your microphone")}
+                    </p>
+                  )}
+                </div>
 
                 <div className="flex gap-2">
-                  <Button variant="ghost" onClick={() => setStep("hotkey")}>
+                  <Button variant="ghost" onClick={() => setStep("api-key-paste")}>
                     {t("common.back", "Back")}
                   </Button>
-                  <Button className="flex-1" onClick={() => setStep("done")}>
+                  <Button className="flex-1" onClick={() => setStep("hotkey")}>
                     {micTestPassed ? t("common.next", "Next") : t("onboarding.skip", "Skip")}
                   </Button>
                 </div>
@@ -366,7 +536,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
             {/* Step indicator */}
             {showStepIndicator && (
               <div className="mt-6 flex items-center justify-center gap-1.5">
-                {Array.from({ length: 3 }, (_, i) => (
+                {Array.from({ length: totalSteps }, (_, i) => (
                   <div
                     key={i}
                     className={`h-1.5 rounded-full transition-all ${
@@ -379,55 +549,6 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
           </div>
         )}
 
-        {/* ── Done ── */}
-        {step === "done" && (
-          <div className="flex flex-col items-center gap-8 text-center">
-            <div className="relative">
-              <div className="absolute inset-0 animate-pulse rounded-3xl bg-primary/20 blur-xl" />
-              <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 backdrop-blur-sm">
-                <Sparkles className="h-10 w-10 text-primary" />
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground">
-                {t("onboarding.doneTitle", "You're all set!")}
-              </h2>
-              <p className="mt-3 text-base text-muted-foreground">
-                {t(
-                  "onboarding.doneDescription",
-                  "Press your hotkey anytime to start dictating. TypeLate will transcribe and paste the text automatically.",
-                )}
-              </p>
-              <div className="mt-4 inline-flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {t("onboarding.hotkeyHint", "Default: Fn key")}
-                </span>
-                <kbd className="inline-flex h-8 min-w-[2.5rem] items-center justify-center rounded-lg border border-border bg-muted px-3 text-sm font-medium text-foreground shadow-sm">
-                  {hotkeyConfig?.triggerKey
-                    ? typeof hotkeyConfig.triggerKey === "string"
-                      ? t(`settings.hotkey.keys.${hotkeyConfig.triggerKey}`, {
-                          defaultValue: hotkeyConfig.triggerKey,
-                        })
-                      : t("settings.hotkey.custom")
-                    : "Fn"}
-                </kbd>
-              </div>
-              {slogan && (
-                <p className="mt-3 text-sm italic text-primary/70">&ldquo;{slogan}&rdquo;</p>
-              )}
-            </div>
-
-            <Button
-              size="lg"
-              className="w-full gap-2 text-base"
-              onClick={() => void handleComplete()}
-            >
-              {t("onboarding.startUsing", "Start Using TypeLate")}
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
