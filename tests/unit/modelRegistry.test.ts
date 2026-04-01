@@ -95,8 +95,8 @@ describe("model lists", () => {
     for (const model of LLM_MODEL_LIST) {
       expect(model.id).toBeTruthy();
       expect(model.displayName).toBeTruthy();
-      expect(model.freeQuotaRpd).toBeGreaterThan(0);
-      expect(model.freeQuotaTpd).toBeGreaterThan(0);
+      expect(model.freeQuotaRpd).toBeGreaterThanOrEqual(0);
+      expect(model.freeQuotaTpd).toBeGreaterThanOrEqual(0);
     }
   });
 

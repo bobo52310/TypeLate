@@ -5,7 +5,6 @@ import { getMinimalPromptForLocale } from "../i18n/prompts";
 import type { SupportedLocale } from "../i18n/languageConfig";
 import i18n from "../i18n";
 
-const GROQ_CHAT_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const ENHANCEMENT_TIMEOUT_MS = 5000;
 const MAX_VOCABULARY_TERMS = 50;
 
@@ -29,6 +28,7 @@ export interface EnhanceOptions {
   vocabularyTermList?: string[];
   surroundingText?: string;
   modelId?: string;
+  chatApiUrl?: string;
   signal?: AbortSignal;
 }
 
@@ -151,8 +151,10 @@ export async function enhanceText(
     max_tokens: 2048,
   });
 
+  const chatUrl = options?.chatApiUrl ?? "https://api.groq.com/openai/v1/chat/completions";
+
   const response = await withTimeout(
-    fetch(GROQ_CHAT_API_URL, {
+    fetch(chatUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

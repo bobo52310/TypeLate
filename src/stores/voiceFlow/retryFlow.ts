@@ -11,6 +11,7 @@ import i18n from "@/i18n";
 import { extractErrorMessage, getEnhancementErrorMessage } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
 import { enhanceText } from "@/lib/enhancer";
+import { getProviderConfig } from "@/lib/providerConfig";
 import { detectHallucination } from "@/lib/hallucinationDetector";
 import type { TranscriptionResult } from "@/types/audio";
 import type { ChatUsageData, TranscriptionRecord } from "@/types/transcription";
@@ -211,9 +212,11 @@ export async function handleRetryTranscription(): Promise<void> {
     const vocabularyStore = getVocabularyStore();
     const whisperTermList = await vocabularyStore.getTopTermListByWeight(50);
     const hasVocabulary = whisperTermList.length > 0;
+    const providerConfig = getProviderConfig(settingsStore.selectedProviderId);
 
     const result = await invoke<TranscriptionResult>("retranscribe_from_file", {
       filePath,
+      apiUrl: providerConfig.transcriptionBaseUrl,
       apiKey,
       vocabularyTermList: hasVocabulary ? whisperTermList : null,
       modelId: settingsStore.selectedWhisperModelId,
@@ -270,6 +273,7 @@ export async function handleRetryTranscription(): Promise<void> {
           systemPrompt: settingsStore.getAiPrompt(),
           vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
           modelId: settingsStore.selectedLlmModelId,
+          chatApiUrl: providerConfig.chatBaseUrl,
           signal: newAbortController.signal,
         });
         if (getState()._isAborted) return;

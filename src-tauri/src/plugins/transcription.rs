@@ -6,7 +6,6 @@ use super::audio_recorder::AudioRecorderState;
 
 // ========== Constants ==========
 
-const GROQ_API_URL: &str = "https://api.groq.com/openai/v1/audio/transcriptions";
 const MAX_WHISPER_PROMPT_TERMS: usize = 50;
 const MINIMUM_AUDIO_SIZE: usize = 1000;
 const DEFAULT_WHISPER_MODEL_ID: &str = "whisper-large-v3";
@@ -38,9 +37,9 @@ pub enum TranscriptionError {
     AudioTooSmall(usize),
     #[error("API key is missing")]
     ApiKeyMissing,
-    #[error("Groq API request failed: {0}")]
+    #[error("API request failed: {0}")]
     RequestFailed(String),
-    #[error("Groq API returned error ({0}): {1}")]
+    #[error("API returned error ({0}): {1}")]
     ApiError(u16, String),
     #[error("Failed to parse API response: {0}")]
     ParseError(String),
@@ -96,6 +95,7 @@ fn format_whisper_prompt(term_list: &[String]) -> String {
 async fn send_transcription_request(
     wav_data: Vec<u8>,
     transcription_state: &TranscriptionState,
+    api_url: String,
     api_key: String,
     vocabulary_term_list: Option<Vec<String>>,
     model_id: Option<String>,
@@ -108,8 +108,9 @@ async fn send_transcription_request(
     let model = model_id.unwrap_or_else(|| DEFAULT_WHISPER_MODEL_ID.to_string());
 
     println!(
-        "[transcription] Sending {} bytes WAV to Groq API (model={})",
+        "[transcription] Sending {} bytes WAV to {} (model={})",
         wav_data.len(),
+        api_url,
         model
     );
 
@@ -141,7 +142,7 @@ async fn send_transcription_request(
     // Send request (reuse shared client for connection pooling)
     let response = transcription_state
         .client
-        .post(GROQ_API_URL)
+        .post(&api_url)
         .bearer_auth(&api_key)
         .multipart(form)
         .send()
@@ -199,6 +200,7 @@ async fn send_transcription_request(
 pub async fn transcribe_audio(
     state: State<'_, AudioRecorderState>,
     transcription_state: State<'_, TranscriptionState>,
+    api_url: String,
     api_key: String,
     vocabulary_term_list: Option<Vec<String>>,
     model_id: Option<String>,
@@ -220,6 +222,7 @@ pub async fn transcribe_audio(
     send_transcription_request(
         wav_data,
         &transcription_state,
+        api_url,
         api_key,
         vocabulary_term_list,
         model_id,
@@ -232,6 +235,7 @@ pub async fn transcribe_audio(
 pub async fn retranscribe_from_file(
     transcription_state: State<'_, TranscriptionState>,
     file_path: String,
+    api_url: String,
     api_key: String,
     vocabulary_term_list: Option<Vec<String>>,
     model_id: Option<String>,
@@ -256,6 +260,7 @@ pub async fn retranscribe_from_file(
     send_transcription_request(
         wav_data,
         &transcription_state,
+        api_url,
         api_key,
         vocabulary_term_list,
         model_id,

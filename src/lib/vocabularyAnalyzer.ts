@@ -1,8 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { DEFAULT_LLM_MODEL_ID } from "./modelRegistry";
 
-const GROQ_CHAT_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-
 const SYSTEM_PROMPT = `你是語音轉錄字典助手。
 比較 <original> 和 <corrected>，找出語音辨識寫錯、使用者改正的詞彙。
 注意：<corrected> 可能包含多餘文字（如重複行或額外內容），請只關注與 <original> 對應的部分。
@@ -111,7 +109,7 @@ export async function analyzeCorrections(
   pastedText: string,
   fieldText: string,
   apiKey: string,
-  options?: { modelId?: string },
+  options?: { modelId?: string; chatApiUrl?: string },
 ): Promise<VocabularyAnalysisResult> {
   const body = JSON.stringify({
     model: options?.modelId ?? DEFAULT_LLM_MODEL_ID,
@@ -126,7 +124,9 @@ export async function analyzeCorrections(
     max_tokens: 256,
   });
 
-  const response = await fetch(GROQ_CHAT_API_URL, {
+  const chatUrl = options?.chatApiUrl ?? "https://api.groq.com/openai/v1/chat/completions";
+
+  const response = await fetch(chatUrl, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,

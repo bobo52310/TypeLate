@@ -19,8 +19,9 @@ import {
   getTranscriptionErrorMessage,
 } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
-import { groqCircuitBreaker } from "@/lib/circuitBreaker";
+import { getCircuitBreaker } from "@/lib/circuitBreaker";
 import { enhanceText } from "@/lib/enhancer";
+import { getProviderConfig } from "@/lib/providerConfig";
 import { detectHallucination, detectEnhancementAnomaly } from "@/lib/hallucinationDetector";
 import { calculateWhisperCostCeiling, calculateChatCostCeiling } from "@/lib/apiPricing";
 import { retryWithBackoff } from "@/lib/retryWithBackoff";
@@ -528,9 +529,12 @@ export async function handleStopRecording(): Promise<void> {
       return;
     }
 
+    const settingsStore = getSettingsStore();
+
     // Circuit breaker: skip API call if recent failures indicate service is down
-    if (!groqCircuitBreaker.canExecute()) {
-      const cooldownSec = Math.ceil(groqCircuitBreaker.getRemainingCooldownMs() / 1000);
+    const providerCircuitBreaker = getCircuitBreaker(settingsStore.selectedProviderId);
+    if (!providerCircuitBreaker.canExecute()) {
+      const cooldownSec = Math.ceil(providerCircuitBreaker.getRemainingCooldownMs() / 1000);
       failRecordingFlow(
         t("errors.transcription.serviceUnavailable"),
         `voiceFlowStore: circuit breaker open (cooldown ${cooldownSec}s)`,
@@ -539,7 +543,6 @@ export async function handleStopRecording(): Promise<void> {
     }
 
     transitionTo("transcribing", t("voiceFlow.transcribing"));
-    const settingsStore = getSettingsStore();
     let apiKey = settingsStore.getApiKey();
 
     if (!apiKey) {
@@ -558,12 +561,14 @@ export async function handleStopRecording(): Promise<void> {
     const vocabularyStore = getVocabularyStore();
     const whisperTermList = await vocabularyStore.getTopTermListByWeight(50);
     const hasVocabulary = whisperTermList.length > 0;
+    const providerConfig = getProviderConfig(settingsStore.selectedProviderId);
 
     let result: TranscriptionResult;
     try {
       result = await retryWithBackoff(
         () =>
           invoke<TranscriptionResult>("transcribe_audio", {
+            apiUrl: providerConfig.transcriptionBaseUrl,
             apiKey,
             vocabularyTermList: hasVocabulary ? whisperTermList : null,
             modelId: settingsStore.selectedWhisperModelId,
@@ -571,9 +576,9 @@ export async function handleStopRecording(): Promise<void> {
           }),
         { maxRetries: 2, signal: abortController?.signal ?? undefined },
       );
-      groqCircuitBreaker.recordSuccess();
+      providerCircuitBreaker.recordSuccess();
     } catch (apiErr) {
-      groqCircuitBreaker.recordFailure();
+      providerCircuitBreaker.recordFailure();
       throw apiErr;
     }
     if (getState()._isAborted) return;
@@ -676,6 +681,7 @@ export async function handleStopRecording(): Promise<void> {
           vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
           surroundingText: lastSurroundingText ?? undefined,
           modelId: settingsStore.selectedLlmModelId,
+          chatApiUrl: providerConfig.chatBaseUrl,
           signal: abortController?.signal,
         };
 

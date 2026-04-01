@@ -16,6 +16,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, emit, type UnlistenFn } from "@tauri-apps/api/event";
 import { analyzeCorrections } from "@/lib/vocabularyAnalyzer";
+import { getProviderConfig } from "@/lib/providerConfig";
 import { extractErrorMessage } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
 import { calculateChatCostCeiling } from "@/lib/apiPricing";
@@ -172,8 +173,10 @@ export function startCorrectionDetectionFlow(
                 `[correction] text modified (overlap=${String(Math.round(overlapRatio * 100))}%) -- sending to AI analysis\n  original:  ${pastedText.slice(0, 80)}\n  corrected: ${fieldText.slice(0, 80)}`,
               );
 
+              const providerConfig = getProviderConfig(settingsStore.selectedProviderId);
               const analysisResult = await analyzeCorrections(pastedText, fieldText, apiKey, {
                 modelId: settingsStore.selectedVocabularyAnalysisModelId,
+                chatApiUrl: providerConfig.chatBaseUrl,
               });
 
               writeInfoLog(`[correction] AI raw: ${analysisResult.rawResponse}`);

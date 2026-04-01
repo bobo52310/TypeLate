@@ -18,7 +18,7 @@ export function calculateWhisperCostCeiling(
   modelId: string = DEFAULT_WHISPER_MODEL_ID,
 ): number {
   const config = findWhisperModelConfig(modelId);
-  const costPerHour = config?.costPerHour ?? 0.111;
+  const costPerHour = config?.costPerHour ?? 0;
   const billedMs = Math.max(audioDurationMs, WHISPER_MIN_BILLING_MS);
   return (billedMs / 3_600_000) * costPerHour;
 }

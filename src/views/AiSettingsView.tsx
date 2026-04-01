@@ -1,3 +1,4 @@
+import ProviderSection from "@/views/settings/ProviderSection";
 import ApiKeySection from "@/views/settings/ApiKeySection";
 import ModelSection from "@/views/settings/ModelSection";
 import PromptSection from "@/views/settings/PromptSection";
@@ -11,6 +12,7 @@ export default function AiSettingsView() {
         <div className="pointer-events-none sticky top-0 z-10 h-3 bg-gradient-to-b from-background to-transparent" />
 
         <div className="space-y-8 px-6 pb-8">
+          <ProviderSection />
           <ApiKeySection />
           <ModelSection />
           <PromptSection />

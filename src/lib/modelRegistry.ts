@@ -1,16 +1,21 @@
+import type { ProviderId } from "./providerConfig";
+
 // ── LLM 模型（文字整理用）────────────────────────────────
 
 export type LlmModelId =
   | "llama-3.3-70b-versatile"
   | "meta-llama/llama-4-scout-17b-16e-instruct"
   | "qwen/qwen3-32b"
-  | "moonshotai/kimi-k2-instruct";
+  | "moonshotai/kimi-k2-instruct"
+  | "gpt-4o-mini"
+  | "gpt-4o";
 
 // ── 字典分析模型 ─────────────────────────────────────────
 
 export type VocabularyAnalysisModelId = "llama-3.3-70b-versatile" | "moonshotai/kimi-k2-instruct";
 
 interface BaseModelConfig {
+  providerId: ProviderId;
   displayName: string;
   badgeKey: string;
   speedTps: number;
@@ -31,10 +36,11 @@ export interface VocabularyAnalysisModelConfig extends BaseModelConfig {
 
 // ── Whisper 模型（語音轉錄用）─────────────────────────────
 
-export type WhisperModelId = "whisper-large-v3" | "whisper-large-v3-turbo";
+export type WhisperModelId = "whisper-large-v3" | "whisper-large-v3-turbo" | "whisper-1";
 
 export interface WhisperModelConfig {
   id: WhisperModelId;
+  providerId: ProviderId;
   displayName: string;
   costPerHour: number;
   freeQuotaRpd: number;
@@ -65,8 +71,10 @@ export const DECOMMISSIONED_MODEL_MAP: Record<string, LlmModelId> = {
 // ── 模型清單（Groq 2026-03 價格）─────────────────────────
 
 export const LLM_MODEL_LIST: LlmModelConfig[] = [
+  // ── Groq ──
   {
     id: "qwen/qwen3-32b",
+    providerId: "groq",
     displayName: "Qwen3 32B",
     badgeKey: "settings.modelBadge.balanced",
     speedTps: 400,
@@ -78,6 +86,7 @@ export const LLM_MODEL_LIST: LlmModelConfig[] = [
   },
   {
     id: "llama-3.3-70b-versatile",
+    providerId: "groq",
     displayName: "Llama 3.3 70B Versatile",
     badgeKey: "settings.modelBadge.stableCostly",
     speedTps: 280,
@@ -89,6 +98,7 @@ export const LLM_MODEL_LIST: LlmModelConfig[] = [
   },
   {
     id: "meta-llama/llama-4-scout-17b-16e-instruct",
+    providerId: "groq",
     displayName: "Llama 4 Scout 17B",
     badgeKey: "settings.modelBadge.fastCheap",
     speedTps: 750,
@@ -100,6 +110,7 @@ export const LLM_MODEL_LIST: LlmModelConfig[] = [
   },
   {
     id: "moonshotai/kimi-k2-instruct",
+    providerId: "groq",
     displayName: "Kimi K2 Instruct",
     badgeKey: "settings.modelBadge.smartestSlow",
     speedTps: 200,
@@ -109,6 +120,31 @@ export const LLM_MODEL_LIST: LlmModelConfig[] = [
     freeQuotaTpd: 100_000,
     isDefault: false,
   },
+  // ── OpenAI ──
+  {
+    id: "gpt-4o-mini",
+    providerId: "openai",
+    displayName: "GPT-4o Mini",
+    badgeKey: "settings.modelBadge.fastCheap",
+    speedTps: 200,
+    inputCostPerMillion: 0.15,
+    outputCostPerMillion: 0.6,
+    freeQuotaRpd: 0,
+    freeQuotaTpd: 0,
+    isDefault: true,
+  },
+  {
+    id: "gpt-4o",
+    providerId: "openai",
+    displayName: "GPT-4o",
+    badgeKey: "settings.modelBadge.smartestSlow",
+    speedTps: 100,
+    inputCostPerMillion: 2.5,
+    outputCostPerMillion: 10.0,
+    freeQuotaRpd: 0,
+    freeQuotaTpd: 0,
+    isDefault: false,
+  },
 ];
 
 // ── 字典分析模型清單（指令遵從 + JSON 穩定性優先）──────
@@ -116,6 +152,7 @@ export const LLM_MODEL_LIST: LlmModelConfig[] = [
 export const VOCABULARY_ANALYSIS_MODEL_LIST: VocabularyAnalysisModelConfig[] = [
   {
     id: "llama-3.3-70b-versatile",
+    providerId: "groq",
     displayName: "Llama 3.3 70B Versatile",
     badgeKey: "settings.modelBadge.balanced",
     speedTps: 280,
@@ -127,6 +164,7 @@ export const VOCABULARY_ANALYSIS_MODEL_LIST: VocabularyAnalysisModelConfig[] = [
   },
   {
     id: "moonshotai/kimi-k2-instruct",
+    providerId: "groq",
     displayName: "Kimi K2 Instruct",
     badgeKey: "settings.modelBadge.smartestSlow",
     speedTps: 200,
@@ -139,8 +177,10 @@ export const VOCABULARY_ANALYSIS_MODEL_LIST: VocabularyAnalysisModelConfig[] = [
 ];
 
 export const WHISPER_MODEL_LIST: WhisperModelConfig[] = [
+  // ── Groq ──
   {
     id: "whisper-large-v3",
+    providerId: "groq",
     displayName: "Whisper Large V3",
     costPerHour: 0.111,
     freeQuotaRpd: 2_000,
@@ -149,11 +189,22 @@ export const WHISPER_MODEL_LIST: WhisperModelConfig[] = [
   },
   {
     id: "whisper-large-v3-turbo",
+    providerId: "groq",
     displayName: "Whisper Large V3 Turbo",
     costPerHour: 0.04,
     freeQuotaRpd: 2_000,
     freeQuotaAudioSecondsPerDay: 28_800,
     isDefault: false,
+  },
+  // ── OpenAI ──
+  {
+    id: "whisper-1",
+    providerId: "openai",
+    displayName: "Whisper 1",
+    costPerHour: 0.36,
+    freeQuotaRpd: 0,
+    freeQuotaAudioSecondsPerDay: 0,
+    isDefault: true,
   },
 ];
 
@@ -204,4 +255,26 @@ export function getEffectiveVocabularyAnalysisModelId(
 export function getEffectiveWhisperModelId(savedId: string | null): WhisperModelId {
   if (savedId && findWhisperModelConfig(savedId)) return savedId as WhisperModelId;
   return DEFAULT_WHISPER_MODEL_ID;
+}
+
+// ── Provider-filtered helpers ────────────────────────────────
+
+export function getWhisperModelsForProvider(providerId: string): WhisperModelConfig[] {
+  return WHISPER_MODEL_LIST.filter((m) => m.providerId === providerId);
+}
+
+export function getLlmModelsForProvider(providerId: string): LlmModelConfig[] {
+  return LLM_MODEL_LIST.filter((m) => m.providerId === providerId);
+}
+
+export function getDefaultWhisperModelForProvider(providerId: string): WhisperModelId {
+  const models = getWhisperModelsForProvider(providerId);
+  const defaultModel = models.find((m) => m.isDefault);
+  return (defaultModel ?? models[0])?.id ?? DEFAULT_WHISPER_MODEL_ID;
+}
+
+export function getDefaultLlmModelForProvider(providerId: string): LlmModelId {
+  const models = getLlmModelsForProvider(providerId);
+  const defaultModel = models.find((m) => m.isDefault);
+  return (defaultModel ?? models[0])?.id ?? DEFAULT_LLM_MODEL_ID;
 }
