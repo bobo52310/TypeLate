@@ -211,6 +211,22 @@ pnpm lint       # 執行 ESLint
 pnpm format     # 執行 Prettier
 ```
 
+### 重置引導頁面（測試用）
+
+引導畫面只會在 `onboardingCompleted` 為 falsy **且**沒有設定 API Key 時出現。開發時要重新觸發：
+
+```bash
+# macOS — 找到並編輯 settings store 檔案
+open ~/Library/Application\ Support/com.typelate.app/
+
+# 刪除以下 key（或刪除整個檔案以重置所有設定）：
+#   "onboardingCompleted"
+#   "groqApiKey"
+#   "openaiApiKey"
+```
+
+然後重啟 `pnpm tauri dev`。
+
 ## 貢獻
 
 請參閱 [CONTRIBUTING.md](CONTRIBUTING.md) 了解開發指南、程式碼慣例和提交方式。

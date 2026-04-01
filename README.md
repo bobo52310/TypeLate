@@ -168,6 +168,22 @@ pnpm lint       # Run ESLint
 pnpm format     # Run Prettier
 ```
 
+### Reset Onboarding (for testing)
+
+The onboarding screen only appears when **both** `onboardingCompleted` is falsy **and** no API key is set. To re-trigger it during development:
+
+```bash
+# macOS — find and edit the settings store file
+open ~/Library/Application\ Support/com.typelate.app/
+
+# Delete these keys (or the entire file to reset all settings):
+#   "onboardingCompleted"
+#   "groqApiKey"
+#   "openaiApiKey"
+```
+
+Then restart `pnpm tauri dev`.
+
 ## Architecture
 
 TypeLate uses a dual-window architecture:
