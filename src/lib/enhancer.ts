@@ -1,5 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
-import type { ChatUsageData, EnhanceResult } from "../types/transcription";
+import type { ChatUsageData, EnhanceResult, RateLimitInfo } from "../types/transcription";
 import { DEFAULT_LLM_MODEL_ID } from "./modelRegistry";
 import { getMinimalPromptForLocale } from "../i18n/prompts";
 import type { SupportedLocale } from "../i18n/languageConfig";
@@ -117,6 +117,31 @@ function parseUsage(usage?: GroqChatUsage): ChatUsageData | null {
   };
 }
 
+function headerAsNumber(headers: Headers, name: string): number | null {
+  const value = headers.get(name);
+  if (!value) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseRateLimit(headers: Headers): RateLimitInfo | null {
+  const info: RateLimitInfo = {
+    limitRequests: headerAsNumber(headers, "x-ratelimit-limit-requests"),
+    remainingRequests: headerAsNumber(headers, "x-ratelimit-remaining-requests"),
+    limitTokens: headerAsNumber(headers, "x-ratelimit-limit-tokens"),
+    remainingTokens: headerAsNumber(headers, "x-ratelimit-remaining-tokens"),
+  };
+  if (
+    info.limitRequests !== null ||
+    info.remainingRequests !== null ||
+    info.limitTokens !== null ||
+    info.remainingTokens !== null
+  ) {
+    return info;
+  }
+  return null;
+}
+
 /**
  * 移除 reasoning model（如 Qwen3）回應中的 <think>...</think> 區塊，
  * 只保留最終輸出內容。
@@ -177,18 +202,19 @@ export async function enhanceText(
     throw new EnhancerApiError(response.status, response.statusText, errorBody);
   }
 
+  const rateLimit = parseRateLimit(response.headers);
   const data = (await response.json()) as GroqChatResponse;
   const usage = parseUsage(data.usage);
 
   if (!data.choices || data.choices.length === 0) {
-    return { text: rawText, usage };
+    return { text: rawText, usage, rateLimit };
   }
 
   const rawContent = data.choices[0]?.message.content?.trim();
   if (!rawContent) {
-    return { text: rawText, usage };
+    return { text: rawText, usage, rateLimit };
   }
 
   const enhancedContent = stripReasoningTags(rawContent);
-  return { text: enhancedContent || rawText, usage };
+  return { text: enhancedContent || rawText, usage, rateLimit };
 }
