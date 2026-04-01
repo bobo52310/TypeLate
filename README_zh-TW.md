@@ -13,6 +13,8 @@
   [![GitHub Release](https://img.shields.io/github/v/release/bobo52310/TypeLate)](https://github.com/bobo52310/TypeLate/releases/latest)
   ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
 
+  **100% 免費開源。歡迎 Fork 改成你喜歡的樣子，也跟我分享你的作品！**
+
   <img src="screenshots/desktop-viewport.png" width="700" alt="TypeLate 首頁" />
 </div>
 

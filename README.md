@@ -7,11 +7,13 @@
 
   **Too late to type — just speak.**
 
-  Press a hotkey, speak naturally, release. Your voice becomes polished text in under 3 seconds — right where you type.
+  Press a hotkey to start, speak naturally, press again to stop. Your voice becomes polished text in under 3 seconds — right where you type.
 
   [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![GitHub Release](https://img.shields.io/github/v/release/bobo52310/TypeLate)](https://github.com/bobo52310/TypeLate/releases/latest)
   ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
+
+  **100% free & open source. Fork it, make it yours, and show me what you build!**
 
   <img src="screenshots/desktop-viewport.png" width="700" alt="TypeLate Dashboard" />
 </div>
@@ -22,7 +24,7 @@
 
 | Step | Action |
 | :--: | ------ |
-| **1. Hold Hotkey** | Press `Fn` (or your custom hotkey) in any application. |
+| **1. Toggle Hotkey** | Press `Fn` (or your custom hotkey) in any application to start recording. |
 | **2. Speak Naturally** | Talk as you normally would. No need to articulate perfectly. |
 | **3. Text Appears** | AI transcribes, polishes with your custom prompt, and pastes at your cursor in under 3 seconds. |
 
@@ -40,7 +42,7 @@
 
 ### Works everywhere
 
-Hold, toggle, or double-tap in any app. `Fn` key default, fully customizable. System-wide integration — if you can type there, you can speak there.
+Toggle, hold, or double-tap in any app. `Fn` key default (toggle mode), fully customizable. System-wide integration — if you can type there, you can speak there.
 
 ### AI post-processing
 
@@ -126,7 +128,7 @@ Runs on macOS (Apple Silicon and Intel) and Windows.
 1. Download and install TypeLate for your platform.
 2. Open TypeLate.
 3. Go to Settings and enter your [Groq API key](https://console.groq.com/keys) (free to obtain).
-4. In any application, press and hold the `Fn` key (default), speak, then release. Your transcribed text is automatically pasted at the cursor.
+4. In any application, press `Fn` (default) to start recording, speak, then press again to stop. Your transcribed text is automatically pasted at the cursor.
 
 ## Development
 
