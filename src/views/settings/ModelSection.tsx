@@ -12,8 +12,8 @@ import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/setti
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import {
-  LLM_MODEL_LIST,
-  WHISPER_MODEL_LIST,
+  getWhisperModelsForProvider,
+  getLlmModelsForProvider,
   findLlmModelConfig,
   findWhisperModelConfig,
   type WhisperModelId,
@@ -24,10 +24,20 @@ export default function ModelSection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
+  const selectedProviderId = useSettingsStore((s) => s.selectedProviderId);
   const selectedWhisperModelId = useSettingsStore((s) => s.selectedWhisperModelId);
   const selectedLlmModelId = useSettingsStore((s) => s.selectedLlmModelId);
   const saveWhisperModel = useSettingsStore((s) => s.saveWhisperModel);
   const saveLlmModel = useSettingsStore((s) => s.saveLlmModel);
+
+  const whisperModels = useMemo(
+    () => getWhisperModelsForProvider(selectedProviderId),
+    [selectedProviderId],
+  );
+  const llmModels = useMemo(
+    () => getLlmModelsForProvider(selectedProviderId),
+    [selectedProviderId],
+  );
 
   const whisperModelDescription = useMemo(() => {
     const config = findWhisperModelConfig(selectedWhisperModelId);
@@ -78,7 +88,7 @@ export default function ModelSection() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {WHISPER_MODEL_LIST.map((model) => (
+            {whisperModels.map((model) => (
               <SelectItem key={model.id} value={model.id}>
                 <span className="flex items-center gap-2">
                   {model.displayName}
@@ -108,7 +118,7 @@ export default function ModelSection() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {LLM_MODEL_LIST.map((model) => (
+            {llmModels.map((model) => (
               <SelectItem key={model.id} value={model.id}>
                 <span className="flex items-center gap-2">
                   {model.displayName}

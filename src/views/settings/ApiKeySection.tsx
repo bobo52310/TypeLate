@@ -7,15 +7,19 @@ import { cn } from "@/lib/utils";
 import { SettingsGroup, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
+import { getProviderConfig } from "@/lib/providerConfig";
 
 export default function ApiKeySection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
+  const selectedProviderId = useSettingsStore((s) => s.selectedProviderId);
   const hasApiKey = useSettingsStore((s) => s.hasApiKey());
   const saveApiKey = useSettingsStore((s) => s.saveApiKey);
   const deleteApiKey = useSettingsStore((s) => s.deleteApiKey);
   const getApiKey = useSettingsStore((s) => s.getApiKey);
+
+  const providerConfig = getProviderConfig(selectedProviderId);
 
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
@@ -27,19 +31,25 @@ export default function ApiKeySection() {
   const apiKeyStatusClass = hasApiKey
     ? "bg-primary/20 text-primary"
     : "bg-destructive/20 text-destructive";
-  const shouldShowOnboardingHint = !hasApiKey;
-
   useEffect(() => {
     if (hasApiKey) {
       setApiKeyInput(getApiKey());
+    } else {
+      setApiKeyInput("");
     }
-  }, [hasApiKey, getApiKey]);
+  }, [hasApiKey, getApiKey, selectedProviderId]);
 
   useEffect(() => {
     return () => {
       clearTimeout(deleteConfirmTimeoutRef.current);
     };
   }, []);
+
+  // Reset confirm state when provider changes
+  useEffect(() => {
+    setIsConfirmingDelete(false);
+    setIsApiKeyVisible(false);
+  }, [selectedProviderId]);
 
   async function handleSaveApiKey() {
     try {
@@ -82,29 +92,31 @@ export default function ApiKeySection() {
   }
 
   return (
-    <SettingsGroup title="Groq API Key">
+    <SettingsGroup
+      title={t("settings.apiKey.titleTemplate", { provider: providerConfig.displayName })}
+    >
       <div className="space-y-3 px-4 py-3">
         <div className="flex items-center justify-between">
           <Badge className={cn("border-0", apiKeyStatusClass)}>{apiKeyStatusLabel}</Badge>
           <a
-            href="https://console.groq.com/keys"
+            href={providerConfig.consoleUrl}
             target="_blank"
             rel="noreferrer"
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            {t("settings.apiKey.goToConsole")} &rarr;
+            {t("settings.apiKey.goToConsoleTemplate", {
+              provider: providerConfig.displayName,
+            })}{" "}
+            &rarr;
           </a>
         </div>
 
         <p className="text-sm leading-relaxed text-muted-foreground">
-          {t("settings.apiKey.instruction")}
+          {t("settings.apiKey.instructionTemplate", {
+            provider: providerConfig.displayName,
+          })}
         </p>
 
-        {shouldShowOnboardingHint && (
-          <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
-            {t("settings.apiKey.onboarding")}
-          </p>
-        )}
 
         <div className="flex gap-2">
           <div className="flex flex-1 gap-2">
@@ -112,7 +124,7 @@ export default function ApiKeySection() {
               value={apiKeyInput}
               onChange={(e) => setApiKeyInput(e.target.value)}
               type={isApiKeyVisible ? "text" : "password"}
-              placeholder="gsk_..."
+              placeholder={providerConfig.keyPlaceholder}
               autoComplete="off"
               className="flex-1"
             />

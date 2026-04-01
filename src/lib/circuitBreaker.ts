@@ -97,5 +97,17 @@ export class CircuitBreaker {
   }
 }
 
-/** Shared circuit breaker for the Groq API transcription pipeline. */
-export const groqCircuitBreaker = new CircuitBreaker();
+// ── Per-provider circuit breaker instances ──
+
+const circuitBreakerMap = new Map<string, CircuitBreaker>();
+
+export function getCircuitBreaker(providerId: string): CircuitBreaker {
+  if (!circuitBreakerMap.has(providerId)) {
+    circuitBreakerMap.set(providerId, new CircuitBreaker());
+  }
+  return circuitBreakerMap.get(providerId)!;
+}
+
+/** Shared circuit breaker for the Groq API transcription pipeline.
+ *  @deprecated Use getCircuitBreaker(providerId) instead. */
+export const groqCircuitBreaker = getCircuitBreaker("groq");

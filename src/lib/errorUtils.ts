@@ -48,11 +48,11 @@ export function getTranscriptionErrorMessage(error: unknown): string {
   }
 
   if (error instanceof Error) {
-    if (!error.message.includes("Groq API error") && NETWORK_ERROR_PATTERN.test(error.message)) {
+    if (!error.message.includes("API error") && NETWORK_ERROR_PATTERN.test(error.message)) {
       return t("errors.network");
     }
 
-    if (error.message.includes("Groq API error")) {
+    if (error.message.includes("API error")) {
       const statusMatch = error.message.match(/\((\d+)\)/);
       if (statusMatch) {
         const status = parseInt(statusMatch[1] ?? "0", 10);
