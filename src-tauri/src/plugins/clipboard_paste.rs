@@ -115,7 +115,11 @@ pub fn copy_to_clipboard(text: String) -> Result<(), ClipboardError> {
 }
 
 #[tauri::command]
-pub fn paste_text<R: Runtime>(_app: AppHandle<R>, text: String) -> Result<(), ClipboardError> {
+pub fn paste_text<R: Runtime>(
+    _app: AppHandle<R>,
+    text: String,
+    preserve_clipboard: bool,
+) -> Result<(), ClipboardError> {
     #[cfg(debug_assertions)]
     println!(
         "[clipboard-paste] Pasting {} chars: \"{}\"",
@@ -125,18 +129,27 @@ pub fn paste_text<R: Runtime>(_app: AppHandle<R>, text: String) -> Result<(), Cl
     #[cfg(not(debug_assertions))]
     println!("[clipboard-paste] Pasting {} chars", text.len());
 
-    // 1) 寫入剪貼簿
+    // 1) 保存原始剪貼簿內容（僅在 preserve_clipboard 模式下）
     let mut clipboard =
         Clipboard::new().map_err(|e| ClipboardError::ClipboardAccess(e.to_string()))?;
+    let original_clipboard = if preserve_clipboard {
+        let saved = clipboard.get_text().ok();
+        println!("[clipboard-paste] Original clipboard saved");
+        saved
+    } else {
+        None
+    };
+
+    // 2) 寫入要貼上的文字
     clipboard
         .set_text(&text)
         .map_err(|e| ClipboardError::ClipboardAccess(e.to_string()))?;
     println!("[clipboard-paste] Text copied to clipboard");
 
-    // 2) 等待剪貼簿同步
+    // 3) 等待剪貼簿同步
     thread::sleep(Duration::from_millis(50));
 
-    // 3) 觸發目標 app 的貼上動作
+    // 4) 觸發目標 app 的貼上動作
     #[cfg(target_os = "macos")]
     {
         simulate_paste_via_cgevent().map_err(|e| {
@@ -158,6 +171,25 @@ pub fn paste_text<R: Runtime>(_app: AppHandle<R>, text: String) -> Result<(), Cl
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         compile_error!("paste_text keyboard simulation is not implemented for this platform");
+    }
+
+    // 5) 背景還原原始剪貼簿內容（延遲 500ms 確保目標 app 完成貼上處理）
+    if let Some(original) = original_clipboard {
+        thread::spawn(move || {
+            thread::sleep(Duration::from_millis(500));
+            match Clipboard::new() {
+                Ok(mut cb) => {
+                    if let Err(e) = cb.set_text(&original) {
+                        eprintln!("[clipboard-paste] Failed to restore clipboard: {}", e);
+                    } else {
+                        println!("[clipboard-paste] Original clipboard restored");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("[clipboard-paste] Failed to open clipboard for restore: {}", e);
+                }
+            }
+        });
     }
 
     println!("[clipboard-paste] Done");

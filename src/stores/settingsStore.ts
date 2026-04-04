@@ -127,7 +127,7 @@ interface SettingsState {
   customSoundPaths: Record<string, string> | null;
   recordingRetentionPolicy: RecordingRetentionPolicy;
   selectedAudioInputDeviceName: string;
-  pasteMode: "auto-paste" | "copy-only";
+  isCopyResultToClipboard: boolean;
   isContextAwareEnabled: boolean;
   contextAppOverrides: Record<string, AppCategory>;
 
@@ -181,7 +181,7 @@ interface SettingsState {
   getRecordingsStorageInfo: () => Promise<RecordingsStorageInfo>;
   openRecordingsFolder: () => Promise<void>;
   saveAudioInputDevice: (deviceName: string) => Promise<void>;
-  savePasteMode: (mode: "auto-paste" | "copy-only") => Promise<void>;
+  saveCopyResultToClipboard: (enabled: boolean) => Promise<void>;
   saveLocale: (locale: SupportedLocale) => Promise<void>;
   saveTranscriptionLocale: (locale: TranscriptionLocale) => Promise<void>;
   refreshCrossWindowSettings: () => Promise<void>;
@@ -231,7 +231,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   customSoundPaths: null,
   recordingRetentionPolicy: DEFAULT_RECORDING_RETENTION_POLICY,
   selectedAudioInputDeviceName: "",
-  pasteMode: "auto-paste" as const,
+  isCopyResultToClipboard: false,
   isContextAwareEnabled: false,
   contextAppOverrides: {} as Record<string, AppCategory>,
 
@@ -436,7 +436,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         }
       }
       const savedAudioInputDeviceName = await store.get<string>("audioInputDeviceName");
-      const savedPasteMode = await store.get<string>("pasteMode");
+      const savedCopyResultToClipboard = await store.get<boolean>("copyResultToClipboard");
 
       // Context-aware enhancement
       const savedContextAwareEnabled = await store.get<boolean>("contextAwareEnabled");
@@ -467,9 +467,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         isSmartDictionaryEnabled: savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
         recordingRetentionPolicy: resolvedRetentionPolicy,
         selectedAudioInputDeviceName: savedAudioInputDeviceName ?? "",
-        pasteMode: (savedPasteMode === "copy-only" ? "copy-only" : "auto-paste") as
-          | "auto-paste"
-          | "copy-only",
+        isCopyResultToClipboard: savedCopyResultToClipboard ?? false,
         isContextAwareEnabled: savedContextAwareEnabled ?? false,
         contextAppOverrides: savedContextAppOverrides ?? {},
       });
@@ -1142,23 +1140,23 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
-  savePasteMode: async (mode: "auto-paste" | "copy-only") => {
+  saveCopyResultToClipboard: async (enabled: boolean) => {
     try {
       const store = await load(STORE_NAME);
-      await store.set("pasteMode", mode);
+      await store.set("copyResultToClipboard", enabled);
       await store.save();
-      set({ pasteMode: mode });
+      set({ isCopyResultToClipboard: enabled });
 
       const payload: SettingsUpdatedPayload = {
-        key: "pasteMode" as SettingsUpdatedPayload["key"],
-        value: mode,
+        key: "copyResultToClipboard" as SettingsUpdatedPayload["key"],
+        value: enabled,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      logInfo("settings", `Paste mode saved: ${mode}`);
+      logInfo("settings", `Copy result to clipboard saved: ${String(enabled)}`);
     } catch (err) {
-      logError("settings", "savePasteMode failed:", extractErrorMessage(err));
-      captureError(err, { source: "settings", step: "save-paste-mode" });
+      logError("settings", "saveCopyResultToClipboard failed:", extractErrorMessage(err));
+      captureError(err, { source: "settings", step: "save-preserve-clipboard" });
       throw err;
     }
   },
@@ -1223,6 +1221,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
       const savedRetentionPolicy = await store.get<RecordingRetentionPolicy>("recordingRetentionPolicy");
       const savedAudioDevice = await store.get<string>("audioInputDeviceName");
+      const savedCopyResultToClipboard = await store.get<boolean>("copyResultToClipboard");
 
       set({
         hotkeyConfig: {
@@ -1252,6 +1251,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         isSmartDictionaryEnabled: savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
         recordingRetentionPolicy: savedRetentionPolicy ?? DEFAULT_RECORDING_RETENTION_POLICY,
         selectedAudioInputDeviceName: savedAudioDevice ?? "",
+        isCopyResultToClipboard: savedCopyResultToClipboard ?? false,
       });
     } catch (err) {
       logError(

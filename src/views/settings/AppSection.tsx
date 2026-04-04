@@ -25,10 +25,12 @@ export default function AppSection() {
   const selectedLocale = useSettingsStore((s) => s.selectedLocale);
   const selectedTranscriptionLocale = useSettingsStore((s) => s.selectedTranscriptionLocale);
   const isAutoStartEnabled = useSettingsStore((s) => s.isAutoStartEnabled);
+  const isCopyResultToClipboard = useSettingsStore((s) => s.isCopyResultToClipboard);
   const saveLocale = useSettingsStore((s) => s.saveLocale);
   const saveTranscriptionLocale = useSettingsStore((s) => s.saveTranscriptionLocale);
   const toggleAutoStart = useSettingsStore((s) => s.toggleAutoStart);
   const loadAutoStartStatus = useSettingsStore((s) => s.loadAutoStartStatus);
+  const saveCopyResultToClipboard = useSettingsStore((s) => s.saveCopyResultToClipboard);
 
   const [isTogglingAutoStart, setIsTogglingAutoStart] = useState(false);
 
@@ -49,6 +51,20 @@ export default function AppSection() {
     try {
       await saveTranscriptionLocale(newLocale as TranscriptionLocale);
       feedback.show("success", t("settings.app.transcriptionLanguageUpdated"));
+    } catch (err) {
+      feedback.show("error", err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleToggleCopyResultToClipboard(newValue: boolean) {
+    try {
+      await saveCopyResultToClipboard(newValue);
+      feedback.show(
+        "success",
+        newValue
+          ? t("settings.copyResultToClipboard.enabled")
+          : t("settings.copyResultToClipboard.disabled"),
+      );
     } catch (err) {
       feedback.show("error", err instanceof Error ? err.message : String(err));
     }
@@ -108,6 +124,18 @@ export default function AppSection() {
             ))}
           </SelectContent>
         </Select>
+      </SettingsRow>
+
+      <SettingsRow
+        label={t("settings.copyResultToClipboard.label")}
+        description={t("settings.copyResultToClipboard.description")}
+        htmlFor="copy-result-to-clipboard"
+      >
+        <Switch
+          id="copy-result-to-clipboard"
+          checked={isCopyResultToClipboard}
+          onCheckedChange={(val) => void handleToggleCopyResultToClipboard(val)}
+        />
       </SettingsRow>
 
       <SettingsRow

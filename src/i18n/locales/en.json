@@ -190,14 +190,11 @@
       "transcriptionLanguageUpdated": "Transcription language updated",
       "autoDetect": "Auto Detect"
     },
-    "pasteMode": {
-      "title": "Paste Behavior",
-      "description": "Choose what happens after transcription completes",
-      "autoPaste": "Auto-paste",
-      "autoPasteDescription": "Paste text directly into the active app",
-      "copyOnly": "Copy to clipboard",
-      "copyOnlyDescription": "Copy text to clipboard without pasting (preserves existing clipboard content)",
-      "updated": "Paste behavior updated"
+    "copyResultToClipboard": {
+      "label": "Copy result to clipboard",
+      "description": "Enable to paste the result again from clipboard",
+      "enabled": "Transcription result will be copied to clipboard",
+      "disabled": "Transcription result will not be copied to clipboard"
     },
     "audioInput": {
       "title": "Input Device",
@@ -382,6 +379,24 @@
     "bulkAddButton": "Add All",
     "bulkAddSuccess": "Added {added} terms, {skipped} duplicates skipped",
     "bulkAddEmpty": "No terms to add",
+    "textAnalyzer": {
+      "title": "Text Vocabulary Analyzer",
+      "description": "Paste text or upload a file, and AI will extract domain-specific terms for your dictionary.",
+      "placeholder": "Paste your text here (meeting notes, articles, documentation...)",
+      "uploadFile": "Upload File",
+      "analyze": "Analyze",
+      "analyzing": "AI is analyzing your text...",
+      "noTermsFound": "No suitable terms found in this text",
+      "foundTerms": "Found {count} terms",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "addSelected": "Add {count} Selected Terms",
+      "addSuccess": "Added {added} terms, {skipped} duplicates skipped",
+      "noTextProvided": "Please paste text or upload a file first",
+      "apiKeyRequired": "Please set up your API Key in Settings first",
+      "reset": "Analyze New Text",
+      "supportedFormats": "Supports .txt, .md, .srt"
+    },
     "cloudSync": {
       "title": "Cloud Sync",
       "description": "Sync your vocabulary across devices.",
@@ -435,8 +450,6 @@
     "transcribing": "Transcribing...",
     "pasteSuccess": "Pasted",
     "pasteSuccessUnenhanced": "Pasted (unenhanced)",
-    "copiedToClipboard": "Copied",
-    "copiedToClipboardUnenhanced": "Copied (unenhanced)",
     "enhancing": "Enhancing...",
     "pasteFailed": "Paste failed",
     "recordingTooShort": "Recording too short",

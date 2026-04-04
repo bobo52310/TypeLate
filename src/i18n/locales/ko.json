@@ -190,14 +190,11 @@
       "transcriptionLanguageUpdated": "전사 언어가 업데이트되었습니다",
       "autoDetect": "자동 감지"
     },
-    "pasteMode": {
-      "title": "붙여넣기 동작",
-      "description": "전사 완료 후 동작을 선택하세요",
-      "autoPaste": "자동 붙여넣기",
-      "autoPasteDescription": "활성 앱에 텍스트를 직접 붙여넣기",
-      "copyOnly": "클립보드에 복사",
-      "copyOnlyDescription": "붙여넣지 않고 텍스트를 클립보드에 복사 (기존 클립보드 내용 유지)",
-      "updated": "붙여넣기 동작이 업데이트되었습니다"
+    "copyResultToClipboard": {
+      "label": "전사 결과를 클립보드에 저장",
+      "description": "켜면 전사 결과를 다시 붙여넣을 수 있습니다",
+      "enabled": "전사 결과가 클립보드에 저장됩니다",
+      "disabled": "전사 결과가 클립보드에 저장되지 않습니다"
     },
     "audioInput": {
       "title": "입력 장치",
@@ -382,6 +379,24 @@
     "bulkAddButton": "모두 추가",
     "bulkAddSuccess": "{added}개 추가, {skipped}개 중복 건너뜀",
     "bulkAddEmpty": "추가할 용어가 없습니다",
+    "textAnalyzer": {
+      "title": "텍스트 어휘 분석",
+      "description": "텍스트를 붙여넣거나 파일을 업로드하면 AI가 전문 용어를 추출하여 사전에 추가합니다.",
+      "placeholder": "여기에 텍스트를 붙여넣으세요 (회의록, 기사, 문서...)",
+      "uploadFile": "파일 업로드",
+      "analyze": "분석",
+      "analyzing": "AI가 텍스트를 분석하고 있습니다...",
+      "noTermsFound": "적합한 용어를 찾을 수 없습니다",
+      "foundTerms": "{count}개 용어 발견",
+      "selectAll": "모두 선택",
+      "deselectAll": "선택 해제",
+      "addSelected": "선택한 {count}개 용어 추가",
+      "addSuccess": "{added}개 추가, {skipped}개 중복 건너뜀",
+      "noTextProvided": "먼저 텍스트를 붙여넣거나 파일을 업로드하세요",
+      "apiKeyRequired": "설정에서 먼저 API Key를 설정하세요",
+      "reset": "새 텍스트 분석",
+      "supportedFormats": ".txt, .md, .srt 지원"
+    },
     "cloudSync": {
       "title": "클라우드 동기화",
       "description": "기기 간 사용자 정의 사전을 동기화합니다.",
@@ -435,8 +450,6 @@
     "transcribing": "전사 중...",
     "pasteSuccess": "붙여넣기 완료 ✓",
     "pasteSuccessUnenhanced": "붙여넣기 완료 (미정리)",
-    "copiedToClipboard": "복사 완료",
-    "copiedToClipboardUnenhanced": "복사 완료 (미정리)",
     "enhancing": "정리 중...",
     "pasteFailed": "붙여넣기 실패",
     "recordingTooShort": "녹음 시간이 너무 짧습니다",

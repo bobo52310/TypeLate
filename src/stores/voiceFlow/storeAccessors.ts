@@ -28,7 +28,7 @@ export interface SettingsStoreAccessor {
   isContextAwareEnabled: boolean;
   getContextAwarePrompt: (bundleId: string | null) => string;
   getWhisperLanguageCode: () => string | null;
-  pasteMode: "auto-paste" | "copy-only";
+  isCopyResultToClipboard: boolean;
   recordingRetentionPolicy: import("@/stores/settingsStore").RecordingRetentionPolicy;
   loadSettings: () => Promise<void>;
 }

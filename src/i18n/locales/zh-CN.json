@@ -190,14 +190,11 @@
       "transcriptionLanguageUpdated": "转录语言已更新",
       "autoDetect": "自动检测"
     },
-    "pasteMode": {
-      "title": "粘贴行为",
-      "description": "选择转录完成后的操作",
-      "autoPaste": "自动粘贴",
-      "autoPasteDescription": "将文字直接粘贴到当前应用",
-      "copyOnly": "仅复制到剪贴板",
-      "copyOnlyDescription": "将文字复制到剪贴板而不粘贴（保留现有剪贴板内容）",
-      "updated": "粘贴行为已更新"
+    "copyResultToClipboard": {
+      "label": "转录结果存到剪贴板",
+      "description": "开启后可重复粘贴转录结果",
+      "enabled": "转录结果会存到剪贴板",
+      "disabled": "转录结果不会存到剪贴板"
     },
     "audioInput": {
       "title": "输入设备",
@@ -382,6 +379,24 @@
     "bulkAddButton": "全部添加",
     "bulkAddSuccess": "已添加 {added} 个词汇，{skipped} 个重复已跳过",
     "bulkAddEmpty": "没有可添加的词汇",
+    "textAnalyzer": {
+      "title": "文本词汇分析",
+      "description": "粘贴文案或上传文件，AI 将自动提取专业术语加入字典。",
+      "placeholder": "在此粘贴你的文字（会议记录、文章、技术文档...）",
+      "uploadFile": "上传文件",
+      "analyze": "分析",
+      "analyzing": "AI 正在分析你的文字...",
+      "noTermsFound": "未找到合适的词汇",
+      "foundTerms": "找到 {count} 个词汇",
+      "selectAll": "全选",
+      "deselectAll": "取消全选",
+      "addSelected": "添加 {count} 个已选词汇",
+      "addSuccess": "已添加 {added} 个词汇，{skipped} 个重复已跳过",
+      "noTextProvided": "请先粘贴文字或上传文件",
+      "apiKeyRequired": "请先在设置中设置 API Key",
+      "reset": "分析新文本",
+      "supportedFormats": "支持 .txt、.md、.srt"
+    },
     "cloudSync": {
       "title": "云端同步",
       "description": "跨设备同步你的自定义字典。",
@@ -435,8 +450,6 @@
     "transcribing": "转录中...",
     "pasteSuccess": "已粘贴 ✓",
     "pasteSuccessUnenhanced": "已粘贴（未整理）",
-    "copiedToClipboard": "已复制",
-    "copiedToClipboardUnenhanced": "已复制（未整理）",
     "enhancing": "整理中...",
     "pasteFailed": "粘贴失败",
     "recordingTooShort": "录音时间太短",

@@ -2,7 +2,6 @@ import AppSection from "@/views/settings/AppSection";
 import HotkeySection from "@/views/settings/HotkeySection";
 import AudioSection from "@/views/settings/AudioSection";
 import RecordingSection from "@/views/settings/RecordingSection";
-import PasteModeSection from "@/views/settings/PasteModeSection";
 import AboutSection from "@/views/settings/AboutSection";
 import { useHashRouter } from "@/app/router";
 
@@ -29,7 +28,6 @@ export default function SettingsView() {
           {activeTab === "general" && (
             <>
               <AppSection />
-              <PasteModeSection />
               <HotkeySection />
             </>
           )}

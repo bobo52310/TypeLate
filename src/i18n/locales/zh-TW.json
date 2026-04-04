@@ -190,14 +190,11 @@
       "transcriptionLanguageUpdated": "轉錄語言已更新",
       "autoDetect": "自動偵測"
     },
-    "pasteMode": {
-      "title": "貼上行為",
-      "description": "選擇語音辨識完成後的操作方式",
-      "autoPaste": "自動貼上",
-      "autoPasteDescription": "直接貼上文字到使用中的應用程式",
-      "copyOnly": "僅複製到剪貼簿",
-      "copyOnlyDescription": "將文字複製到剪貼簿，不自動貼上（保留原有剪貼簿內容）",
-      "updated": "貼上行為已更新"
+    "copyResultToClipboard": {
+      "label": "轉錄結果存到剪貼簿",
+      "description": "開啟後可重複貼上轉錄結果",
+      "enabled": "轉錄結果會存到剪貼簿",
+      "disabled": "轉錄結果不會存到剪貼簿"
     },
     "audioInput": {
       "title": "輸入裝置",
@@ -382,6 +379,24 @@
     "bulkAddButton": "全部新增",
     "bulkAddSuccess": "已新增 {added} 個詞彙，{skipped} 個重複已略過",
     "bulkAddEmpty": "沒有可新增的詞彙",
+    "textAnalyzer": {
+      "title": "文本詞彙分析",
+      "description": "貼上文案或上傳檔案，AI 將自動擷取專業術語加入字典。",
+      "placeholder": "在此貼上你的文字（會議紀錄、文章、技術文件...）",
+      "uploadFile": "上傳檔案",
+      "analyze": "分析",
+      "analyzing": "AI 正在分析你的文字...",
+      "noTermsFound": "未找到適合的詞彙",
+      "foundTerms": "找到 {count} 個詞彙",
+      "selectAll": "全選",
+      "deselectAll": "取消全選",
+      "addSelected": "新增 {count} 個已選詞彙",
+      "addSuccess": "已新增 {added} 個詞彙，{skipped} 個重複已略過",
+      "noTextProvided": "請先貼上文字或上傳檔案",
+      "apiKeyRequired": "請先在設定中設定 API Key",
+      "reset": "分析新文本",
+      "supportedFormats": "支援 .txt、.md、.srt"
+    },
     "cloudSync": {
       "title": "雲端同步",
       "description": "跨裝置同步你的自訂字典。",
@@ -435,8 +450,6 @@
     "transcribing": "轉錄中...",
     "pasteSuccess": "已貼上 ✓",
     "pasteSuccessUnenhanced": "已貼上（未整理）",
-    "copiedToClipboard": "已複製",
-    "copiedToClipboardUnenhanced": "已複製（未整理）",
     "enhancing": "整理中...",
     "pasteFailed": "貼上失敗",
     "recordingTooShort": "錄音時間太短",

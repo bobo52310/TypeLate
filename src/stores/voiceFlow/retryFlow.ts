@@ -134,12 +134,8 @@ async function completePasteFlowForRetry(params: {
 }): Promise<void> {
   const { transitionTo, playSoundIfEnabled, setState, getState } = actions();
   try {
-    const pasteMode = getSettingsStore().pasteMode;
-    if (pasteMode === "copy-only") {
-      await invoke("copy_to_clipboard", { text: params.text });
-    } else {
-      await invoke("paste_text", { text: params.text });
-    }
+    const preserveClipboard = !getSettingsStore().isCopyResultToClipboard;
+    await invoke("paste_text", { text: params.text, preserveClipboard });
     setState({ isRecording: false });
     transitionTo("success", params.successMessage);
 

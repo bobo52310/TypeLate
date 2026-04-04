@@ -109,10 +109,6 @@ function isEmptyTranscription(rawText: string): boolean {
 }
 
 function getSuccessMessage(enhanced: boolean): string {
-  const isCopyOnly = getSettingsStore().pasteMode === "copy-only";
-  if (isCopyOnly) {
-    return enhanced ? t("voiceFlow.copiedToClipboard") : t("voiceFlow.copiedToClipboardUnenhanced");
-  }
   return enhanced ? t("voiceFlow.pasteSuccess") : t("voiceFlow.pasteSuccessUnenhanced");
 }
 
@@ -311,13 +307,8 @@ async function completePasteFlow(params: {
 }): Promise<void> {
   const { transitionTo, failRecordingFlow } = actions();
   try {
-    // Paste mode: auto-paste (default) or copy-only (preserves clipboard)
-    const pasteMode = getSettingsStore().pasteMode;
-    if (pasteMode === "copy-only") {
-      await invoke("copy_to_clipboard", { text: params.text });
-    } else {
-      await invoke("paste_text", { text: params.text });
-    }
+    const preserveClipboard = !getSettingsStore().isCopyResultToClipboard;
+    await invoke("paste_text", { text: params.text, preserveClipboard });
     actions().setState({ isRecording: false });
 
     // Show text preview in success message (truncate to ~30 chars)

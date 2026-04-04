@@ -190,14 +190,11 @@
       "transcriptionLanguageUpdated": "文字起こし言語が更新されました",
       "autoDetect": "自動検出"
     },
-    "pasteMode": {
-      "title": "貼り付け動作",
-      "description": "文字起こし完了後の動作を選択",
-      "autoPaste": "自動貼り付け",
-      "autoPasteDescription": "アクティブなアプリにテキストを直接貼り付け",
-      "copyOnly": "クリップボードにコピー",
-      "copyOnlyDescription": "貼り付けずにテキストをクリップボードにコピー（既存のクリップボード内容を保持）",
-      "updated": "貼り付け動作が更新されました"
+    "copyResultToClipboard": {
+      "label": "文字起こし結果をクリップボードに保存",
+      "description": "オンにすると文字起こし結果を再度貼り付けできます",
+      "enabled": "文字起こし結果をクリップボードに保存します",
+      "disabled": "文字起こし結果をクリップボードに保存しません"
     },
     "audioInput": {
       "title": "入力デバイス",
@@ -382,6 +379,24 @@
     "bulkAddButton": "すべて追加",
     "bulkAddSuccess": "{added} 語を追加、{skipped} 件の重複をスキップ",
     "bulkAddEmpty": "追加する用語がありません",
+    "textAnalyzer": {
+      "title": "テキスト語彙分析",
+      "description": "テキストを貼り付けるかファイルをアップロードすると、AI が専門用語を抽出して辞書に追加します。",
+      "placeholder": "テキストをここに貼り付けてください（議事録、記事、ドキュメント...）",
+      "uploadFile": "ファイルをアップロード",
+      "analyze": "分析",
+      "analyzing": "AI がテキストを分析しています...",
+      "noTermsFound": "適切な用語が見つかりませんでした",
+      "foundTerms": "{count} 語見つかりました",
+      "selectAll": "すべて選択",
+      "deselectAll": "選択解除",
+      "addSelected": "選択した {count} 語を追加",
+      "addSuccess": "{added} 語を追加、{skipped} 件の重複をスキップ",
+      "noTextProvided": "テキストを貼り付けるかファイルをアップロードしてください",
+      "apiKeyRequired": "設定で API Key を設定してください",
+      "reset": "新しいテキストを分析",
+      "supportedFormats": ".txt、.md、.srt に対応"
+    },
     "cloudSync": {
       "title": "クラウド同期",
       "description": "デバイス間でカスタム辞書を同期します。",
@@ -435,8 +450,6 @@
     "transcribing": "文字起こし中...",
     "pasteSuccess": "貼り付け完了 ✓",
     "pasteSuccessUnenhanced": "貼り付け完了（未整理）",
-    "copiedToClipboard": "コピー完了",
-    "copiedToClipboardUnenhanced": "コピー完了（未整理）",
     "enhancing": "整理中...",
     "pasteFailed": "貼り付け失敗",
     "recordingTooShort": "録音時間が短すぎます",
