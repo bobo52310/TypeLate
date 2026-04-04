@@ -75,6 +75,32 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
+      - name: Sync version from tag
+        shell: bash
+        run: |
+          VER="${RELEASE_VERSION}"
+          echo "Syncing version to $VER"
+
+          # Update package.json
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '${VER}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          # Update tauri.conf.json
+          node -e "
+            const fs = require('fs');
+            const conf = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+            conf.version = '${VER}';
+            fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2) + '\n');
+          "
+
+          # Update Cargo.toml
+          sed -i.bak 's/^version = ".*"/version = "'"${VER}"'"/' src-tauri/Cargo.toml
+          rm -f src-tauri/Cargo.toml.bak
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
