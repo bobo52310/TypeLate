@@ -22,19 +22,19 @@ jobs:
           - platform: macos-latest
             args: --target aarch64-apple-darwin
             rust_target: aarch64-apple-darwin
-            stable_name: TypeLate-mac-arm64.dmg
+            stable_suffix: mac-arm64.dmg
             dmg_glob: "*.dmg"
             upload_sourcemaps: "true"
           - platform: macos-latest
             args: --target x86_64-apple-darwin
             rust_target: x86_64-apple-darwin
-            stable_name: TypeLate-mac-x64.dmg
+            stable_suffix: mac-x64.dmg
             dmg_glob: "*.dmg"
             upload_sourcemaps: "false"
           - platform: windows-latest
             args: ""
             rust_target: ""
-            stable_name: TypeLate-windows-x64.exe
+            stable_suffix: windows-x64.exe
             dmg_glob: ""
             upload_sourcemaps: "false"
 
@@ -151,9 +151,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          STABLE_NAME="TypeLate-v${RELEASE_VERSION}-${{ matrix.stable_suffix }}"
           DMG=$(find src-tauri/target -path "*/bundle/dmg/*.dmg" | head -1)
-          cp "$DMG" "${{ matrix.stable_name }}"
-          gh release upload "$RELEASE_TAG" "${{ matrix.stable_name }}" --clobber
+          cp "$DMG" "$STABLE_NAME"
+          gh release upload "$RELEASE_TAG" "$STABLE_NAME" --clobber
 
       - name: Upload stable-name asset (Windows)
         if: runner.os == 'Windows'
@@ -161,9 +162,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
+          $stableName = "TypeLate-v$env:RELEASE_VERSION-${{ matrix.stable_suffix }}"
           $exe = Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "*-setup.exe" | Select-Object -First 1
-          Copy-Item $exe.FullName "${{ matrix.stable_name }}"
-          gh release upload "$env:RELEASE_TAG" "${{ matrix.stable_name }}" --clobber
+          Copy-Item $exe.FullName $stableName
+          gh release upload "$env:RELEASE_TAG" $stableName --clobber
 
   publish-release:
     needs: build
@@ -213,12 +215,13 @@ jobs:
         run: |
           REPO="${GITHUB_REPOSITORY}"
           TAG="${RELEASE_TAG}"
+          VER="${RELEASE_VERSION}"
 
           # Download current latest.json
           gh release download "$TAG" --repo "$REPO" -p "latest.json" -D /tmp --clobber
 
           # Replace Tauri-named Windows exe URL with custom name
-          sed -i 's|TypeLate_[0-9.]*_x64-setup\.exe|TypeLate-windows-x64.exe|g' /tmp/latest.json
+          sed -i "s|TypeLate_[0-9.]*_x64-setup\.exe|TypeLate-v${VER}-windows-x64.exe|g" /tmp/latest.json
 
           # Re-upload modified latest.json
           gh release delete-asset "$TAG" --repo "$REPO" "latest.json" --yes 2>/dev/null || true
