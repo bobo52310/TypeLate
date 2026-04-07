@@ -55,7 +55,7 @@ import {
   setStoreRef,
 } from "./voiceFlow/timers";
 import {
-  stopCorrectionSnapshotPolling,
+  stopClipboardPolling,
   cleanupCorrectionMonitorListener,
 } from "./voiceFlow/correctionDetection";
 import {
@@ -286,7 +286,7 @@ function handleEscapeAbort(): void {
   // Full cleanup of in-progress resources
   clearDelayedMuteTimer();
   stopMonitorPolling();
-  stopCorrectionSnapshotPolling();
+  stopClipboardPolling();
   cleanupCorrectionMonitorListener();
   void restoreSystemAudio();
 
@@ -411,7 +411,7 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
   cleanup: () => {
     cleanupAllTimers();
     stopMonitorPolling();
-    stopCorrectionSnapshotPolling();
+    stopClipboardPolling();
     cleanupCorrectionMonitorListener();
     resetHudWindowState();
 

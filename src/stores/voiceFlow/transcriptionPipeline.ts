@@ -72,6 +72,7 @@ interface VoiceFlowActions {
     status: HudStatus;
     isRecording: boolean;
     _isAborted: boolean;
+    lastWasModified: boolean | null;
   };
   setState: (partial: Record<string, unknown>) => void;
   transitionTo: (status: HudStatus, message?: string) => void;
@@ -349,17 +350,15 @@ async function completePasteFlow(params: {
     const finalText = params.record.processedText ?? params.record.rawText;
     updateVocabularyWeightsAfterPaste(finalText);
 
-    // Correction detection (fire-and-forget, requires API key)
-    const settingsStore = getSettingsStore();
-    const apiKey = settingsStore.getApiKey();
-    if (apiKey) {
-      startCorrectionDetectionFlow(
-        params.text,
-        params.record.id,
-        apiKey,
-        () => actions().getState().status,
-      );
-    }
+    // Correction detection (fire-and-forget)
+    writeInfoLog(`[correction] starting flow (text=${String(params.text.length)} chars)`);
+    startCorrectionDetectionFlow(
+      params.text,
+      params.record.id,
+      "",
+      () => actions().getState().status,
+      () => actions().getState().lastWasModified,
+    );
 
     // Cleanup: release abort controller reference
     abortController = null;

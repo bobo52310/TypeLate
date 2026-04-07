@@ -5,7 +5,7 @@ import { logInfo } from "@/lib/logger";
 import type { HudStatus } from "@/types";
 import type { VocabularyLearnedPayload } from "@/types/events";
 import { useAudioWaveform } from "@/hooks/useAudioWaveform";
-import { useTauriEvent, VOCABULARY_LEARNED } from "@/hooks/useTauriEvent";
+import { useTauriEvent, VOCABULARY_LEARNED, CORRECTION_PROMPT } from "@/hooks/useTauriEvent";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { cn } from "@/lib/utils";
 import styles from "./NotchHud.module.css";
@@ -19,7 +19,8 @@ type VisualMode =
   | "error"
   | "cancelled"
   | "collapsing"
-  | "learned";
+  | "learned"
+  | "correction-prompt";
 
 interface NotchHudProps {
   status: HudStatus;
@@ -176,7 +177,7 @@ export function NotchHud({
 
   const hasErrorMessage = visualMode === "error" && message !== "";
   const hasSuccessPreview = visualMode === "success" && message !== "" && message.includes("·");
-  const isExpandedMode = hasErrorMessage || visualMode === "learned" || hasSuccessPreview;
+  const isExpandedMode = hasErrorMessage || visualMode === "learned" || visualMode === "correction-prompt" || hasSuccessPreview;
 
   const isHighPriorityMode =
     visualMode === "recording" ||
@@ -320,6 +321,15 @@ export function NotchHud({
         return;
       }
 
+      // If correction prompt is showing, cancel its timer and transition to learned
+      if (visualModeRef.current === "correction-prompt") {
+        logInfo("hud", "correction prompt → learned transition");
+        if (correctionPromptTimerRef.current) {
+          clearTimeout(correctionPromptTimerRef.current);
+          correctionPromptTimerRef.current = null;
+        }
+      }
+
       logInfo("hud", "showing learned notification now");
       showLearnedNotification(payload.termList);
     },
@@ -327,6 +337,39 @@ export function NotchHud({
   );
 
   useTauriEvent<VocabularyLearnedPayload>(VOCABULARY_LEARNED, handleVocabularyLearned);
+
+  // --- CORRECTION_PROMPT event handler ---
+
+  const correctionPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCorrectionPrompt = useCallback(() => {
+    logInfo("hud", `CORRECTION_PROMPT received, visualMode=${visualModeRef.current}`);
+
+    // Don't interrupt high-priority modes
+    if (isHighPriorityModeRef.current) {
+      logInfo("hud", "correction prompt skipped (high priority mode)");
+      return;
+    }
+
+    setVisualMode("correction-prompt");
+
+    // Auto-dismiss after 15 seconds (matches clipboard polling duration)
+    if (correctionPromptTimerRef.current) {
+      clearTimeout(correctionPromptTimerRef.current);
+    }
+    correctionPromptTimerRef.current = setTimeout(() => {
+      if (visualModeRef.current === "correction-prompt") {
+        setVisualMode("collapsing");
+        setTimeout(() => {
+          if (visualModeRef.current === "collapsing") {
+            setVisualMode("hidden");
+          }
+        }, COLLAPSE_ANIMATION_DURATION_MS);
+      }
+    }, 15000);
+  }, []);
+
+  useTauriEvent(CORRECTION_PROMPT, handleCorrectionPrompt);
 
   // --- Status watcher (replaces Vue watch) ---
 
@@ -437,7 +480,7 @@ export function NotchHud({
       );
     }
 
-    if (visualMode === "learned") {
+    if (visualMode === "learned" || visualMode === "correction-prompt") {
       return (
         <svg
           className={styles.learnedIconSvg}
@@ -499,6 +542,10 @@ export function NotchHud({
       return <span className={styles.learnedLabel}>{t("voiceFlow.vocabularyLearnedLabel")}</span>;
     }
 
+    if (visualMode === "correction-prompt") {
+      return <span className={styles.learnedLabel}>{t("voiceFlow.correctionDetected")}</span>;
+    }
+
     if (visualMode === "recording") {
       return (
         <span className={styles.elapsedTimer}>
@@ -545,7 +592,7 @@ export function NotchHud({
         aria-label={ariaLabel}
         className={cn(styles.notchWrapper, {
           [styles.notchWrapperSuccess]: visualMode === "success",
-          [styles.notchWrapperLearned]: visualMode === "learned",
+          [styles.notchWrapperLearned]: visualMode === "learned" || visualMode === "correction-prompt",
         })}
       >
         <div
@@ -565,6 +612,12 @@ export function NotchHud({
           {visualMode === "learned" && (
             <div className={styles.learnedTermsRow}>
               <span className={styles.learnedTerms}>{learnedDisplayText}</span>
+            </div>
+          )}
+
+          {visualMode === "correction-prompt" && (
+            <div className={styles.learnedTermsRow}>
+              <span className={styles.learnedTerms}>{t("voiceFlow.correctionPromptHint")}</span>
             </div>
           )}
 

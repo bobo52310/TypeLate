@@ -105,6 +105,17 @@ fn simulate_paste_via_keyboard() -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn read_clipboard() -> Result<Option<String>, ClipboardError> {
+    let mut clipboard =
+        Clipboard::new().map_err(|e| ClipboardError::ClipboardAccess(e.to_string()))?;
+    match clipboard.get_text() {
+        Ok(text) if !text.is_empty() => Ok(Some(text)),
+        Ok(_) => Ok(None),
+        Err(_) => Ok(None),
+    }
+}
+
+#[tauri::command]
 pub fn copy_to_clipboard(text: String) -> Result<(), ClipboardError> {
     let mut clipboard =
         Clipboard::new().map_err(|e| ClipboardError::ClipboardAccess(e.to_string()))?;

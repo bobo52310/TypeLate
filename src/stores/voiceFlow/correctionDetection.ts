@@ -1,35 +1,38 @@
 /**
- * Correction detection flow -- detects when users manually correct transcription output.
+ * Correction detection flow — clipboard-based vocabulary capture.
  *
- * After pasting text, this monitors the focused text field for user edits.
- * When corrections are detected, it uses AI to analyze what was changed
- * and automatically adds specialized terms to the vocabulary dictionary.
+ * After pasting text, monitors for user corrections (backspace/delete).
+ * When corrections are detected, shows a HUD prompt asking the user
+ * to copy the corrected term. Monitors clipboard for changes and
+ * automatically adds captured terms to the vocabulary dictionary.
  *
  * Flow:
  * 1. Start correction monitor (Rust keyboard watcher)
- * 2. Poll focused text field snapshots via AX API
- * 3. On correction-monitor:result, compare pasted vs current text
- * 4. If text was modified, send to AI for vocabulary analysis
- * 5. Add new terms to vocabulary, increment weights for existing ones
+ * 2. Wait for quality-monitor wasModified=true + user done editing
+ * 3. Show HUD correction prompt
+ * 4. Poll clipboard for changes (15 seconds)
+ * 5. On clipboard change → add term to vocabulary
  */
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, emit, type UnlistenFn } from "@tauri-apps/api/event";
-import { analyzeCorrections } from "@/lib/vocabularyAnalyzer";
-import { getProviderConfig } from "@/lib/providerConfig";
 import { extractErrorMessage } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
-import { calculateChatCostCeiling } from "@/lib/apiPricing";
-import { CORRECTION_MONITOR_RESULT, VOCABULARY_LEARNED } from "@/hooks/useTauriEvent";
+import {
+  CORRECTION_MONITOR_RESULT,
+  CORRECTION_PROMPT,
+  VOCABULARY_LEARNED,
+} from "@/hooks/useTauriEvent";
 import type { CorrectionMonitorResultPayload, VocabularyLearnedPayload } from "@/types/events";
-import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
+import { getSettingsStore, getVocabularyStore } from "./storeAccessors";
 import { getAppWindow, hideHud } from "./hudWindow";
 import { clearLearnedHideTimer, setLearnedHideTimer } from "./timers";
 
 // ── Module-level state ──
 
-const SNAPSHOT_POLL_INTERVAL_MS = 500;
-let correctionSnapshotTimer: ReturnType<typeof setInterval> | null = null;
+const CLIPBOARD_POLL_INTERVAL_MS = 500;
+const CLIPBOARD_POLL_DURATION_MS = 15000;
+let clipboardPollTimer: ReturnType<typeof setInterval> | null = null;
 let correctionMonitorUnlisten: UnlistenFn | null = null;
 
 // ── Helpers ──
@@ -44,10 +47,10 @@ function writeErrorLog(logMessage: string): void {
 
 // ── Cleanup ──
 
-export function stopCorrectionSnapshotPolling(): void {
-  if (correctionSnapshotTimer) {
-    clearInterval(correctionSnapshotTimer);
-    correctionSnapshotTimer = null;
+export function stopClipboardPolling(): void {
+  if (clipboardPollTimer) {
+    clearInterval(clipboardPollTimer);
+    clipboardPollTimer = null;
   }
 }
 
@@ -62,228 +65,183 @@ export function cleanupCorrectionMonitorListener(): void {
 
 /**
  * @param getVoiceFlowStatus - callback to read current VoiceFlow status
- *        (avoids circular import to the main store)
+ * @param getWasModified - callback to read quality monitor's wasModified flag
  */
 export function startCorrectionDetectionFlow(
   pastedText: string,
-  transcriptionId: string,
-  apiKey: string,
+  _transcriptionId: string,
+  _apiKey: string,
   getVoiceFlowStatus: () => string,
+  getWasModified: () => boolean | null,
 ): void {
   void (async () => {
     try {
       const settingsStore = getSettingsStore();
-      if (!settingsStore.isSmartDictionaryEnabled) return;
+      if (!settingsStore.isSmartDictionaryEnabled) {
+        writeInfoLog("[correction] skipped: Smart Dictionary disabled");
+        return;
+      }
 
       // Clear previous listener to avoid accumulation
       cleanupCorrectionMonitorListener();
+      stopClipboardPolling();
 
-      // Start correction monitor
+      // Start correction monitor (Rust keyboard watcher)
       await invoke("start_correction_monitor");
 
-      // Phase 2 snapshot polling
-      let latestSnapshot: string | null = null;
-      stopCorrectionSnapshotPolling();
-
-      let consecutiveSnapshotErrors = 0;
-      correctionSnapshotTimer = setInterval(() => {
-        void (async () => {
-          try {
-            const text = await invoke<string | null>("read_focused_text_field");
-            if (text) {
-              latestSnapshot = text;
-              consecutiveSnapshotErrors = 0;
-            }
-          } catch {
-            consecutiveSnapshotErrors++;
-            if (consecutiveSnapshotErrors === 3) {
-              // AX focus is lost (HUD stole it) — stop polling to avoid noise
-              writeInfoLog(
-                `correctionDetection: read_focused_text_field unavailable, using last snapshot`,
-              );
-              stopCorrectionSnapshotPolling();
-            }
-          }
-        })();
-      }, SNAPSHOT_POLL_INTERVAL_MS);
-
-      // One-time listen for correction-monitor:result
+      // Listen for correction-monitor:result (user done editing)
       correctionMonitorUnlisten = await listen<CorrectionMonitorResultPayload>(
         CORRECTION_MONITOR_RESULT,
         (event) => {
           cleanupCorrectionMonitorListener();
-          stopCorrectionSnapshotPolling();
 
           void (async () => {
             try {
               const result = event.payload;
 
               if (!result.anyKeyPressed) {
-                writeInfoLog("[correction] no key pressed -- skipping analysis");
+                writeInfoLog("[correction] no key pressed -- skipping");
                 return;
               }
 
-              writeInfoLog(
-                `[correction] keys detected (enter=${String(result.enterPressed)}) -- reading field text`,
-              );
-
-              let fieldText: string | null = null;
-
-              if (result.enterPressed) {
-                try {
-                  const freshText = await invoke<string | null>("read_focused_text_field");
-                  if (freshText && freshText.trim()) {
-                    fieldText = freshText;
-                  } else {
-                    fieldText = latestSnapshot;
-                  }
-                } catch {
-                  fieldText = latestSnapshot;
-                }
-              } else {
-                try {
-                  fieldText = await invoke<string | null>("read_focused_text_field");
-                } catch {
-                  fieldText = latestSnapshot;
-                }
-              }
-
-              if (!fieldText || !fieldText.trim()) {
-                writeInfoLog("[correction] field text is null or empty -- skipping analysis");
-                return;
-              }
-              if (fieldText.includes(pastedText)) {
-                writeInfoLog("[correction] text unchanged -- skipping analysis");
-                return;
-              }
-
-              // Similarity check
-              const overlapCharCount = [...pastedText].filter((ch) =>
-                fieldText.includes(ch),
-              ).length;
-              const overlapRatio = overlapCharCount / pastedText.length;
-              if (overlapRatio < 0.3) {
+              // Check if user actually corrected (backspace/delete detected)
+              const wasModified = getWasModified();
+              if (!wasModified) {
                 writeInfoLog(
-                  `[correction] field text unrelated to original (overlap=${String(Math.round(overlapRatio * 100))}%) -- skipping analysis`,
+                  `[correction] keys pressed but no backspace/delete (wasModified=${String(wasModified)}) -- skipping`,
                 );
                 return;
               }
 
+              writeInfoLog("[correction] user corrected text -- starting clipboard capture");
+
+              // Read current clipboard as baseline
+              let clipboardBaseline: string | null = null;
+              try {
+                clipboardBaseline = await invoke<string | null>("read_clipboard");
+              } catch {
+                // ignore — baseline stays null
+              }
               writeInfoLog(
-                `[correction] text modified (overlap=${String(Math.round(overlapRatio * 100))}%) -- sending to AI analysis\n  original:  ${pastedText.slice(0, 80)}\n  corrected: ${fieldText.slice(0, 80)}`,
+                `[correction] clipboard baseline: ${clipboardBaseline ? `${String(clipboardBaseline.length)} chars` : "null"}`,
               );
 
-              const providerConfig = getProviderConfig(settingsStore.selectedProviderId);
-              const analysisResult = await analyzeCorrections(pastedText, fieldText, apiKey, {
-                modelId: settingsStore.selectedVocabularyAnalysisModelId,
-                chatApiUrl: providerConfig.chatBaseUrl,
-              });
+              // Show HUD correction prompt
+              await emit(CORRECTION_PROMPT, {});
+              const appWindow = getAppWindow();
+              await appWindow.show();
+              await appWindow.setIgnoreCursorEvents(true);
 
-              writeInfoLog(`[correction] AI raw: ${analysisResult.rawResponse}`);
-              writeInfoLog(
-                `[correction] AI result: ${JSON.stringify(analysisResult.suggestedTermList)} (tokens: ${String(analysisResult.usage?.totalTokens ?? "??")})`,
-              );
-
-              if (analysisResult.suggestedTermList.length === 0) return;
-
-              const vocabularyStore = getVocabularyStore();
-              const newTermList: string[] = [];
-
-              for (const term of analysisResult.suggestedTermList) {
-                if (vocabularyStore.isDuplicateTerm(term)) {
-                  const existingEntry = vocabularyStore.termList.find(
-                    (e) => e.term.trim().toLowerCase() === term.trim().toLowerCase(),
-                  );
-                  if (existingEntry) {
-                    void vocabularyStore
-                      .batchIncrementWeights([existingEntry.id])
-                      .catch((err: unknown) =>
-                        writeErrorLog(
-                          `voiceFlowStore: batchIncrementWeights failed: ${extractErrorMessage(err)}`,
-                        ),
-                      );
-                  }
-                } else {
-                  await vocabularyStore.addAiSuggestedTerm(term);
-                  newTermList.push(term);
-                }
-              }
-
-              // Record API usage
-              if (analysisResult.usage) {
-                const historyStore = getHistoryStore();
-                void historyStore
-                  .addApiUsage({
-                    id: crypto.randomUUID(),
-                    transcriptionId,
-                    apiType: "vocabulary_analysis",
-                    model: settingsStore.selectedVocabularyAnalysisModelId,
-                    promptTokens: analysisResult.usage.promptTokens,
-                    completionTokens: analysisResult.usage.completionTokens,
-                    totalTokens: analysisResult.usage.totalTokens,
-                    promptTimeMs: analysisResult.usage.promptTimeMs,
-                    completionTimeMs: analysisResult.usage.completionTimeMs,
-                    totalTimeMs: analysisResult.usage.totalTimeMs,
-                    audioDurationMs: null,
-                    estimatedCostCeiling: calculateChatCostCeiling(
-                      analysisResult.usage.totalTokens,
-                      settingsStore.selectedLlmModelId,
-                    ),
-                  })
-                  .catch((err: unknown) =>
-                    writeErrorLog(
-                      `voiceFlowStore: addApiUsage(vocabulary_analysis) failed: ${extractErrorMessage(err)}`,
-                    ),
-                  );
-              }
-
-              // Notify HUD of newly learned terms
-              if (newTermList.length > 0) {
-                writeInfoLog(
-                  `voiceFlowStore: emitting VOCABULARY_LEARNED: ${newTermList.join(", ")}`,
-                );
-                try {
-                  await emit(VOCABULARY_LEARNED, {
-                    termList: newTermList,
-                  } satisfies VocabularyLearnedPayload);
-                  writeInfoLog("voiceFlowStore: VOCABULARY_LEARNED emitted successfully");
-
-                  // HUD window was hidden after idle -- re-show for notification
-                  clearLearnedHideTimer();
-                  const appWindow = getAppWindow();
-                  await appWindow.show();
-                  await appWindow.setIgnoreCursorEvents(true);
-                  setLearnedHideTimer(() => {
+              // Poll clipboard for changes
+              const pollStart = Date.now();
+              clipboardPollTimer = setInterval(() => {
+                void (async () => {
+                  // Timeout check
+                  if (Date.now() - pollStart >= CLIPBOARD_POLL_DURATION_MS) {
+                    writeInfoLog("[correction] clipboard poll timeout -- dismissing");
+                    stopClipboardPolling();
                     if (getVoiceFlowStatus() === "idle") {
                       hideHud().catch((err: unknown) =>
                         writeErrorLog(
-                          `voiceFlowStore: learned hideHud failed: ${extractErrorMessage(err)}`,
+                          `correctionDetection: hideHud failed: ${extractErrorMessage(err)}`,
                         ),
                       );
                     }
-                  });
-                } catch (emitErr) {
-                  writeErrorLog(
-                    `voiceFlowStore: VOCABULARY_LEARNED emit failed: ${extractErrorMessage(emitErr)}`,
-                  );
-                }
-              }
+                    return;
+                  }
+
+                  try {
+                    const currentClipboard = await invoke<string | null>("read_clipboard");
+                    if (!currentClipboard || !currentClipboard.trim()) return;
+
+                    // Check if clipboard changed from baseline
+                    if (currentClipboard === clipboardBaseline) return;
+
+                    // Check it's not just the pasted text being copied back
+                    const trimmed = currentClipboard.trim();
+                    if (trimmed === pastedText.trim()) {
+                      writeInfoLog("[correction] clipboard same as pasted text -- ignoring");
+                      return;
+                    }
+
+                    // Clipboard changed! Capture as vocabulary term
+                    writeInfoLog(`[correction] clipboard captured: "${trimmed}"`);
+                    stopClipboardPolling();
+
+                    // Add to vocabulary
+                    const vocabularyStore = getVocabularyStore();
+                    const newTermList: string[] = [];
+
+                    if (vocabularyStore.isDuplicateTerm(trimmed)) {
+                      const existingEntry = vocabularyStore.termList.find(
+                        (e) => e.term.trim().toLowerCase() === trimmed.toLowerCase(),
+                      );
+                      if (existingEntry) {
+                        await vocabularyStore.batchIncrementWeights([existingEntry.id]);
+                        writeInfoLog(`[correction] incremented weight for existing term: "${trimmed}"`);
+                      }
+                    } else {
+                      await vocabularyStore.addAiSuggestedTerm(trimmed);
+                      newTermList.push(trimmed);
+                      writeInfoLog(`[correction] added new term: "${trimmed}"`);
+                    }
+
+                    // Show learned notification
+                    if (newTermList.length > 0) {
+                      try {
+                        await emit(VOCABULARY_LEARNED, {
+                          termList: newTermList,
+                        } satisfies VocabularyLearnedPayload);
+                        clearLearnedHideTimer();
+                        setLearnedHideTimer(() => {
+                          if (getVoiceFlowStatus() === "idle") {
+                            hideHud().catch((err: unknown) =>
+                              writeErrorLog(
+                                `correctionDetection: learned hideHud failed: ${extractErrorMessage(err)}`,
+                              ),
+                            );
+                          }
+                        });
+                      } catch (emitErr) {
+                        writeErrorLog(
+                          `correctionDetection: VOCABULARY_LEARNED emit failed: ${extractErrorMessage(emitErr)}`,
+                        );
+                      }
+                    } else {
+                      // Existing term — just dismiss after brief delay
+                      setTimeout(() => {
+                        if (getVoiceFlowStatus() === "idle") {
+                          hideHud().catch((err: unknown) =>
+                            writeErrorLog(
+                              `correctionDetection: hideHud failed: ${extractErrorMessage(err)}`,
+                            ),
+                          );
+                        }
+                      }, 1500);
+                    }
+                  } catch (err) {
+                    writeErrorLog(
+                      `correctionDetection: clipboard read failed: ${extractErrorMessage(err)}`,
+                    );
+                  }
+                })();
+              }, CLIPBOARD_POLL_INTERVAL_MS);
             } catch (err) {
               writeErrorLog(
-                `voiceFlowStore: correction analysis failed: ${extractErrorMessage(err)}`,
+                `correctionDetection: correction flow failed: ${extractErrorMessage(err)}`,
               );
               captureError(err, {
                 source: "voice-flow",
-                step: "correction-analysis",
+                step: "correction-clipboard",
               });
             }
           })();
         },
       );
     } catch (err) {
-      stopCorrectionSnapshotPolling();
+      stopClipboardPolling();
       cleanupCorrectionMonitorListener();
-      writeErrorLog(`voiceFlowStore: correction detection failed: ${extractErrorMessage(err)}`);
+      writeErrorLog(`correctionDetection: start failed: ${extractErrorMessage(err)}`);
       captureError(err, {
         source: "voice-flow",
         step: "correction-detection",

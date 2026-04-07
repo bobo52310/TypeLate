@@ -457,9 +457,11 @@
     "enhancing": "정리 중...",
     "pasteFailed": "붙여넣기 실패",
     "recordingTooShort": "녹음 시간이 너무 짧습니다",
-    "vocabularyLearnedLabel": "사전에 추가",
+    "vocabularyLearnedLabel": "좋아요! 새 단어 학습",
     "vocabularyLearned": "{terms}",
     "vocabularyLearnedTruncated": "{terms} 외 {count}개",
+    "correctionDetected": "수정 감지됨",
+    "correctionPromptHint": "올바른 단어를 복사 (⌘C)하여 추가",
     "retryFailed": "인식 실패, 다시 녹음해 주세요",
     "cancelled": "취소됨"
   },

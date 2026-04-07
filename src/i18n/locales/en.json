@@ -457,9 +457,11 @@
     "enhancing": "Enhancing...",
     "pasteFailed": "Paste failed",
     "recordingTooShort": "Recording too short",
-    "vocabularyLearnedLabel": "Added to dictionary",
+    "vocabularyLearnedLabel": "Nice! New word learned",
     "vocabularyLearned": "{terms}",
     "vocabularyLearnedTruncated": "{terms} +{count} more",
+    "correctionDetected": "Correction detected",
+    "correctionPromptHint": "Copy the correct term (⌘C) to add",
     "retryFailed": "Recognition failed, please record again",
     "cancelled": "Cancelled"
   },

@@ -51,6 +51,26 @@ pub fn get_frontmost_app_info() -> Result<Option<FrontmostAppInfo>, String> {
     }
 }
 
+/// 讀取當前 focused text field 的完整文字（不截斷）。
+/// 用於 correction detection 比對使用者修正。
+#[tauri::command]
+pub fn read_focused_text_field_full() -> Result<Option<String>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        macos::read_focused_text_field_full_impl()
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        windows_impl::read_focused_text_field_full_impl()
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Ok(None)
+    }
+}
+
 /// 讀取當前 focused text field 游標附近的文字。
 /// macOS: 透過 AXUIElement Accessibility API
 /// Windows: 透過 UI Automation (IUIAutomation)
@@ -181,11 +201,18 @@ mod macos {
 
     extern "C" {
         fn AXUIElementCreateApplication(pid: i32) -> AXUIElementRef;
+        fn AXUIElementCreateSystemWide() -> AXUIElementRef;
         fn AXUIElementCopyAttributeValue(
             element: AXUIElementRef,
             attribute: CFTypeRef,
             value: *mut CFTypeRef,
         ) -> AXError;
+        fn AXUIElementSetAttributeValue(
+            element: AXUIElementRef,
+            attribute: CFTypeRef,
+            value: CFTypeRef,
+        ) -> AXError;
+        static kCFBooleanTrue: CFTypeRef;
         fn CFArrayGetCount(array: CFTypeRef) -> i64;
         fn CFArrayGetValueAtIndex(array: CFTypeRef, idx: i64) -> CFTypeRef;
     }
@@ -210,6 +237,14 @@ mod macos {
     const K_AX_VALUE_CF_RANGE_TYPE: u32 = 4;
 
     fn get_ax_attribute(element: AXUIElementRef, attribute_name: &str) -> Option<CFTypeRef> {
+        get_ax_attribute_with_log(element, attribute_name, false)
+    }
+
+    fn get_ax_attribute_verbose(element: AXUIElementRef, attribute_name: &str) -> Option<CFTypeRef> {
+        get_ax_attribute_with_log(element, attribute_name, true)
+    }
+
+    fn get_ax_attribute_with_log(element: AXUIElementRef, attribute_name: &str, verbose: bool) -> Option<CFTypeRef> {
         let attr = CFString::new(attribute_name);
         let mut value: CFTypeRef = std::ptr::null();
 
@@ -218,9 +253,26 @@ mod macos {
         };
 
         if err != K_AX_ERROR_SUCCESS || value.is_null() {
+            if verbose {
+                // AX error codes: -25204=CannotComplete, -25205=AttrUnsupported,
+                // -25208=NotImplemented, -25211=APIDisabled, -25212=NoValue
+                eprintln!("[text-field-reader] AX error for {}: {}", attribute_name, err);
+            }
             None
         } else {
             Some(value)
+        }
+    }
+
+    /// Tell Electron/Chromium apps to enable their accessibility tree.
+    /// Idempotent — safe to call multiple times on the same element.
+    fn enable_enhanced_user_interface(app_element: AXUIElementRef) {
+        let attr = CFString::new("AXEnhancedUserInterface");
+        let err = unsafe {
+            AXUIElementSetAttributeValue(app_element, attr.as_CFTypeRef(), kCFBooleanTrue)
+        };
+        if err != K_AX_ERROR_SUCCESS {
+            eprintln!("[text-field-reader] AXEnhancedUserInterface set failed: {}", err);
         }
     }
 
@@ -492,7 +544,15 @@ mod macos {
         }
     }
 
+    pub fn read_focused_text_field_full_impl() -> Result<Option<String>, String> {
+        read_text_field_core(true)
+    }
+
     pub fn read_focused_text_field_impl() -> Result<Option<String>, String> {
+        read_text_field_core(false)
+    }
+
+    fn read_text_field_core(full: bool) -> Result<Option<String>, String> {
         // 1. Get frontmost app PID (skips TypeLate) to target the correct process
         let pid = match get_frontmost_app_pid() {
             Some(p) => p,
@@ -510,13 +570,31 @@ mod macos {
             return Ok(None);
         }
 
-        // 3. Get focused UI element from that app
-        let element = match get_ax_attribute(app_element, K_AX_FOCUSED_UI_ELEMENT_ATTRIBUTE) {
+        // 3. Enable accessibility for Electron/Chromium apps (idempotent, triggers AX tree build)
+        enable_enhanced_user_interface(app_element);
+
+        // 4. Get focused UI element from that app (fallback: system-wide for Electron/Chromium)
+        let element = match get_ax_attribute_verbose(app_element, K_AX_FOCUSED_UI_ELEMENT_ATTRIBUTE) {
             Some(e) => e,
             None => {
-                eprintln!("[text-field-reader] no focused UI element in app PID={}", pid);
-                unsafe { CFRelease(app_element) };
-                return Ok(None);
+                eprintln!("[text-field-reader] no focused UI element via app PID={}, trying system-wide", pid);
+                // Electron/Chromium apps may not expose AXFocusedUIElement at app level
+                let system_wide = unsafe { AXUIElementCreateSystemWide() };
+                match get_ax_attribute_verbose(system_wide, K_AX_FOCUSED_UI_ELEMENT_ATTRIBUTE) {
+                    Some(e) => {
+                        eprintln!("[text-field-reader] system-wide AXFocusedUIElement succeeded");
+                        unsafe { CFRelease(system_wide) };
+                        e
+                    }
+                    None => {
+                        eprintln!("[text-field-reader] system-wide AXFocusedUIElement also failed");
+                        unsafe {
+                            CFRelease(system_wide);
+                            CFRelease(app_element);
+                        }
+                        return Ok(None);
+                    }
+                }
             }
         };
 
@@ -593,12 +671,21 @@ mod macos {
 
         match text_result {
             Some((text, cursor_pos)) => {
-                let excerpt = extract_excerpt(&text, cursor_pos, CONTEXT_CHARS);
-                if excerpt.is_empty() {
-                    Ok(None)
+                if full {
+                    if text.is_empty() {
+                        Ok(None)
+                    } else {
+                        eprintln!("[text-field-reader] returning full text ({} chars)", text.chars().count());
+                        Ok(Some(text))
+                    }
                 } else {
-                    eprintln!("[text-field-reader] returning excerpt ({} chars)", excerpt.chars().count());
-                    Ok(Some(excerpt))
+                    let excerpt = extract_excerpt(&text, cursor_pos, CONTEXT_CHARS);
+                    if excerpt.is_empty() {
+                        Ok(None)
+                    } else {
+                        eprintln!("[text-field-reader] returning excerpt ({} chars)", excerpt.chars().count());
+                        Ok(Some(excerpt))
+                    }
                 }
             }
             None => Ok(None),
@@ -877,7 +964,15 @@ mod windows_impl {
 
     // ── UI Automation: Text Field Reading ──
 
+    pub fn read_focused_text_field_full_impl() -> Result<Option<String>, String> {
+        read_text_field_core(true)
+    }
+
     pub fn read_focused_text_field_impl() -> Result<Option<String>, String> {
+        read_text_field_core(false)
+    }
+
+    fn read_text_field_core(full: bool) -> Result<Option<String>, String> {
         let _com = init_com()?;
 
         let uia: IUIAutomation = unsafe {
@@ -899,6 +994,10 @@ mod windows_impl {
         // Strategy 1: ValuePattern — works for most standard text fields
         if let Some(text) = try_value_pattern(&element) {
             if !text.is_empty() {
+                if full {
+                    eprintln!("[text-field-reader] ValuePattern full ({} chars)", text.chars().count());
+                    return Ok(Some(text));
+                }
                 let cursor_pos = try_get_cursor_position(&element);
                 let excerpt = extract_excerpt(&text, cursor_pos, CONTEXT_CHARS);
                 if !excerpt.is_empty() {
@@ -914,6 +1013,10 @@ mod windows_impl {
         // Strategy 2: TextPattern — works for rich text editors
         if let Some((text, cursor_pos)) = try_text_pattern(&element) {
             if !text.is_empty() {
+                if full {
+                    eprintln!("[text-field-reader] TextPattern full ({} chars)", text.chars().count());
+                    return Ok(Some(text));
+                }
                 let excerpt = extract_excerpt(&text, cursor_pos, CONTEXT_CHARS);
                 if !excerpt.is_empty() {
                     eprintln!(
@@ -928,6 +1031,10 @@ mod windows_impl {
         // Strategy 3: Name property — last resort
         if let Some(name) = try_name_property(&element) {
             if !name.is_empty() {
+                if full {
+                    eprintln!("[text-field-reader] NameProperty full ({} chars)", name.chars().count());
+                    return Ok(Some(name));
+                }
                 let excerpt = extract_excerpt(&name, None, CONTEXT_CHARS);
                 if !excerpt.is_empty() {
                     eprintln!(

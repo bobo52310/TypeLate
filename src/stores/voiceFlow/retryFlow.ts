@@ -39,6 +39,7 @@ interface VoiceFlowActions {
     _lastFailedRecordingDurationMs: number;
     _lastFailedPeakEnergyLevel: number;
     _lastFailedRmsEnergyLevel: number;
+    lastWasModified: boolean | null;
   };
   setState: (partial: Record<string, unknown>) => void;
   transitionTo: (status: HudStatus, message?: string) => void;
@@ -150,11 +151,13 @@ async function completePasteFlowForRetry(params: {
     updateVocabularyWeightsAfterPaste(finalText);
 
     // Correction detection for retry
-    const settingsStore = getSettingsStore();
-    const apiKey = settingsStore.getApiKey();
-    if (apiKey) {
-      startCorrectionDetectionFlow(params.text, params.record.id, apiKey, () => getState().status);
-    }
+    startCorrectionDetectionFlow(
+      params.text,
+      params.record.id,
+      "",
+      () => getState().status,
+      () => getState().lastWasModified,
+    );
   } catch (pasteError) {
     setState({ isRecording: false });
     transitionTo("error", t("voiceFlow.pasteFailed"));

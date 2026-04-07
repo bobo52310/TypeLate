@@ -457,9 +457,11 @@
     "enhancing": "整理中...",
     "pasteFailed": "粘贴失败",
     "recordingTooShort": "录音时间太短",
-    "vocabularyLearnedLabel": "新增字典",
+    "vocabularyLearnedLabel": "太棒了！学到新词汇",
     "vocabularyLearned": "{terms}",
     "vocabularyLearnedTruncated": "{terms} 等 {count} 个",
+    "correctionDetected": "检测到修正",
+    "correctionPromptHint": "复制正确的词 (⌘C) 即可加入",
     "retryFailed": "识别失败，请重新录音",
     "cancelled": "已取消"
   },

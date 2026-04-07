@@ -457,9 +457,11 @@
     "enhancing": "整理中...",
     "pasteFailed": "貼上失敗",
     "recordingTooShort": "錄音時間太短",
-    "vocabularyLearnedLabel": "新增字典",
+    "vocabularyLearnedLabel": "讚啦！學到新詞彙",
     "vocabularyLearned": "{terms}",
     "vocabularyLearnedTruncated": "{terms} 等 {count} 個",
+    "correctionDetected": "偵測到修正",
+    "correctionPromptHint": "複製正確的詞 (⌘C) 即可加入",
     "retryFailed": "辨識失敗，請重新錄音",
     "cancelled": "已取消"
   },

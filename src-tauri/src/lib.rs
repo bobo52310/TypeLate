@@ -43,6 +43,43 @@ fn configure_macos_notch_window(window: &tauri::WebviewWindow) {
     }
 }
 
+/// 取得 macOS 劉海高度（若螢幕有 notch）。
+/// 透過 NSScreen.frame vs visibleFrame 差異偵測；無 notch 的螢幕回傳 0。
+#[cfg(target_os = "macos")]
+#[allow(unexpected_cfgs)]
+fn get_macos_notch_height() -> f64 {
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct NSPoint { x: f64, y: f64 }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct NSSize { width: f64, height: f64 }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct NSRect { origin: NSPoint, size: NSSize }
+
+    unsafe {
+        let main_screen: *mut objc::runtime::Object =
+            objc::msg_send![objc::class!(NSScreen), mainScreen];
+        if main_screen.is_null() {
+            return 0.0;
+        }
+        // NSScreen.frame — full screen rect in points
+        let frame: NSRect = objc::msg_send![main_screen, frame];
+        // NSScreen.visibleFrame — excludes menubar (which is taller on notch Macs)
+        let visible: NSRect = objc::msg_send![main_screen, visibleFrame];
+        // menubar height = total height - visible height - visible origin Y (Dock offset)
+        let menubar_height = frame.size.height - visible.size.height - visible.origin.y;
+        // On notch Macs menubar is ~37pt, on non-notch ~25pt.
+        // Only apply offset for notch Macs (threshold: 30pt).
+        if menubar_height > 30.0 {
+            menubar_height
+        } else {
+            0.0
+        }
+    }
+}
+
 /// 設定 Windows 視窗為工作列覆蓋層級（對應 macOS 的 setLevel:27）
 #[cfg(target_os = "windows")]
 fn configure_windows_topmost_window(window: &tauri::WebviewWindow) {
@@ -331,7 +368,14 @@ fn get_hud_target_position(app: tauri::AppHandle) -> Result<HudTargetPosition, S
         calculate_centered_window_x_logical(matched_monitor.width, sf, HUD_WINDOW_WIDTH_LOGICAL);
 
     let hud_x = monitor_logical_x + centered_x_logical;
-    let hud_y = monitor_logical_y;
+
+    // On macOS with notch (MacBook Pro/Air M-series), offset Y below the safe area
+    #[cfg(target_os = "macos")]
+    let notch_offset = get_macos_notch_height();
+    #[cfg(not(target_os = "macos"))]
+    let notch_offset = 0.0;
+
+    let hud_y = monitor_logical_y + notch_offset;
     let monitor_key = format!(
         "{},{}",
         matched_monitor.position_x, matched_monitor.position_y
@@ -418,6 +462,7 @@ pub fn run() {
             get_hud_target_position,
             plugins::audio_control::mute_system_audio,
             plugins::audio_control::restore_system_audio,
+            plugins::clipboard_paste::read_clipboard,
             plugins::clipboard_paste::copy_to_clipboard,
             plugins::clipboard_paste::paste_text,
             plugins::hotkey_listener::check_accessibility_permission_command,
@@ -429,6 +474,7 @@ pub fn run() {
             plugins::text_field_reader::get_frontmost_app_bundle_id,
             plugins::text_field_reader::get_frontmost_app_info,
             plugins::text_field_reader::read_focused_text_field,
+            plugins::text_field_reader::read_focused_text_field_full,
             plugins::text_field_reader::get_cached_surrounding_text,
             plugins::audio_recorder::list_audio_input_devices,
             plugins::audio_recorder::start_recording,

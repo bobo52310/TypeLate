@@ -9,9 +9,9 @@ const MONITOR_DURATION_MS: u64 = 5000;
 const CANCEL_CHECK_INTERVAL_MS: u64 = 100;
 
 // Correction monitor constants
-const CORRECTION_PHASE1_TIMEOUT_MS: u64 = 5000;
+const CORRECTION_PHASE1_TIMEOUT_MS: u64 = 15000;
 const CORRECTION_IDLE_TIMEOUT_MS: u64 = 3000;
-const CORRECTION_HARD_LIMIT_MS: u64 = 15000;
+const CORRECTION_HARD_LIMIT_MS: u64 = 60000;
 const CORRECTION_ENTER_DEBOUNCE_MS: u64 = 500;
 
 #[derive(Serialize, Clone)]
@@ -391,8 +391,7 @@ pub fn start_correction_monitor<R: Runtime>(app: AppHandle<R>) {
 
     // 若已有 correction 監控進行中，先取消
     if state.correction_monitoring.load(Ordering::SeqCst) {
-        #[cfg(debug_assertions)]
-        println!("[keyboard-monitor] Cancelling previous correction monitor session");
+        eprintln!("[keyboard-monitor] Cancelling previous correction monitor session");
         state.correction_cancel_token.store(true, Ordering::SeqCst);
         std::thread::sleep(Duration::from_millis(150));
     }
@@ -412,8 +411,7 @@ pub fn start_correction_monitor<R: Runtime>(app: AppHandle<R>) {
         .correction_cancel_token
         .store(false, Ordering::SeqCst);
 
-    #[cfg(debug_assertions)]
-    println!("[keyboard-monitor] Starting correction monitor");
+    eprintln!("[keyboard-monitor] Starting correction monitor (phase1={}ms, hard_limit={}ms)", CORRECTION_PHASE1_TIMEOUT_MS, CORRECTION_HARD_LIMIT_MS);
 
     let correction_monitoring = state.correction_monitoring.clone();
     let any_key_pressed = state.correction_any_key_pressed.clone();
@@ -432,14 +430,13 @@ pub fn start_correction_monitor<R: Runtime>(app: AppHandle<R>) {
             }
 
             if any_key_pressed.load(Ordering::SeqCst) {
-                // 偵測到首次按鍵，立即進入 Phase 2
-                #[cfg(debug_assertions)]
-                println!("[keyboard-monitor] Correction: Phase 1 → Phase 2 (key detected)");
+                eprintln!("[keyboard-monitor] Correction: Phase 1 → Phase 2 (key detected at {}ms)", phase1_start.elapsed().as_millis());
                 break;
             }
 
             if phase1_start.elapsed() >= Duration::from_millis(CORRECTION_PHASE1_TIMEOUT_MS) {
                 // Phase 1 timeout：使用者沒按任何鍵
+                eprintln!("[keyboard-monitor] Correction: Phase 1 timeout ({}ms) -- no key pressed", CORRECTION_PHASE1_TIMEOUT_MS);
                 correction_monitoring.store(false, Ordering::SeqCst);
                 emit_correction_result(&app, false, false, false);
                 return;
@@ -465,8 +462,7 @@ pub fn start_correction_monitor<R: Runtime>(app: AppHandle<R>) {
                 enter_pressed.store(false, Ordering::SeqCst);
                 let key_time_at_enter = last_key_time.lock().map(|t| *t).unwrap_or(enter_time);
 
-                #[cfg(debug_assertions)]
-                println!("[keyboard-monitor] Correction: Enter debounce started ({}ms)", CORRECTION_ENTER_DEBOUNCE_MS);
+                eprintln!("[keyboard-monitor] Correction: Enter debounce started ({}ms)", CORRECTION_ENTER_DEBOUNCE_MS);
 
                 let mut ime_followup = false;
                 while enter_time.elapsed() < Duration::from_millis(CORRECTION_ENTER_DEBOUNCE_MS) {
@@ -485,15 +481,12 @@ pub fn start_correction_monitor<R: Runtime>(app: AppHandle<R>) {
                 }
 
                 if ime_followup {
-                    // IME 選字後繼續打字，不是真正的 Enter 送出
-                    #[cfg(debug_assertions)]
-                    println!("[keyboard-monitor] Correction: Enter was IME confirm, continuing");
+                    eprintln!("[keyboard-monitor] Correction: Enter was IME confirm, continuing");
                     continue;
                 }
 
                 // debounce 期間無新按鍵 → 真正的 Enter 送出
-                #[cfg(debug_assertions)]
-                println!("[keyboard-monitor] Correction: Enter confirmed (real send)");
+                eprintln!("[keyboard-monitor] Correction: Enter confirmed (real send)");
                 correction_monitoring.store(false, Ordering::SeqCst);
                 emit_correction_result(&app, true, true, false);
                 return;
@@ -506,13 +499,15 @@ pub fn start_correction_monitor<R: Runtime>(app: AppHandle<R>) {
                 Duration::from_secs(0)
             };
             if idle_duration >= Duration::from_millis(CORRECTION_IDLE_TIMEOUT_MS) {
+                eprintln!("[keyboard-monitor] Correction: idle timeout ({}ms since last key)", CORRECTION_IDLE_TIMEOUT_MS);
                 correction_monitoring.store(false, Ordering::SeqCst);
                 emit_correction_result(&app, true, false, true);
                 return;
             }
 
-            // 硬上限 15 秒
+            // 硬上限
             if phase2_start.elapsed() >= Duration::from_millis(CORRECTION_HARD_LIMIT_MS) {
+                eprintln!("[keyboard-monitor] Correction: hard limit reached ({}ms)", CORRECTION_HARD_LIMIT_MS);
                 correction_monitoring.store(false, Ordering::SeqCst);
                 emit_correction_result(&app, true, false, false);
                 return;

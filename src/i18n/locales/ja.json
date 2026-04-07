@@ -457,9 +457,11 @@
     "enhancing": "整理中...",
     "pasteFailed": "貼り付け失敗",
     "recordingTooShort": "録音時間が短すぎます",
-    "vocabularyLearnedLabel": "辞書に追加",
+    "vocabularyLearnedLabel": "やった！新しい語彙を学習",
     "vocabularyLearned": "{terms}",
     "vocabularyLearnedTruncated": "{terms} 他 {count} 語",
+    "correctionDetected": "修正を検出",
+    "correctionPromptHint": "正しい語をコピー (⌘C) で追加",
     "retryFailed": "認識失敗、もう一度録音してください",
     "cancelled": "キャンセル"
   },
