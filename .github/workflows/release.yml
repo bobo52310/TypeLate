@@ -151,8 +151,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          STABLE_NAME="TypeLate-v${RELEASE_VERSION}-${{ matrix.stable_suffix }}"
           DMG=$(find src-tauri/target -path "*/bundle/dmg/*.dmg" | head -1)
+
+          # Versioned name (e.g. TypeLate-v1.2.0-mac-arm64.dmg)
+          VERSIONED_NAME="TypeLate-v${RELEASE_VERSION}-${{ matrix.stable_suffix }}"
+          cp "$DMG" "$VERSIONED_NAME"
+          gh release upload "$RELEASE_TAG" "$VERSIONED_NAME" --clobber
+
+          # Stable alias without version (e.g. TypeLate-mac-arm64.dmg) — used by website
+          STABLE_NAME="TypeLate-${{ matrix.stable_suffix }}"
           cp "$DMG" "$STABLE_NAME"
           gh release upload "$RELEASE_TAG" "$STABLE_NAME" --clobber
 
@@ -162,8 +169,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
-          $stableName = "TypeLate-v$env:RELEASE_VERSION-${{ matrix.stable_suffix }}"
           $exe = Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "*-setup.exe" | Select-Object -First 1
+
+          # Versioned name (e.g. TypeLate-v1.2.0-windows-x64.exe)
+          $versionedName = "TypeLate-v$env:RELEASE_VERSION-${{ matrix.stable_suffix }}"
+          Copy-Item $exe.FullName $versionedName
+          gh release upload "$env:RELEASE_TAG" $versionedName --clobber
+
+          # Stable alias without version (e.g. TypeLate-windows-x64.exe) — used by website
+          $stableName = "TypeLate-${{ matrix.stable_suffix }}"
           Copy-Item $exe.FullName $stableName
           gh release upload "$env:RELEASE_TAG" $stableName --clobber
 
