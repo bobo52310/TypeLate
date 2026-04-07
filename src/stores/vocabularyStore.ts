@@ -14,6 +14,7 @@ interface RawVocabularyRow {
   weight: number;
   source: string;
   created_at: string;
+  last_used_at: string | null;
 }
 
 function mapRowToEntry(row: RawVocabularyRow): VocabularyEntry {
@@ -23,8 +24,12 @@ function mapRowToEntry(row: RawVocabularyRow): VocabularyEntry {
     weight: row.weight,
     source: row.source as VocabularySource,
     createdAt: row.created_at,
+    lastUsedAt: row.last_used_at,
   };
 }
+
+/** Default threshold: prune AI terms unused for 90 days */
+const PRUNE_STALE_DAYS = 90;
 
 interface VocabularyState {
   // -- State --
@@ -54,6 +59,7 @@ interface VocabularyState {
   ) => Promise<void>;
   getTopTermListByWeight: (limit: number) => Promise<string[]>;
   batchAddTerms: (terms: string[]) => Promise<{ added: number; skipped: number }>;
+  pruneStaleTerms: () => Promise<number>;
 }
 
 export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
@@ -79,7 +85,7 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
     try {
       const db = getDatabase();
       const rows = await db.select<RawVocabularyRow[]>(
-        "SELECT id, term, weight, source, created_at FROM vocabulary ORDER BY weight DESC, created_at DESC",
+        "SELECT id, term, weight, source, created_at, last_used_at FROM vocabulary ORDER BY weight DESC, created_at DESC",
       );
       set({ termList: rows.map(mapRowToEntry) });
     } catch (error) {
@@ -174,7 +180,10 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
     try {
       const db = getDatabase();
       for (const id of termIdList) {
-        await db.execute("UPDATE vocabulary SET weight = weight + 1 WHERE id = $1", [id]);
+        await db.execute(
+          "UPDATE vocabulary SET weight = weight + 1, last_used_at = datetime('now') WHERE id = $1",
+          [id],
+        );
       }
       await get().fetchTermList();
     } catch (error) {
@@ -283,6 +292,32 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
       logError("vocabulary", `getTopTermListByWeight failed: ${extractErrorMessage(error)}`);
       captureError(error, { source: "vocabulary", step: "top-by-weight" });
       return [];
+    }
+  },
+
+  pruneStaleTerms: async () => {
+    try {
+      const db = getDatabase();
+      const result = await db.execute(
+        `DELETE FROM vocabulary
+         WHERE source = 'ai'
+           AND weight <= 1
+           AND COALESCE(last_used_at, created_at) < datetime('now', $1)`,
+        [`-${String(PRUNE_STALE_DAYS)} days`],
+      );
+      const pruned = result.rowsAffected ?? 0;
+      if (pruned > 0) {
+        await get().fetchTermList();
+        void emitEvent(VOCABULARY_CHANGED, {
+          action: "removed",
+          term: `${pruned} stale AI terms pruned`,
+        } satisfies VocabularyChangedPayload);
+      }
+      return pruned;
+    } catch (error) {
+      logError("vocabulary", `pruneStaleTerms failed: ${extractErrorMessage(error)}`);
+      captureError(error, { source: "vocabulary", step: "prune" });
+      return 0;
     }
   },
 }));

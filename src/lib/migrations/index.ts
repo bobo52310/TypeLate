@@ -9,6 +9,7 @@ import { v6RecalculateCharCount } from "./v6-recalculate-char-count";
 import { v7RemoveHallucinationTerms } from "./v7-remove-hallucination-terms";
 import { v8ModelTracking } from "./v8-model-tracking";
 import { v9TriggerModeDoubleTap } from "./v9-trigger-mode-doubletap";
+import { v10VocabularyPrune } from "./v10-vocabulary-prune";
 
 export interface Migration {
   version: number;
@@ -26,6 +27,7 @@ const migrations: Migration[] = [
   v7RemoveHallucinationTerms,
   v8ModelTracking,
   v9TriggerModeDoubleTap,
+  v10VocabularyPrune,
 ];
 
 async function ensureSchemaVersionTable(db: Database): Promise<void> {

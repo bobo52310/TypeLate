@@ -6,4 +6,5 @@ export interface VocabularyEntry {
   weight: number;
   source: VocabularySource;
   createdAt: string;
+  lastUsedAt: string | null;
 }

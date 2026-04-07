@@ -80,12 +80,16 @@ export function HudApp() {
       }
       await appWindow.hide();
 
-      // Phase 4: Vocabulary fetch (non-blocking, DB already ready)
+      // Phase 4: Vocabulary fetch + prune stale AI terms (non-blocking)
       void useVocabularyStore
         .getState()
         .fetchTermList()
+        .then(() => useVocabularyStore.getState().pruneStaleTerms())
+        .then((pruned) => {
+          if (pruned > 0) logInfo("HudApp", `Pruned ${pruned} stale AI vocabulary terms`);
+        })
         .catch((err) => {
-          logError("HudApp", "Vocabulary fetch failed", err);
+          logError("HudApp", "Vocabulary fetch/prune failed", err);
         });
     })();
 
