@@ -631,7 +631,9 @@ mod windows_impl {
         IUIAutomationValuePattern, TextPatternRangeEndpoint_Start,
         UIA_TextPatternId, UIA_ValuePatternId,
     };
-    use windows::Win32::UI::Shell::ExtractIconExW;
+    use windows::Win32::UI::Shell::{
+        ExtractIconExW, SHGetFileInfoW, SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON,
+    };
     use windows::Win32::UI::WindowsAndMessaging::{
         DestroyIcon, GetForegroundWindow, GetIconInfo, GetWindowTextW,
         GetWindowThreadProcessId,
@@ -751,10 +753,9 @@ mod windows_impl {
 
     fn get_app_icon_base64(exe_path: &str) -> String {
         unsafe {
-            // Convert path to wide string
             let wide_path: Vec<u16> = exe_path.encode_utf16().chain(std::iter::once(0)).collect();
 
-            // Extract 32x32 large icon from the exe
+            // Strategy 1: ExtractIconExW — works for most traditional Win32 apps
             let mut large_icon = std::mem::zeroed();
             let count = ExtractIconExW(
                 windows::core::PCWSTR(wide_path.as_ptr()),
@@ -763,13 +764,30 @@ mod windows_impl {
                 None,
                 1,
             );
-            if count == 0 || large_icon.is_invalid() {
-                return String::new();
+            if count > 0 && !large_icon.is_invalid() {
+                let result = hicon_to_base64_png(large_icon);
+                let _ = DestroyIcon(large_icon);
+                if !result.is_empty() {
+                    return result;
+                }
             }
 
-            let result = hicon_to_base64_png(large_icon);
-            let _ = DestroyIcon(large_icon);
-            result
+            // Strategy 2: SHGetFileInfo — uses Shell icon cache, handles UWP/Store apps
+            let mut shfi: SHFILEINFOW = std::mem::zeroed();
+            let ret = SHGetFileInfoW(
+                windows::core::PCWSTR(wide_path.as_ptr()),
+                windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES(0),
+                Some(&mut shfi),
+                std::mem::size_of::<SHFILEINFOW>() as u32,
+                SHGFI_ICON | SHGFI_LARGEICON,
+            );
+            if ret != 0 && !shfi.hIcon.is_invalid() {
+                let result = hicon_to_base64_png(shfi.hIcon);
+                let _ = DestroyIcon(shfi.hIcon);
+                return result;
+            }
+
+            String::new()
         }
     }
 

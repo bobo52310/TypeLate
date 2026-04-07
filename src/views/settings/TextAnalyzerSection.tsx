@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Loader2, Plus, RotateCcw, Sparkles, Upload } from "lucide-react";
+import { Globe, Loader2, Plus, RotateCcw, Sparkles, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SettingsGroup, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -39,6 +40,8 @@ export default function TextAnalyzerSection() {
 
   const [step, setStep] = useState<Step>("input");
   const [textInput, setTextInput] = useState("");
+  const [urlInput, setUrlInput] = useState("");
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [extractedTerms, setExtractedTerms] = useState<ExtractedTerm[]>([]);
   const [selectedTermSet, setSelectedTermSet] = useState<Set<string>>(new Set());
   const [isAdding, setIsAdding] = useState(false);
@@ -120,6 +123,26 @@ export default function TextAnalyzerSection() {
     }
   }
 
+  async function handleFetchUrl() {
+    const url = urlInput.trim();
+    if (!url) return;
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      feedback.show("error", t("dictionary.textAnalyzer.invalidUrl"));
+      return;
+    }
+
+    setIsFetchingUrl(true);
+    try {
+      const text = await invoke<string>("fetch_url_text", { url });
+      setTextInput(text);
+      setUrlInput("");
+    } catch (err) {
+      feedback.show("error", err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsFetchingUrl(false);
+    }
+  }
+
   function toggleTerm(term: string) {
     setSelectedTermSet((prev) => {
       const next = new Set(prev);
@@ -168,6 +191,7 @@ export default function TextAnalyzerSection() {
   function handleReset() {
     setStep("input");
     setTextInput("");
+    setUrlInput("");
     setExtractedTerms([]);
     setSelectedTermSet(new Set());
   }
@@ -180,6 +204,33 @@ export default function TextAnalyzerSection() {
       {/* Step: Input */}
       {step === "input" && (
         <div className="space-y-3 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Input
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              placeholder={t("dictionary.textAnalyzer.urlPlaceholder")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleFetchUrl();
+              }}
+              disabled={isFetchingUrl}
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!urlInput.trim() || isFetchingUrl}
+              onClick={() => void handleFetchUrl()}
+            >
+              {isFetchingUrl ? (
+                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Globe className="mr-1 h-3.5 w-3.5" />
+              )}
+              {isFetchingUrl
+                ? t("dictionary.textAnalyzer.fetchingUrl")
+                : t("dictionary.textAnalyzer.fetchUrl")}
+            </Button>
+          </div>
           <Textarea
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}

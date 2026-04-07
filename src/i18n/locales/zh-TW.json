@@ -395,7 +395,11 @@
       "noTextProvided": "請先貼上文字或上傳檔案",
       "apiKeyRequired": "請先在設定中設定 API Key",
       "reset": "分析新文本",
-      "supportedFormats": "支援 .txt、.md、.srt"
+      "supportedFormats": "支援 .txt、.md、.srt",
+      "urlPlaceholder": "輸入網址擷取網頁文字...",
+      "fetchUrl": "擷取",
+      "fetchingUrl": "擷取中...",
+      "invalidUrl": "請輸入有效的網址（以 http:// 或 https:// 開頭）"
     },
     "cloudSync": {
       "title": "雲端同步",

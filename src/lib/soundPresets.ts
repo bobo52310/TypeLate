@@ -9,22 +9,22 @@ export interface SoundPreset {
 export const BUILT_IN_PRESETS: SoundPreset[] = [
   {
     id: "default",
-    labelKey: "settings.sound.presets.default",
+    labelKey: "settings.app.soundPresets.default",
     sounds: { start: "Funk", stop: "Bottle", error: "Ping", learned: "Glass" },
   },
   {
     id: "gentle",
-    labelKey: "settings.sound.presets.gentle",
+    labelKey: "settings.app.soundPresets.gentle",
     sounds: { start: "Tink", stop: "Pop", error: "Basso", learned: "Purr" },
   },
   {
     id: "minimal",
-    labelKey: "settings.sound.presets.minimal",
+    labelKey: "settings.app.soundPresets.minimal",
     sounds: { start: "Pop", stop: "Pop", error: "Basso", learned: "Pop" },
   },
   {
     id: "retro",
-    labelKey: "settings.sound.presets.retro",
+    labelKey: "settings.app.soundPresets.retro",
     sounds: { start: "Morse", stop: "Submarine", error: "Sosumi", learned: "Hero" },
   },
 ];

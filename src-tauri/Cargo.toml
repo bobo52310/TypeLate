@@ -33,6 +33,7 @@ cpal = "0.15"
 hound = "3.5"
 rustfft = "6"
 reqwest = { version = "0.12", features = ["multipart", "json"] }
+html2text = "0.14"
 tokio = { version = "1", features = ["net", "time", "sync", "io-util"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -52,6 +53,7 @@ windows = { version = "0.61", features = [
     "Win32_UI_Shell",
     "Win32_Graphics_Gdi",
     "Win32_UI_Accessibility",
+    "Win32_Storage_FileSystem",
 ] }
 image = { version = "0.25", default-features = false, features = ["png"] }
 base64 = "0.22"

@@ -395,7 +395,11 @@
       "noTextProvided": "请先粘贴文字或上传文件",
       "apiKeyRequired": "请先在设置中设置 API Key",
       "reset": "分析新文本",
-      "supportedFormats": "支持 .txt、.md、.srt"
+      "supportedFormats": "支持 .txt、.md、.srt",
+      "urlPlaceholder": "输入网址提取网页文字...",
+      "fetchUrl": "提取",
+      "fetchingUrl": "提取中...",
+      "invalidUrl": "请输入有效的网址（以 http:// 或 https:// 开头）"
     },
     "cloudSync": {
       "title": "云端同步",

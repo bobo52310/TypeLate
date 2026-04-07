@@ -449,7 +449,8 @@ pub fn run() {
             plugins::google_auth::start_oauth_listener,
             plugins::google_auth::await_oauth_code,
             plugins::file_sync::read_sync_file,
-            plugins::file_sync::write_sync_file
+            plugins::file_sync::write_sync_file,
+            plugins::url_fetcher::fetch_url_text
         ])
         .setup(|app| {
             // 初始化 keyboard monitor 狀態

@@ -395,7 +395,11 @@
       "noTextProvided": "Please paste text or upload a file first",
       "apiKeyRequired": "Please set up your API Key in Settings first",
       "reset": "Analyze New Text",
-      "supportedFormats": "Supports .txt, .md, .srt"
+      "supportedFormats": "Supports .txt, .md, .srt",
+      "urlPlaceholder": "Enter a URL to extract text from...",
+      "fetchUrl": "Fetch",
+      "fetchingUrl": "Fetching...",
+      "invalidUrl": "Please enter a valid URL starting with http:// or https://"
     },
     "cloudSync": {
       "title": "Cloud Sync",

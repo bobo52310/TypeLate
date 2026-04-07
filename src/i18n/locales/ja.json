@@ -395,7 +395,11 @@
       "noTextProvided": "テキストを貼り付けるかファイルをアップロードしてください",
       "apiKeyRequired": "設定で API Key を設定してください",
       "reset": "新しいテキストを分析",
-      "supportedFormats": ".txt、.md、.srt に対応"
+      "supportedFormats": ".txt、.md、.srt に対応",
+      "urlPlaceholder": "URLを入力してテキストを抽出...",
+      "fetchUrl": "取得",
+      "fetchingUrl": "取得中...",
+      "invalidUrl": "http:// または https:// で始まる有効なURLを入力してください"
     },
     "cloudSync": {
       "title": "クラウド同期",
