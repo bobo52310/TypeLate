@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, Bot, Hand, List, FileText, ArrowUpDown } from "lucide-react";
+import { Plus, Trash2, Bot, Hand, List, FileText, ArrowUpDown, Pencil, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,7 @@ export default function VocabularyListSection() {
   const isDuplicateTerm = useVocabularyStore((s) => s.isDuplicateTerm);
   const fetchTermList = useVocabularyStore((s) => s.fetchTermList);
   const addTerm = useVocabularyStore((s) => s.addTerm);
+  const updateTerm = useVocabularyStore((s) => s.updateTerm);
   const removeTerm = useVocabularyStore((s) => s.removeTerm);
   const batchAddTerms = useVocabularyStore((s) => s.batchAddTerms);
 
@@ -56,6 +57,9 @@ export default function VocabularyListSection() {
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [removingTermIdSet, setRemovingTermIdSet] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -150,6 +154,34 @@ export default function VocabularyListSection() {
         next.delete(id);
         return next;
       });
+    }
+  }
+
+  function startEditing(entry: VocabularyEntry) {
+    setEditingId(entry.id);
+    setEditingValue(entry.term);
+    // Focus the input after React renders it
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  }
+
+  function cancelEditing() {
+    setEditingId(null);
+    setEditingValue("");
+  }
+
+  async function handleSaveEdit(id: string) {
+    const trimmed = editingValue.trim();
+    if (!trimmed) {
+      cancelEditing();
+      return;
+    }
+    try {
+      await updateTerm(id, trimmed);
+      feedback.show("success", t("dictionary.updated", { term: trimmed }));
+    } catch (err) {
+      feedback.show("error", err instanceof Error ? err.message : String(err));
+    } finally {
+      cancelEditing();
     }
   }
 
@@ -295,7 +327,48 @@ export default function VocabularyListSection() {
             <TableBody>
               {sortedTermList.map((entry: VocabularyEntry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="font-medium">{entry.term}</TableCell>
+                  <TableCell className="font-medium">
+                    {editingId === entry.id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          ref={editInputRef}
+                          value={editingValue}
+                          onChange={(e) => setEditingValue(e.target.value)}
+                          className="h-7 text-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void handleSaveEdit(entry.id);
+                            if (e.key === "Escape") cancelEditing();
+                          }}
+                          onBlur={() => void handleSaveEdit(entry.id)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 text-primary"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => void handleSaveEdit(entry.id)}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={cancelEditing}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        className="cursor-pointer text-left hover:underline"
+                        onClick={() => startEditing(entry)}
+                      >
+                        {entry.term}
+                      </button>
+                    )}
+                  </TableCell>
                   <TableCell className="text-center">
                     {entry.source === "ai" ? (
                       <Badge variant="secondary" className="gap-1 text-[10px]">
@@ -315,15 +388,26 @@ export default function VocabularyListSection() {
                     {formatDate(entry.createdAt, locale)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive"
-                      disabled={removingTermIdSet.has(entry.id)}
-                      onClick={() => void handleRemoveTerm(entry.id, entry.term)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={editingId === entry.id}
+                        onClick={() => startEditing(entry)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive"
+                        disabled={removingTermIdSet.has(entry.id) || editingId === entry.id}
+                        onClick={() => void handleRemoveTerm(entry.id, entry.term)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

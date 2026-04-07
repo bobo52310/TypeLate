@@ -359,6 +359,7 @@
     "add": "新增",
     "added": "已新增「{term}」",
     "removed": "已删除「{term}」",
+    "updated": "已更新为「{term}」",
     "loading": "加载中...",
     "emptyState": "尚无自定义词汇，新增常用术语以提升识别率",
     "termHeader": "词汇",

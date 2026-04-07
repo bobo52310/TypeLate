@@ -45,6 +45,7 @@ interface VocabularyState {
   isDuplicateTerm: (term: string) => boolean;
   fetchTermList: () => Promise<void>;
   addTerm: (term: string) => Promise<void>;
+  updateTerm: (id: string, newTerm: string) => Promise<void>;
   removeTerm: (id: string) => Promise<void>;
   addAiSuggestedTerm: (term: string) => Promise<void>;
   batchIncrementWeights: (termIdList: string[]) => Promise<void>;
@@ -124,6 +125,43 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
       }
       logError("vocabulary", `addTerm failed: ${message}`);
       captureError(error, { source: "vocabulary", step: "add" });
+      throw error;
+    }
+  },
+
+  updateTerm: async (id: string, newTerm: string) => {
+    const trimmedTerm = newTerm.trim();
+    if (!trimmedTerm) return;
+
+    const entry = get().termList.find((e) => e.id === id);
+    if (!entry) return;
+
+    // Skip if unchanged
+    if (entry.term === trimmedTerm) return;
+
+    // Check duplicate against other entries
+    const duplicate = get().termList.some(
+      (e) => e.id !== id && e.term.trim().toLowerCase() === trimmedTerm.toLowerCase(),
+    );
+    if (duplicate) {
+      throw new Error(i18n.t("dictionary.duplicateEntry"));
+    }
+
+    try {
+      const db = getDatabase();
+      await db.execute("UPDATE vocabulary SET term = $1 WHERE id = $2", [trimmedTerm, id]);
+      await get().fetchTermList();
+      void emitEvent(VOCABULARY_CHANGED, {
+        action: "updated",
+        term: trimmedTerm,
+      } satisfies VocabularyChangedPayload);
+    } catch (error) {
+      const message = extractErrorMessage(error);
+      if (message.includes("UNIQUE")) {
+        throw new Error(i18n.t("dictionary.duplicateEntry"));
+      }
+      logError("vocabulary", `updateTerm failed: ${message}`);
+      captureError(error, { source: "vocabulary", step: "update" });
       throw error;
     }
   },

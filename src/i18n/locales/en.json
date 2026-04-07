@@ -359,6 +359,7 @@
     "add": "Add",
     "added": "Added \"{term}\"",
     "removed": "Removed \"{term}\"",
+    "updated": "Updated to \"{term}\"",
     "loading": "Loading...",
     "emptyState": "No custom terms yet. Add frequently used terms to improve recognition accuracy",
     "termHeader": "Term",

@@ -42,7 +42,7 @@ export interface SettingsUpdatedPayload {
 }
 
 export interface VocabularyChangedPayload {
-  action: "added" | "removed";
+  action: "added" | "removed" | "updated";
   term: string;
 }
 
