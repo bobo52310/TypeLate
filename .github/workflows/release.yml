@@ -241,8 +241,59 @@ jobs:
           gh release delete-asset "$TAG" --repo "$REPO" "latest.json" --yes 2>/dev/null || true
           gh release upload "$TAG" --repo "$REPO" /tmp/latest.json
 
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for git log between tags
+
+      - name: Generate release notes from commits
+        id: notes
+        run: |
+          TAG="${RELEASE_TAG}"
+          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v' | sed -n '2p')
+
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="$TAG"
+          else
+            RANGE="${PREV_TAG}..${TAG}"
+          fi
+
+          echo "Generating notes for $RANGE"
+
+          {
+            echo 'RELEASE_NOTES<<NOTES_EOF'
+
+            # Features
+            FEATS=$(git log "$RANGE" --pretty=format:"%s" --no-merges | grep -iE "^feat" | sed 's/^feat[^:]*: *//' || true)
+            if [ -n "$FEATS" ]; then
+              echo "### ✨ New Features"
+              echo "$FEATS" | while IFS= read -r line; do echo "- $line"; done
+              echo ""
+            fi
+
+            # Bug Fixes
+            FIXES=$(git log "$RANGE" --pretty=format:"%s" --no-merges | grep -iE "^fix" | sed 's/^fix[^:]*: *//' || true)
+            if [ -n "$FIXES" ]; then
+              echo "### 🐛 Bug Fixes"
+              echo "$FIXES" | while IFS= read -r line; do echo "- $line"; done
+              echo ""
+            fi
+
+            # Other changes (refactor, perf, docs, chore)
+            OTHERS=$(git log "$RANGE" --pretty=format:"%s" --no-merges | grep -ivE "^(feat|fix)" | head -20 || true)
+            if [ -n "$OTHERS" ]; then
+              echo "### 🔧 Other Changes"
+              echo "$OTHERS" | while IFS= read -r line; do echo "- $line"; done
+              echo ""
+            fi
+
+            echo "---"
+            echo "**Full Changelog**: https://github.com/$GITHUB_REPOSITORY/compare/${PREV_TAG}...${TAG}"
+
+            echo 'NOTES_EOF'
+          } >> "$GITHUB_ENV"
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --notes "$RELEASE_NOTES"
