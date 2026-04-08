@@ -11,7 +11,6 @@ import {
   ChevronDown,
   Copy,
   Check,
-  Trash2,
   Play,
   Square,
   Mic,
@@ -22,7 +21,8 @@ import { captureError } from "@/lib/sentry";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import type { TranscriptionRecord } from "@/types/transcription";
-import { truncateText, getDisplayText, formatDuration, formatDurationMs } from "@/lib/formatUtils";
+import { truncateText, getDisplayText, formatDuration } from "@/lib/formatUtils";
+import ExpandedRecordDetail from "@/components/history/ExpandedRecordDetail";
 
 const TRANSCRIPTION_COMPLETED = "transcription:completed";
 const SEARCH_DEBOUNCE_MS = 300;
@@ -120,7 +120,6 @@ export default function HistoryView() {
   const [searchInput, setSearchInput] = useState("");
   const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null);
   const [copiedRecordId, setCopiedRecordId] = useState<string | null>(null);
-  const [copiedRawRecordId, setCopiedRawRecordId] = useState<string | null>(null);
   const [playingRecordId, setPlayingRecordId] = useState<string | null>(null);
   const [playbackErrorId, setPlaybackErrorId] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<"idle" | "exporting" | "done">("idle");
@@ -131,7 +130,6 @@ export default function HistoryView() {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const copiedRawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentBlobUrlRef = useRef<string | null>(null);
 
@@ -191,17 +189,6 @@ export default function HistoryView() {
       copiedTimerRef.current = setTimeout(() => setCopiedRecordId(null), 2500);
     } catch (err) {
       captureError(err, { source: "history", action: "copy-text" });
-    }
-  }
-
-  async function handleCopyRawText(record: TranscriptionRecord) {
-    try {
-      await invoke("copy_to_clipboard", { text: record.rawText });
-      if (copiedRawTimerRef.current) clearTimeout(copiedRawTimerRef.current);
-      setCopiedRawRecordId(record.id);
-      copiedRawTimerRef.current = setTimeout(() => setCopiedRawRecordId(null), 2500);
-    } catch (err) {
-      captureError(err, { source: "history", action: "copy-raw-text" });
     }
   }
 
@@ -308,7 +295,6 @@ export default function HistoryView() {
       cleanupAudio();
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-      if (copiedRawTimerRef.current) clearTimeout(copiedRawTimerRef.current);
       if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
     };
   }, [resetAndFetch]);
@@ -527,102 +513,11 @@ export default function HistoryView() {
 
                     {/* Expanded */}
                     {expanded && (
-                      <div className="border-t border-border px-3 py-3 space-y-3">
-                        {/* Enhanced text */}
-                        {record.wasEnhanced && record.processedText && (
-                          <div>
-                            <p className="mb-1 text-[11px] font-medium text-primary">
-                              {t("history.enhancedText")}
-                            </p>
-                            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                              {record.processedText}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Raw text */}
-                        <div>
-                          <div className="mb-1 flex items-center justify-between">
-                            <p className="text-[11px] font-medium text-muted-foreground">
-                              {t("history.rawText")}
-                            </p>
-                            <button
-                              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleCopyRawText(record);
-                              }}
-                            >
-                              {copiedRawRecordId === record.id ? (
-                                <Check className="h-2.5 w-2.5 text-primary" />
-                              ) : (
-                                <Copy className="h-2.5 w-2.5" />
-                              )}
-                              <span>
-                                {copiedRawRecordId === record.id
-                                  ? t("history.copied")
-                                  : t("history.copy")}
-                              </span>
-                            </button>
-                          </div>
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                            {record.rawText}
-                          </p>
-                        </div>
-
-                        {/* Metadata */}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2.5 text-[11px] text-muted-foreground">
-                          <span>
-                            {t("history.recordingLabel")}{" "}
-                            {formatDurationMs(record.recordingDurationMs)}
-                          </span>
-                          <span>
-                            {t("history.transcriptionLabel")}{" "}
-                            {formatDurationMs(record.transcriptionDurationMs)}
-                          </span>
-                          {record.enhancementDurationMs !== null && (
-                            <span>
-                              {t("history.aiLabel")}{" "}
-                              {formatDurationMs(record.enhancementDurationMs)}
-                            </span>
-                          )}
-                          <span>
-                            {t("history.modeLabel")}
-                            {record.triggerMode === "hold"
-                              ? t("history.holdMode")
-                              : t("history.toggleMode")}
-                          </span>
-                          {record.whisperModelId && (
-                            <span>
-                              {t("history.whisperModel", { model: record.whisperModelId })}
-                            </span>
-                          )}
-                          {record.llmModelId && (
-                            <span>{t("history.llmModel", { model: record.llmModelId })}</span>
-                          )}
-                          <div className="ml-auto">
-                            <Button
-                              variant={confirmDeleteId === record.id ? "destructive" : "ghost"}
-                              size="sm"
-                              className={cn(
-                                "h-6 gap-1 px-2 text-[11px]",
-                                confirmDeleteId === record.id
-                                  ? "animate-pulse"
-                                  : "text-destructive hover:text-destructive",
-                              )}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                requestDeleteRecord(record);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              {confirmDeleteId === record.id
-                                ? t("settings.apiKey.confirmDelete")
-                                : t("history.delete")}
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
+                      <ExpandedRecordDetail
+                        record={record}
+                        confirmDeleteId={confirmDeleteId}
+                        onRequestDelete={requestDeleteRecord}
+                      />
                     )}
                   </div>
                 );

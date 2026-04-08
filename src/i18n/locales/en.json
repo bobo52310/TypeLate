@@ -350,7 +350,26 @@
     "loadingMore": "Loading more...",
     "playRecording": "Play recording",
     "noRecordingFile": "Recording file not available",
-    "failedBadge": "Failed"
+    "failedBadge": "Failed",
+    "edit": {
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Saved"
+    },
+    "vocabAnalysis": {
+      "analyze": "Analyze Vocabulary",
+      "analyzing": "Analyzing...",
+      "found": "{count} terms found",
+      "addSelected": "Add {count} Selected",
+      "alreadyAdded": "Already added",
+      "added": "Added {added} terms",
+      "noTerms": "No vocabulary terms found",
+      "apiKeyRequired": "Please set up your API Key in Settings first",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "error": "Analysis failed: {message}"
+    }
   },
   "dictionary": {
     "termCount": "{count} terms",
@@ -400,7 +419,12 @@
       "urlPlaceholder": "Enter a URL to extract text from...",
       "fetchUrl": "Fetch",
       "fetchingUrl": "Fetching...",
-      "invalidUrl": "Please enter a valid URL starting with http:// or https://"
+      "invalidUrl": "Please enter a valid URL starting with http:// or https://",
+      "urlPreviewCharCount": "{{count}} characters",
+      "urlPreviewAnalyzeAll": "All content will be analyzed",
+      "urlPreviewTruncated": "Content is long — only first {{limit}} characters will be analyzed ({{percent}}%)",
+      "urlPreviewEdit": "Edit text",
+      "urlPreviewClear": "Clear"
     },
     "cloudSync": {
       "title": "Cloud Sync",

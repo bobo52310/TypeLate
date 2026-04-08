@@ -157,6 +157,12 @@ const DELETE_TRANSCRIPTION_SQL = `
   DELETE FROM transcriptions WHERE id = $1
 `;
 
+const UPDATE_TEXT_SQL = `
+  UPDATE transcriptions
+  SET raw_text = $1, processed_text = $2, char_count = $3
+  WHERE id = $4
+`;
+
 const SELECT_RECENT_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
@@ -231,6 +237,11 @@ interface HistoryState {
   refreshDashboard: () => Promise<void>;
   clearAllAudioFilePath: () => Promise<void>;
   clearAudioFilePathByIdList: (idList: string[]) => Promise<void>;
+  updateTranscriptionText: (
+    id: string,
+    rawText: string,
+    processedText: string | null,
+  ) => Promise<void>;
   deleteTranscription: (id: string) => Promise<void>;
   deleteAllRecordingFiles: () => Promise<number>;
   exportAllTranscriptions: () => Promise<TranscriptionRecord[]>;
@@ -590,6 +601,27 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       `UPDATE transcriptions SET audio_file_path = NULL WHERE id IN (${placeholders})`,
       idList,
     );
+  },
+
+  updateTranscriptionText: async (
+    id: string,
+    rawText: string,
+    processedText: string | null,
+  ) => {
+    const charCount = (processedText ?? rawText).length;
+    const db = getDatabase();
+    try {
+      await db.execute(UPDATE_TEXT_SQL, [rawText, processedText, charCount, id]);
+      set({
+        transcriptionList: get().transcriptionList.map((r) =>
+          r.id === id ? { ...r, rawText, processedText, charCount } : r,
+        ),
+      });
+    } catch (err) {
+      logError("history", `updateTranscriptionText failed: ${extractErrorMessage(err)}`);
+      captureError(err, { source: "history", step: "update-text" });
+      throw err;
+    }
   },
 
   deleteTranscription: async (id: string) => {

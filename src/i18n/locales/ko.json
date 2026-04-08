@@ -350,7 +350,26 @@
     "loadingMore": "더 불러오는 중...",
     "playRecording": "녹음 재생",
     "noRecordingFile": "녹음 파일이 없습니다",
-    "failedBadge": "인식 실패"
+    "failedBadge": "인식 실패",
+    "edit": {
+      "edit": "편집",
+      "save": "저장",
+      "cancel": "취소",
+      "saved": "저장됨"
+    },
+    "vocabAnalysis": {
+      "analyze": "어휘 분석",
+      "analyzing": "분석 중...",
+      "found": "{count}개 어휘 발견",
+      "addSelected": "{count}개 선택 추가",
+      "alreadyAdded": "이미 추가됨",
+      "added": "{added}개 어휘 추가됨",
+      "noTerms": "적합한 어휘를 찾지 못했습니다",
+      "apiKeyRequired": "설정에서 API 키를 먼저 설정해주세요",
+      "selectAll": "모두 선택",
+      "deselectAll": "선택 해제",
+      "error": "분석 실패: {message}"
+    }
   },
   "dictionary": {
     "termCount": "{count} 단어",
@@ -400,7 +419,12 @@
       "urlPlaceholder": "URL을 입력하여 텍스트를 추출...",
       "fetchUrl": "가져오기",
       "fetchingUrl": "가져오는 중...",
-      "invalidUrl": "http:// 또는 https://로 시작하는 유효한 URL을 입력하세요"
+      "invalidUrl": "http:// 또는 https://로 시작하는 유효한 URL을 입력하세요",
+      "urlPreviewCharCount": "{{count}}자",
+      "urlPreviewAnalyzeAll": "모든 내용이 분석됩니다",
+      "urlPreviewTruncated": "내용이 길어 처음 {{limit}}자만 분석됩니다 ({{percent}}%)",
+      "urlPreviewEdit": "텍스트 편집",
+      "urlPreviewClear": "지우기"
     },
     "cloudSync": {
       "title": "클라우드 동기화",

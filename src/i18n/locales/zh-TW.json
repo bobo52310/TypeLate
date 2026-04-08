@@ -350,7 +350,26 @@
     "loadingMore": "載入更多...",
     "playRecording": "播放錄音",
     "noRecordingFile": "錄音檔案不存在",
-    "failedBadge": "辨識失敗"
+    "failedBadge": "辨識失敗",
+    "edit": {
+      "edit": "編輯",
+      "save": "儲存",
+      "cancel": "取消",
+      "saved": "已儲存"
+    },
+    "vocabAnalysis": {
+      "analyze": "分析詞彙",
+      "analyzing": "分析中...",
+      "found": "找到 {count} 個詞彙",
+      "addSelected": "加入 {count} 個已選詞彙",
+      "alreadyAdded": "已在字典中",
+      "added": "已加入 {added} 個詞彙",
+      "noTerms": "未找到適合的詞彙",
+      "apiKeyRequired": "請先在設定中設定 API Key",
+      "selectAll": "全選",
+      "deselectAll": "取消全選",
+      "error": "分析失敗：{message}"
+    }
   },
   "dictionary": {
     "termCount": "{count} 詞彙",
@@ -400,7 +419,12 @@
       "urlPlaceholder": "輸入網址擷取網頁文字...",
       "fetchUrl": "擷取",
       "fetchingUrl": "擷取中...",
-      "invalidUrl": "請輸入有效的網址（以 http:// 或 https:// 開頭）"
+      "invalidUrl": "請輸入有效的網址（以 http:// 或 https:// 開頭）",
+      "urlPreviewCharCount": "{{count}} 字元",
+      "urlPreviewAnalyzeAll": "全部內容將送出分析",
+      "urlPreviewTruncated": "內容較長，僅前 {{limit}} 字元將送出分析（{{percent}}%）",
+      "urlPreviewEdit": "編輯全文",
+      "urlPreviewClear": "清除"
     },
     "cloudSync": {
       "title": "雲端同步",

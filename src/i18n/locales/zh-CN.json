@@ -350,7 +350,26 @@
     "loadingMore": "加载更多...",
     "playRecording": "播放录音",
     "noRecordingFile": "录音文件不存在",
-    "failedBadge": "识别失败"
+    "failedBadge": "识别失败",
+    "edit": {
+      "edit": "编辑",
+      "save": "保存",
+      "cancel": "取消",
+      "saved": "已保存"
+    },
+    "vocabAnalysis": {
+      "analyze": "分析词汇",
+      "analyzing": "分析中...",
+      "found": "找到 {count} 个词汇",
+      "addSelected": "加入 {count} 个已选词汇",
+      "alreadyAdded": "已在字典中",
+      "added": "已加入 {added} 个词汇",
+      "noTerms": "未找到适合的词汇",
+      "apiKeyRequired": "请先在设置中设置 API Key",
+      "selectAll": "全选",
+      "deselectAll": "取消全选",
+      "error": "分析失败：{message}"
+    }
   },
   "dictionary": {
     "termCount": "{count} 词汇",
@@ -400,7 +419,12 @@
       "urlPlaceholder": "输入网址提取网页文字...",
       "fetchUrl": "提取",
       "fetchingUrl": "提取中...",
-      "invalidUrl": "请输入有效的网址（以 http:// 或 https:// 开头）"
+      "invalidUrl": "请输入有效的网址（以 http:// 或 https:// 开头）",
+      "urlPreviewCharCount": "{{count}} 字符",
+      "urlPreviewAnalyzeAll": "全部内容将送出分析",
+      "urlPreviewTruncated": "内容较长，仅前 {{limit}} 字符将送出分析（{{percent}}%）",
+      "urlPreviewEdit": "编辑全文",
+      "urlPreviewClear": "清除"
     },
     "cloudSync": {
       "title": "云端同步",
