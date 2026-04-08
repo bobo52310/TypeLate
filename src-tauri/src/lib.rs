@@ -395,6 +395,28 @@ fn show_main_window(app: &AppHandle) {
     }
 }
 
+/// 動態 tray menu 項目，由前端透過 `update_tray_label` command 更新文字
+struct TrayMenuItems {
+    mic_item: MenuItem<tauri::Wry>,
+    language_item: MenuItem<tauri::Wry>,
+    hotkey_item: MenuItem<tauri::Wry>,
+}
+
+#[command]
+fn update_tray_label(
+    app: AppHandle,
+    field: String,
+    value: String,
+) -> Result<(), String> {
+    let state = app.state::<TrayMenuItems>();
+    match field.as_str() {
+        "mic" => state.mic_item.set_text(value).map_err(|e| e.to_string()),
+        "language" => state.language_item.set_text(value).map_err(|e| e.to_string()),
+        "hotkey" => state.hotkey_item.set_text(value).map_err(|e| e.to_string()),
+        _ => Err(format!("unknown tray field: {field}")),
+    }
+}
+
 const DEFAULT_SENTRY_RELEASE: &str = concat!("typelate@", env!("CARGO_PKG_VERSION"));
 
 fn get_sentry_dsn() -> Option<&'static str> {
@@ -459,6 +481,7 @@ pub fn run() {
             debug_log,
             request_app_restart,
             update_hotkey_config,
+            update_tray_label,
             get_hud_target_position,
             plugins::audio_control::mute_system_audio,
             plugins::audio_control::restore_system_audio,
@@ -548,24 +571,65 @@ pub fn run() {
             });
 
             // ── Tray Icon Menu ──
-            let open_dashboard_item =
-                MenuItem::with_id(app, "open-dashboard", "Open Dashboard", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit TypeLate", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open_dashboard_item, &quit_item])?;
+            let home_item = MenuItem::with_id(app, "tray-home", "回到 TypeLate 首頁", true, None::<&str>)?;
+            let sep1 = PredefinedMenuItem::separator(app)?;
+            let mic_item = MenuItem::with_id(app, "tray-mic", "麥克風：系統預設", true, None::<&str>)?;
+            let language_item = MenuItem::with_id(app, "tray-language", "轉錄語言：自動偵測", true, None::<&str>)?;
+            let hotkey_item = MenuItem::with_id(app, "tray-hotkey", "快捷鍵：Fn（按住）", true, None::<&str>)?;
+            let sep2 = PredefinedMenuItem::separator(app)?;
+            let version_item = MenuItem::with_id(
+                app, "tray-version",
+                &format!("版本：v{}", app.package_info().version),
+                false, None::<&str>,
+            )?;
+            let update_item = MenuItem::with_id(app, "tray-update", "檢查更新", true, None::<&str>)?;
+            let sep3 = PredefinedMenuItem::separator(app)?;
+            let quit_item = MenuItem::with_id(app, "tray-quit", "退出 TypeLate", true, None::<&str>)?;
+
+            let tray_menu = Menu::with_items(app, &[
+                &home_item, &sep1,
+                &mic_item, &language_item, &hotkey_item, &sep2,
+                &version_item, &update_item, &sep3,
+                &quit_item,
+            ])?;
+
+            // 儲存動態項目供 update_tray_label command 更新
+            app.manage(TrayMenuItems {
+                mic_item,
+                language_item,
+                hotkey_item,
+            });
 
             TrayIconBuilder::new()
                 .icon(tauri::image::Image::from_bytes(include_bytes!(
                     "../icons/tray-icon.png"
                 ))?)
                 .icon_as_template(true)
-                .menu(&menu)
+                .menu(&tray_menu)
                 .show_menu_on_left_click(true)
                 .tooltip("TypeLate")
                 .on_menu_event(|app, event| match event.id.as_ref() {
-                    "open-dashboard" => {
+                    "tray-home" => {
                         show_main_window(app);
                     }
-                    "quit" => {
+                    "tray-mic" => {
+                        show_main_window(app);
+                        let _ = app.emit("menu:navigate", "/settings/voice");
+                    }
+                    "tray-language" => {
+                        show_main_window(app);
+                        let _ = app.emit("menu:navigate", "/settings/general");
+                    }
+                    "tray-hotkey" => {
+                        show_main_window(app);
+                        let _ = app.emit("menu:navigate", "/settings/general");
+                    }
+                    "tray-update" => {
+                        show_main_window(app);
+                        let _ = app.emit("menu:navigate", "/settings/about");
+                        let _ = app.emit("menu:check-update", ());
+                    }
+                    "tray-quit" => {
                         app.exit(0);
                     }
                     _ => {}

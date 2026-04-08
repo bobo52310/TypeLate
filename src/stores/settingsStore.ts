@@ -43,6 +43,7 @@ import {
 } from "@/i18n/languageConfig";
 import { emitEvent, SETTINGS_UPDATED } from "@/hooks/useTauriEvent";
 import type { SettingsUpdatedPayload } from "@/types/events";
+import { syncTrayMic, syncTrayLanguage, syncTrayHotkey } from "@/lib/trayMenu";
 import {
   DEFAULT_LLM_MODEL_ID,
   DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID,
@@ -488,6 +489,12 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
       // Sync saved config to Rust on startup
       await syncHotkeyConfigToRust(key, mode);
+
+      // Sync tray menu labels with current settings
+      void syncTrayHotkey(key, mode);
+      void syncTrayLanguage(resolvedTranscriptionLocale);
+      void syncTrayMic(savedAudioInputDeviceName ?? "");
+
       isLoaded = true;
       logInfo("settings", `Settings loaded: key=${JSON.stringify(key)}, mode=${mode}`);
     } catch (err) {
@@ -516,6 +523,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       set({ hotkeyConfig: { triggerKey: key, triggerMode: mode } });
 
       await syncHotkeyConfigToRust(key, mode);
+      void syncTrayHotkey(key, mode);
 
       const payload: SettingsUpdatedPayload = {
         key: "hotkey",
@@ -931,6 +939,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       set({ selectedTranscriptionLocale: locale });
 
       await store.save();
+      void syncTrayLanguage(locale);
 
       const payload: SettingsUpdatedPayload = {
         key: "transcriptionLocale",
@@ -1132,6 +1141,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       await store.save();
 
       set({ selectedAudioInputDeviceName: deviceName });
+      void syncTrayMic(deviceName);
 
       const payload: SettingsUpdatedPayload = {
         key: "audioInputDevice",
