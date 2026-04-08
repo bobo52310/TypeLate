@@ -50,7 +50,7 @@ export interface WhisperModelConfig {
 
 // ── 預設值 ────────────────────────────────────────────────
 
-export const DEFAULT_LLM_MODEL_ID: LlmModelId = "moonshotai/kimi-k2-instruct";
+export const DEFAULT_LLM_MODEL_ID: LlmModelId = "llama-3.3-70b-versatile";
 export const DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID: VocabularyAnalysisModelId =
   "llama-3.3-70b-versatile";
 export const DEFAULT_WHISPER_MODEL_ID: WhisperModelId = "whisper-large-v3";
