@@ -400,6 +400,7 @@ struct TrayMenuItems {
     mic_item: MenuItem<tauri::Wry>,
     language_item: MenuItem<tauri::Wry>,
     hotkey_item: MenuItem<tauri::Wry>,
+    prompt_mode_item: MenuItem<tauri::Wry>,
 }
 
 #[command]
@@ -413,6 +414,7 @@ fn update_tray_label(
         "mic" => state.mic_item.set_text(value).map_err(|e| e.to_string()),
         "language" => state.language_item.set_text(value).map_err(|e| e.to_string()),
         "hotkey" => state.hotkey_item.set_text(value).map_err(|e| e.to_string()),
+        "prompt_mode" => state.prompt_mode_item.set_text(value).map_err(|e| e.to_string()),
         _ => Err(format!("unknown tray field: {field}")),
     }
 }
@@ -576,6 +578,7 @@ pub fn run() {
             let mic_item = MenuItem::with_id(app, "tray-mic", "麥克風：系統預設", true, None::<&str>)?;
             let language_item = MenuItem::with_id(app, "tray-language", "轉錄語言：自動偵測", true, None::<&str>)?;
             let hotkey_item = MenuItem::with_id(app, "tray-hotkey", "快捷鍵：Fn（按住）", true, None::<&str>)?;
+            let prompt_mode_item = MenuItem::with_id(app, "tray-prompt-mode", "AI 模式：潤稿", true, None::<&str>)?;
             let sep2 = PredefinedMenuItem::separator(app)?;
             let version_item = MenuItem::with_id(
                 app, "tray-version",
@@ -588,7 +591,7 @@ pub fn run() {
 
             let tray_menu = Menu::with_items(app, &[
                 &home_item, &sep1,
-                &mic_item, &language_item, &hotkey_item, &sep2,
+                &mic_item, &language_item, &hotkey_item, &prompt_mode_item, &sep2,
                 &version_item, &update_item, &sep3,
                 &quit_item,
             ])?;
@@ -598,6 +601,7 @@ pub fn run() {
                 mic_item,
                 language_item,
                 hotkey_item,
+                prompt_mode_item,
             });
 
             TrayIconBuilder::new()
@@ -623,6 +627,9 @@ pub fn run() {
                     "tray-hotkey" => {
                         show_main_window(app);
                         let _ = app.emit("menu:navigate", "/settings/general");
+                    }
+                    "tray-prompt-mode" => {
+                        let _ = app.emit("tray:cycle-prompt-mode", ());
                     }
                     "tray-update" => {
                         show_main_window(app);

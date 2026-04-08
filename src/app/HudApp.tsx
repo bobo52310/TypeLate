@@ -7,7 +7,7 @@ import { useVocabularyStore } from "@/stores/vocabularyStore";
 import { useHistoryStore } from "@/stores/historyStore";
 import { connectToDatabase } from "@/lib/database";
 import { initSentryForHud } from "@/lib/sentry";
-import { SETTINGS_UPDATED, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
+import { SETTINGS_UPDATED, VOCABULARY_CHANGED, TRAY_CYCLE_PROMPT_MODE } from "@/hooks/useTauriEvent";
 import { logInfo, logError } from "@/lib/logger";
 import { NotchHud } from "@/components/NotchHud";
 import "@/i18n";
@@ -52,8 +52,13 @@ export function HudApp() {
         listen(VOCABULARY_CHANGED, () => {
           void useVocabularyStore.getState().fetchTermList();
         }),
-      ]).then(([unlistenSettings, unlistenVocabulary]) => {
-        unlistenFns.push(unlistenSettings, unlistenVocabulary);
+        listen(TRAY_CYCLE_PROMPT_MODE, () => {
+          const current = useSettingsStore.getState().promptMode;
+          const next = current === "minimal" ? "active" : "minimal";
+          void useSettingsStore.getState().savePromptMode(next);
+        }),
+      ]).then(([unlistenSettings, unlistenVocabulary, unlistenCycleMode]) => {
+        unlistenFns.push(unlistenSettings, unlistenVocabulary, unlistenCycleMode);
       });
 
       // Wait for ALL parallel tasks — DB is required for history/vocabulary

@@ -109,9 +109,12 @@ export function NotchHud({
 }: NotchHudProps) {
   const { t } = useTranslation();
 
+  const promptMode = useSettingsStore((s) => s.promptMode);
+
   const [visualMode, setVisualMode] = useState<VisualMode>("hidden");
   const [pendingLearnedTermList, setPendingLearnedTermList] = useState<string[][]>([]);
   const [learnedDisplayText, setLearnedDisplayText] = useState("");
+  const [showModeLabel, setShowModeLabel] = useState(false);
 
   // Refs to access latest state inside timers/callbacks without re-subscribing
   const visualModeRef = useRef<VisualMode>(visualMode);
@@ -123,6 +126,7 @@ export function NotchHud({
   const morphingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const collapsingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const learnedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const modeLabelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { waveformLevelList, startWaveformAnimation, stopWaveformAnimation } = useAudioWaveform();
 
@@ -149,6 +153,28 @@ export function NotchHud({
       setShowSilenceHint(false);
     }
   }, [visualMode, waveformLevelList]);
+
+  // --- Mode label: show briefly when recording starts, fade after 2s ---
+  useEffect(() => {
+    if (visualMode === "recording") {
+      setShowModeLabel(true);
+      modeLabelTimerRef.current = setTimeout(() => {
+        setShowModeLabel(false);
+      }, 4000);
+    } else {
+      setShowModeLabel(false);
+      if (modeLabelTimerRef.current) {
+        clearTimeout(modeLabelTimerRef.current);
+        modeLabelTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (modeLabelTimerRef.current) {
+        clearTimeout(modeLabelTimerRef.current);
+        modeLabelTimerRef.current = null;
+      }
+    };
+  }, [visualMode]);
 
   // --- Timer helpers ---
 
@@ -547,14 +573,27 @@ export function NotchHud({
     }
 
     if (visualMode === "recording") {
+      const modeLabelKey =
+        promptMode === "active"
+          ? "settings.prompt.modeActive"
+          : promptMode === "custom"
+            ? "settings.prompt.modeCustom"
+            : "settings.prompt.modeMinimal";
       return (
-        <span className={styles.elapsedTimer}>
-          {showSilenceHint ? (
-            <span style={{ fontSize: "10px", opacity: 0.7 }}>{t("voiceFlow.recording")}</span>
-          ) : (
-            formattedElapsedTime
-          )}
-        </span>
+        <>
+          <span
+            className={cn(styles.modeLabel, { [styles.modeLabelHidden]: !showModeLabel })}
+          >
+            {t(modeLabelKey)}
+          </span>
+          <span className={styles.elapsedTimer}>
+            {showSilenceHint ? (
+              <span style={{ fontSize: "10px", opacity: 0.7 }}>{t("voiceFlow.recording")}</span>
+            ) : (
+              formattedElapsedTime
+            )}
+          </span>
+        </>
       );
     }
 

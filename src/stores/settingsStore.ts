@@ -43,7 +43,7 @@ import {
 } from "@/i18n/languageConfig";
 import { emitEvent, SETTINGS_UPDATED } from "@/hooks/useTauriEvent";
 import type { SettingsUpdatedPayload } from "@/types/events";
-import { syncTrayMic, syncTrayLanguage, syncTrayHotkey } from "@/lib/trayMenu";
+import { syncTrayMic, syncTrayLanguage, syncTrayHotkey, syncTrayPromptMode } from "@/lib/trayMenu";
 import {
   DEFAULT_LLM_MODEL_ID,
   DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID,
@@ -494,6 +494,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       void syncTrayHotkey(key, mode);
       void syncTrayLanguage(resolvedTranscriptionLocale);
       void syncTrayMic(savedAudioInputDeviceName ?? "");
+      void syncTrayPromptMode(resolvedPromptMode);
 
       isLoaded = true;
       logInfo("settings", `Settings loaded: key=${JSON.stringify(key)}, mode=${mode}`);
@@ -698,6 +699,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         value: mode,
       };
       await emitEvent(SETTINGS_UPDATED, payload);
+      void syncTrayPromptMode(mode);
       logInfo("settings", `Prompt mode saved: ${mode}`);
     } catch (err) {
       set({ promptMode: previousMode });

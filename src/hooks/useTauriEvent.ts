@@ -95,3 +95,4 @@ export const VOCABULARY_CHANGED = "vocabulary:changed" as const;
 export const VOCABULARY_LEARNED = "vocabulary:learned" as const;
 export const CORRECTION_PROMPT = "correction:prompt" as const;
 export const RATE_LIMIT_UPDATED = "rate-limit:updated" as const;
+export const TRAY_CYCLE_PROMPT_MODE = "tray:cycle-prompt-mode" as const;

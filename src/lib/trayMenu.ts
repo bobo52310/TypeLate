@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { TriggerKey } from "@/types/settings";
+import type { TriggerKey, PromptMode } from "@/types/settings";
 import type { TranscriptionLocale } from "@/i18n/languageConfig";
 import { TRANSCRIPTION_LANGUAGE_OPTIONS } from "@/i18n/languageConfig";
 import { isCustomTriggerKey } from "@/types/settings";
@@ -58,4 +58,15 @@ export async function syncTrayLanguage(locale: TranscriptionLocale): Promise<voi
 
 export async function syncTrayHotkey(key: TriggerKey, mode: TriggerMode): Promise<void> {
   await updateTrayField("hotkey", formatHotkeyLabel(key, mode));
+}
+
+const PROMPT_MODE_TRAY_LABELS: Record<string, string> = {
+  minimal: "潤稿",
+  active: "排版",
+  custom: "自訂",
+};
+
+export async function syncTrayPromptMode(mode: PromptMode): Promise<void> {
+  const label = PROMPT_MODE_TRAY_LABELS[mode] ?? mode;
+  await updateTrayField("prompt_mode", `AI 模式：${label}`);
 }

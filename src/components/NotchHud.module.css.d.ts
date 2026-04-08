@@ -22,6 +22,8 @@ declare const styles: {
   readonly cancelledLabel: string;
   readonly waveformScatter: string;
   readonly notchShake: string;
+  readonly modeLabel: string;
+  readonly modeLabelHidden: string;
   readonly elapsedTimer: string;
   readonly notchHudExpanded: string;
   readonly errorMessageRow: string;
