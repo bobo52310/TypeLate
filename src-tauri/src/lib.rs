@@ -7,9 +7,9 @@ mod plugins;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{
     command,
-    menu::{Menu, MenuItem},
+    menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::TrayIconBuilder,
-    AppHandle, Manager, Runtime,
+    AppHandle, Emitter, Manager, Runtime,
 };
 
 /// App 重啟旗標：由 `request_app_restart` command 設定，
@@ -510,6 +510,44 @@ pub fn run() {
             // 初始化 Google OAuth listener 狀態
             app.manage(plugins::google_auth::OAuthListenerState::new());
 
+            // ── macOS Application Menu (menu bar) ──
+            let app_menu = {
+                let about = PredefinedMenuItem::about(app, Some("About TypeLate"), Some(AboutMetadata::default()))?;
+                let settings = MenuItem::with_id(app, "menu-settings", "設定...", true, Some("CmdOrCtrl+,"))?;
+                let check_update = MenuItem::with_id(app, "menu-check-update", "檢查更新...", true, None::<&str>)?;
+                let separator = PredefinedMenuItem::separator(app)?;
+                let hide = PredefinedMenuItem::hide(app, Some("Hide TypeLate"))?;
+                let hide_others = PredefinedMenuItem::hide_others(app, Some("Hide Others"))?;
+                let show_all = PredefinedMenuItem::show_all(app, Some("Show All"))?;
+                let separator2 = PredefinedMenuItem::separator(app)?;
+                let quit = PredefinedMenuItem::quit(app, Some("Quit TypeLate"))?;
+
+                let app_submenu = Submenu::with_items(
+                    app,
+                    "TypeLate",
+                    true,
+                    &[&about, &separator, &settings, &check_update, &separator2, &hide, &hide_others, &show_all, &separator2, &quit],
+                )?;
+
+                Menu::with_items(app, &[&app_submenu])?
+            };
+            app.set_menu(app_menu)?;
+            app.on_menu_event(|app_handle, event| {
+                match event.id().as_ref() {
+                    "menu-settings" => {
+                        show_main_window(app_handle);
+                        let _ = app_handle.emit("menu:navigate", "/settings/general");
+                    }
+                    "menu-check-update" => {
+                        show_main_window(app_handle);
+                        let _ = app_handle.emit("menu:navigate", "/settings/about");
+                        let _ = app_handle.emit("menu:check-update", ());
+                    }
+                    _ => {}
+                }
+            });
+
+            // ── Tray Icon Menu ──
             let open_dashboard_item =
                 MenuItem::with_id(app, "open-dashboard", "Open Dashboard", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit TypeLate", true, None::<&str>)?;

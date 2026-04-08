@@ -36,7 +36,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
-import { useDebouncedTauriEvent, VOCABULARY_CHANGED } from "@/hooks/useTauriEvent";
+import { useDebouncedTauriEvent, useTauriEvent, VOCABULARY_CHANGED, MENU_NAVIGATE, MENU_CHECK_UPDATE } from "@/hooks/useTauriEvent";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
 import { logError } from "@/lib/logger";
@@ -203,6 +203,16 @@ export function DashboardApp() {
   // ── Listen for VOCABULARY_CHANGED from HUD window (debounced) ──
   useDebouncedTauriEvent(VOCABULARY_CHANGED, () => {
     void useVocabularyStore.getState().fetchTermList();
+  });
+
+  // ── macOS App Menu events ──
+  useTauriEvent<string>(MENU_NAVIGATE, (path) => {
+    navigate(path as RoutePath);
+  });
+
+  useTauriEvent(MENU_CHECK_UPDATE, () => {
+    // Navigate to about section and trigger update check
+    navigate("/settings/about");
   });
 
   // ── Watch for upgrade notice ──

@@ -83,6 +83,10 @@ export const CORRECTION_MONITOR_RESULT = "correction-monitor:result" as const;
 export const AUDIO_WAVEFORM = "audio:waveform" as const;
 export const ESCAPE_PRESSED = "escape:pressed" as const;
 
+// macOS App Menu events (Rust → Frontend)
+export const MENU_NAVIGATE = "menu:navigate" as const;
+export const MENU_CHECK_UPDATE = "menu:check-update" as const;
+
 // Frontend-only events (cross-window)
 export const VOICE_FLOW_STATE_CHANGED = "voice-flow:state-changed" as const;
 export const TRANSCRIPTION_COMPLETED = "transcription:completed" as const;
