@@ -123,7 +123,7 @@ function parseExtractedTerms(content: string): ExtractedTerm[] {
   return [];
 }
 
-const MAX_TEXT_LENGTH = 20_000;
+export const MAX_TEXT_LENGTH = 10_000;
 
 export async function extractVocabularyFromText(
   text: string,

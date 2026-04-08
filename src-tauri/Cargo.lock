@@ -6340,6 +6340,7 @@ dependencies = [
  "html2text",
  "image",
  "objc",
+ "regex",
  "reqwest 0.12.28",
  "rustfft",
  "sentry",

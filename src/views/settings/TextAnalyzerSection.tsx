@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Globe, Loader2, Plus, RotateCcw, Sparkles, Upload } from "lucide-react";
+import { FileText, Globe, Loader2, Pencil, Plus, RotateCcw, Sparkles, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +15,7 @@ import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import { getProviderConfig } from "@/lib/providerConfig";
 import {
   extractVocabularyFromText,
+  MAX_TEXT_LENGTH,
   type ExtractedTerm,
 } from "@/lib/textVocabularyExtractor";
 
@@ -42,6 +43,7 @@ export default function TextAnalyzerSection() {
   const [textInput, setTextInput] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [extractedTerms, setExtractedTerms] = useState<ExtractedTerm[]>([]);
   const [selectedTermSet, setSelectedTermSet] = useState<Set<string>>(new Set());
   const [isAdding, setIsAdding] = useState(false);
@@ -136,6 +138,7 @@ export default function TextAnalyzerSection() {
       const text = await invoke<string>("fetch_url_text", { url });
       setTextInput(text);
       setUrlInput("");
+      setShowPreview(true);
     } catch (err) {
       feedback.show("error", err instanceof Error ? err.message : String(err));
     } finally {
@@ -194,6 +197,7 @@ export default function TextAnalyzerSection() {
     setUrlInput("");
     setExtractedTerms([]);
     setSelectedTermSet(new Set());
+    setShowPreview(false);
   }
 
   return (
@@ -201,8 +205,8 @@ export default function TextAnalyzerSection() {
       title={t("dictionary.textAnalyzer.title")}
       description={t("dictionary.textAnalyzer.description")}
     >
-      {/* Step: Input */}
-      {step === "input" && (
+      {/* Step: Input — normal mode */}
+      {step === "input" && !showPreview && (
         <div className="space-y-3 px-4 py-3">
           <div className="flex items-center gap-2">
             <Input
@@ -256,6 +260,72 @@ export default function TextAnalyzerSection() {
               disabled={!textInput.trim()}
               onClick={() => void handleAnalyze()}
             >
+              <Sparkles className="mr-1 h-3.5 w-3.5" />
+              {t("dictionary.textAnalyzer.analyze")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step: Input — URL preview mode */}
+      {step === "input" && showPreview && (
+        <div className="space-y-3 px-4 py-3">
+          {/* Character count + truncation info */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline" className="gap-1">
+              <FileText className="h-3 w-3" />
+              {t("dictionary.textAnalyzer.urlPreviewCharCount", {
+                count: textInput.length.toLocaleString(),
+              })}
+            </Badge>
+            {textInput.length > MAX_TEXT_LENGTH ? (
+              <span className="text-xs text-amber-600 dark:text-amber-400">
+                {t("dictionary.textAnalyzer.urlPreviewTruncated", {
+                  limit: MAX_TEXT_LENGTH.toLocaleString(),
+                  percent: Math.round((MAX_TEXT_LENGTH / textInput.length) * 100),
+                })}
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {t("dictionary.textAnalyzer.urlPreviewAnalyzeAll")}
+              </span>
+            )}
+          </div>
+
+          {/* Truncation progress bar */}
+          {textInput.length > MAX_TEXT_LENGTH && (
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-amber-500"
+                style={{
+                  width: `${Math.round((MAX_TEXT_LENGTH / textInput.length) * 100)}%`,
+                }}
+              />
+            </div>
+          )}
+
+          {/* Text preview (collapsed, 3 lines max) */}
+          <div className="rounded-md border bg-muted/50 p-3">
+            <p className="line-clamp-3 whitespace-pre-line text-sm text-muted-foreground">
+              {textInput.slice(0, 500)}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPreview(false)}
+            >
+              <Pencil className="mr-1 h-3.5 w-3.5" />
+              {t("dictionary.textAnalyzer.urlPreviewEdit")}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleReset}>
+              {t("dictionary.textAnalyzer.urlPreviewClear")}
+            </Button>
+            <div className="flex-1" />
+            <Button size="sm" onClick={() => void handleAnalyze()}>
               <Sparkles className="mr-1 h-3.5 w-3.5" />
               {t("dictionary.textAnalyzer.analyze")}
             </Button>
