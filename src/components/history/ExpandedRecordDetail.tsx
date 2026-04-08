@@ -294,7 +294,9 @@ export default function ExpandedRecordDetail({
               "h-6 gap-1 px-2 text-[11px]",
               showResults && vocabAnalysis.extractedTerms.length > 0
                 ? "text-primary"
-                : "text-muted-foreground hover:text-foreground",
+                : vocabAnalysis.isAnalyzing
+                  ? "text-muted-foreground"
+                  : "animate-breathe-glow rounded-md bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary",
             )}
             disabled={!canAnalyze || vocabAnalysis.isAnalyzing}
             onClick={() => void handleAnalyze()}

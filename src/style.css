@@ -123,6 +123,21 @@ body {
   --sidebar-ring: #fbbf24;
 }
 
+@keyframes breathe-glow {
+  0%, 100% {
+    opacity: 0.75;
+    box-shadow: 0 0 4px oklch(0.75 0.15 85 / 0.2);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 10px oklch(0.75 0.15 85 / 0.45), 0 0 20px oklch(0.75 0.15 85 / 0.15);
+  }
+}
+
+.animate-breathe-glow {
+  animation: breathe-glow 2.5s ease-in-out infinite;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
