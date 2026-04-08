@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const OnboardingView = lazy(() => import("@/views/OnboardingView"));
-import { BookOpen, Cloud, CloudOff, Download, History, LayoutDashboard, Loader2, Settings, Sparkles, type LucideIcon } from "lucide-react";
+import { BookOpen, Cloud, CloudOff, Download, History, LayoutDashboard, Loader2, Megaphone, Settings, Smartphone, Sparkles, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { MobileAppDialog } from "@/components/MobileAppDialog";
 import { UpdateAvailableDialog } from "@/components/UpdateAvailableDialog";
 import {
   Sidebar,
@@ -177,6 +178,9 @@ export function DashboardApp() {
   const [releaseBody, setReleaseBody] = useState("");
   const [showUpdateAvailableDialog, setShowUpdateAvailableDialog] = useState(false);
   const [isUpdateDownloading, setIsUpdateDownloading] = useState(false);
+
+  // Mobile app dialog
+  const [showMobileAppDialog, setShowMobileAppDialog] = useState(false);
 
   // AlertDialog visibility
   const [showManualUpdateDialog, setShowManualUpdateDialog] = useState(false);
@@ -495,6 +499,26 @@ export function DashboardApp() {
                   <p className="text-xs italic text-primary">&ldquo;{easterEggSlogan}&rdquo;</p>
                 </div>
               )}
+              <div className="flex items-center gap-3 mb-1">
+                <button
+                  onClick={() => {
+                    void import("@tauri-apps/plugin-shell").then((m) =>
+                      m.open("https://github.com/bobo52310/TypeLate/releases"),
+                    );
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Megaphone className="h-3 w-3" />
+                  <span>{t("mainApp.footer.whatsNew")}</span>
+                </button>
+                <button
+                  onClick={() => setShowMobileAppDialog(true)}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Smartphone className="h-3 w-3" />
+                  <span>{t("mainApp.footer.mobileApp")}</span>
+                </button>
+              </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <button
@@ -562,6 +586,9 @@ export function DashboardApp() {
         visible={showAccessibilityGuide}
         onClose={() => setShowAccessibilityGuide(false)}
       />
+
+      {/* Mobile app QR code dialog */}
+      <MobileAppDialog open={showMobileAppDialog} onOpenChange={setShowMobileAppDialog} />
 
       {/* Update available dialog: rich changelog + skip/remind/install */}
       <UpdateAvailableDialog

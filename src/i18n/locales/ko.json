@@ -600,6 +600,15 @@
       "ai": "AI 텍스트 처리",
       "settings": "설정"
     },
+    "footer": {
+      "whatsNew": "새 소식",
+      "mobileApp": "모바일 앱"
+    },
+    "mobileApp": {
+      "title": "모바일에서 TypeLate 사용하기",
+      "description": "QR 코드를 스캔하여 TypeLate 웹사이트를 방문하고 모바일 앱을 다운로드하세요.",
+      "scanHint": "휴대폰 카메라로 스캔"
+    },
     "update": {
       "installFailed": "설치 실패, 수동으로 업데이트를 다운로드해주세요",
       "checking": "확인 중...",

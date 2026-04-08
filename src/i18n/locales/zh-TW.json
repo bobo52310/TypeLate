@@ -608,6 +608,15 @@
       "ai": "AI 文字處理",
       "settings": "設定"
     },
+    "footer": {
+      "whatsNew": "新功能",
+      "mobileApp": "手機版"
+    },
+    "mobileApp": {
+      "title": "在手機上使用 TypeLate",
+      "description": "掃描 QR Code 前往 TypeLate 網站，下載手機版應用程式。",
+      "scanHint": "用手機相機掃描"
+    },
     "update": {
       "installFailed": "安裝失敗，請手動下載更新",
       "checking": "檢查中...",

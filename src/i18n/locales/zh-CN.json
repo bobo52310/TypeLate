@@ -600,6 +600,15 @@
       "ai": "AI 文字处理",
       "settings": "设置"
     },
+    "footer": {
+      "whatsNew": "新功能",
+      "mobileApp": "手机版"
+    },
+    "mobileApp": {
+      "title": "在手机上使用 TypeLate",
+      "description": "扫描二维码访问 TypeLate 网站，下载手机版应用。",
+      "scanHint": "用手机相机扫描"
+    },
     "update": {
       "installFailed": "安装失败，请手动下载更新",
       "checking": "检查中...",

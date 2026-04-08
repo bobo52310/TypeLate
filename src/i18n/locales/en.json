@@ -608,6 +608,15 @@
       "ai": "AI & Text",
       "settings": "Settings"
     },
+    "footer": {
+      "whatsNew": "What's New",
+      "mobileApp": "Mobile App"
+    },
+    "mobileApp": {
+      "title": "Try TypeLate on Mobile",
+      "description": "Scan the QR code to visit the TypeLate website and get the mobile app.",
+      "scanHint": "Scan with your phone camera"
+    },
     "update": {
       "installFailed": "Installation failed. Please download the update manually",
       "checking": "Checking...",
