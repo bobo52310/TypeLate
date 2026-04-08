@@ -64,10 +64,10 @@ const NAV_GROUPS: NavItem[][] = [
   [
     { path: "/dashboard", labelKey: "mainApp.nav.dashboard", icon: LayoutDashboard },
     { path: "/history", labelKey: "mainApp.nav.history", icon: History },
+    { path: "/dictionary", labelKey: "mainApp.nav.dictionary", icon: BookOpen },
   ],
   // Tuning
   [
-    { path: "/dictionary", labelKey: "mainApp.nav.dictionary", icon: BookOpen },
     { path: "/ai", labelKey: "mainApp.nav.ai", icon: Sparkles },
   ],
   // System — Settings parent navigates to /settings/general
