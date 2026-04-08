@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { SettingsGroup, SettingsFeedback } from "@/components/settings-layout";
+import { SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
@@ -201,13 +201,15 @@ export default function TextAnalyzerSection() {
   }
 
   return (
-    <SettingsGroup
-      title={t("dictionary.textAnalyzer.title")}
-      description={t("dictionary.textAnalyzer.description")}
-    >
+    <div className="space-y-3">
+      <div>
+        <h4 className="text-sm font-medium">{t("dictionary.textAnalyzer.title")}</h4>
+        <p className="text-xs text-muted-foreground">{t("dictionary.textAnalyzer.description")}</p>
+      </div>
+
       {/* Step: Input — normal mode */}
       {step === "input" && !showPreview && (
-        <div className="space-y-3 px-4 py-3">
+        <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Input
               value={urlInput}
@@ -269,7 +271,7 @@ export default function TextAnalyzerSection() {
 
       {/* Step: Input — URL preview mode */}
       {step === "input" && showPreview && (
-        <div className="space-y-3 px-4 py-3">
+        <div className="space-y-3">
           {/* Character count + truncation info */}
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className="gap-1">
@@ -335,7 +337,7 @@ export default function TextAnalyzerSection() {
 
       {/* Step: Loading */}
       {step === "loading" && (
-        <div className="flex items-center justify-center gap-2 px-4 py-8 text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span className="text-sm">{t("dictionary.textAnalyzer.analyzing")}</span>
         </div>
@@ -343,7 +345,7 @@ export default function TextAnalyzerSection() {
 
       {/* Step: Review */}
       {step === "review" && (
-        <div className="space-y-3 px-4 py-3">
+        <div className="space-y-3">
           {/* Header */}
           <div className="flex items-center gap-2">
             <Badge variant="secondary">
@@ -406,6 +408,6 @@ export default function TextAnalyzerSection() {
       )}
 
       <SettingsFeedback message={feedback.message} type={feedback.type} />
-    </SettingsGroup>
+    </div>
   );
 }

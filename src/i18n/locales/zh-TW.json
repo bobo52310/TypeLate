@@ -405,6 +405,14 @@
     "bulkAddButton": "全部新增",
     "bulkAddSuccess": "已新增 {added} 個詞彙，{skipped} 個重複已略過",
     "bulkAddEmpty": "沒有可新增的詞彙",
+    "filterAll": "所有",
+    "filterAuto": "自動新增",
+    "filterManual": "手動新增",
+    "addWord": "新增單字",
+    "searchPlaceholder": "搜尋詞彙...",
+    "sortByDate": "時間",
+    "sortByTerm": "名稱",
+    "sortByWeight": "權重",
     "textAnalyzer": {
       "title": "文本詞彙分析",
       "description": "貼上文案或上傳檔案，AI 將自動擷取專業術語加入字典。",
@@ -594,9 +602,9 @@
   },
   "mainApp": {
     "nav": {
-      "dashboard": "儀表板",
+      "dashboard": "首頁",
       "history": "歷史記錄",
-      "dictionary": "自訂字典",
+      "dictionary": "字典",
       "ai": "AI 文字處理",
       "settings": "設定"
     },

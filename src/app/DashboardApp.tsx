@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const OnboardingView = lazy(() => import("@/views/OnboardingView"));
-import { BookOpen, Cloud, CloudOff, Download, FileText, LayoutDashboard, Loader2, Settings, Sparkles, type LucideIcon } from "lucide-react";
+import { BookOpen, Cloud, CloudOff, Download, History, LayoutDashboard, Loader2, Settings, Sparkles, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,7 @@ const NAV_GROUPS: NavItem[][] = [
   // Overview
   [
     { path: "/dashboard", labelKey: "mainApp.nav.dashboard", icon: LayoutDashboard },
-    { path: "/history", labelKey: "mainApp.nav.history", icon: FileText },
+    { path: "/history", labelKey: "mainApp.nav.history", icon: History },
   ],
   // Tuning
   [
@@ -82,6 +82,7 @@ const ALL_NAV_ITEMS = NAV_GROUPS.flat();
 const SETTINGS_SUB_ITEMS: { path: RoutePath; labelKey: string }[] = [
   { path: "/settings/general", labelKey: "settings.group.general" },
   { path: "/settings/voice", labelKey: "settings.group.voice" },
+  { path: "/settings/dictionary", labelKey: "settings.group.dictionary" },
   { path: "/settings/about", labelKey: "settings.group.about" },
 ];
 
