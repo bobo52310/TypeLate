@@ -190,6 +190,12 @@
       "transcriptionLanguageUpdated": "轉錄語言已更新",
       "autoDetect": "自動偵測"
     },
+    "successDisplayDuration": {
+      "label": "結果顯示時間",
+      "description": "語音辨識結果在畫面上停留的秒數",
+      "updated": "顯示時間已更新",
+      "seconds": "{value} 秒"
+    },
     "copyResultToClipboard": {
       "label": "轉錄結果存到剪貼簿",
       "description": "開啟後可重複貼上轉錄結果",
@@ -486,7 +492,7 @@
     "vocabularyLearned": "{terms}",
     "vocabularyLearnedTruncated": "{terms} 等 {count} 個",
     "correctionDetected": "偵測到修正",
-    "correctionPromptHint": "複製正確的詞 (⌘C) 即可加入",
+    "correctionPromptHint": "複製正確的詞 (⌘C) 即可新增詞彙",
     "retryFailed": "辨識失敗，請重新錄音",
     "cancelled": "已取消"
   },

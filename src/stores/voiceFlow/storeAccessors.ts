@@ -29,6 +29,7 @@ export interface SettingsStoreAccessor {
   getContextAwarePrompt: (bundleId: string | null) => string;
   getWhisperLanguageCode: () => string | null;
   isCopyResultToClipboard: boolean;
+  successDisplayDurationSec: number;
   recordingRetentionPolicy: import("@/stores/settingsStore").RecordingRetentionPolicy;
   loadSettings: () => Promise<void>;
 }

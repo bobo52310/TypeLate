@@ -75,6 +75,8 @@ export const DEFAULT_ENHANCEMENT_THRESHOLD_CHAR_COUNT = 10;
 export const DEFAULT_MUTE_ON_RECORDING = true;
 const DEFAULT_SMART_DICTIONARY_ENABLED = IS_MAC;
 const DEFAULT_SOUND_EFFECTS_ENABLED = true;
+export const DEFAULT_SUCCESS_DISPLAY_DURATION_SEC = 1.5;
+export type SuccessDisplayDurationSec = 1 | 1.5 | 2 | 3 | 5;
 const DEFAULT_PROMPT_MODE: PromptMode = "minimal";
 export type RecordingRetentionPolicy = "forever" | "30" | "14" | "7" | "none";
 const DEFAULT_RECORDING_RETENTION_POLICY: RecordingRetentionPolicy = "forever";
@@ -130,6 +132,7 @@ interface SettingsState {
   isCopyResultToClipboard: boolean;
   isContextAwareEnabled: boolean;
   contextAppOverrides: Record<string, AppCategory>;
+  successDisplayDurationSec: SuccessDisplayDurationSec;
 
   // -- Derived getters --
   triggerMode: () => TriggerMode;
@@ -182,6 +185,7 @@ interface SettingsState {
   openRecordingsFolder: () => Promise<void>;
   saveAudioInputDevice: (deviceName: string) => Promise<void>;
   saveCopyResultToClipboard: (enabled: boolean) => Promise<void>;
+  saveSuccessDisplayDuration: (sec: SuccessDisplayDurationSec) => Promise<void>;
   saveLocale: (locale: SupportedLocale) => Promise<void>;
   saveTranscriptionLocale: (locale: TranscriptionLocale) => Promise<void>;
   refreshCrossWindowSettings: () => Promise<void>;
@@ -234,6 +238,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   isCopyResultToClipboard: false,
   isContextAwareEnabled: false,
   contextAppOverrides: {} as Record<string, AppCategory>,
+  successDisplayDurationSec: DEFAULT_SUCCESS_DISPLAY_DURATION_SEC as SuccessDisplayDurationSec,
 
   // -- Derived getters --
   triggerMode: () => get().hotkeyConfig?.triggerMode ?? "toggle",
@@ -437,6 +442,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       }
       const savedAudioInputDeviceName = await store.get<string>("audioInputDeviceName");
       const savedCopyResultToClipboard = await store.get<boolean>("copyResultToClipboard");
+      const savedSuccessDisplayDurationSec = await store.get<number>("successDisplayDurationSec");
 
       // Context-aware enhancement
       const savedContextAwareEnabled = await store.get<boolean>("contextAwareEnabled");
@@ -468,6 +474,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         recordingRetentionPolicy: resolvedRetentionPolicy,
         selectedAudioInputDeviceName: savedAudioInputDeviceName ?? "",
         isCopyResultToClipboard: savedCopyResultToClipboard ?? false,
+        successDisplayDurationSec: (savedSuccessDisplayDurationSec ?? DEFAULT_SUCCESS_DISPLAY_DURATION_SEC) as SuccessDisplayDurationSec,
         isContextAwareEnabled: savedContextAwareEnabled ?? false,
         contextAppOverrides: savedContextAppOverrides ?? {},
       });
@@ -1161,6 +1168,27 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
+  saveSuccessDisplayDuration: async (sec: SuccessDisplayDurationSec) => {
+    try {
+      const store = await load(STORE_NAME);
+      await store.set("successDisplayDurationSec", sec);
+      await store.save();
+      set({ successDisplayDurationSec: sec });
+
+      const payload: SettingsUpdatedPayload = {
+        key: "successDisplayDuration",
+        value: sec,
+      };
+      await emitEvent(SETTINGS_UPDATED, payload);
+
+      logInfo("settings", `Success display duration saved: ${sec}s`);
+    } catch (err) {
+      logError("settings", "saveSuccessDisplayDuration failed:", extractErrorMessage(err));
+      captureError(err, { source: "settings", step: "save-success-display-duration" });
+      throw err;
+    }
+  },
+
   refreshCrossWindowSettings: async () => {
     try {
       const store = await load(STORE_NAME);
@@ -1222,6 +1250,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const savedRetentionPolicy = await store.get<RecordingRetentionPolicy>("recordingRetentionPolicy");
       const savedAudioDevice = await store.get<string>("audioInputDeviceName");
       const savedCopyResultToClipboard = await store.get<boolean>("copyResultToClipboard");
+      const savedSuccessDisplayDurationSec = await store.get<number>("successDisplayDurationSec");
 
       set({
         hotkeyConfig: {
@@ -1252,6 +1281,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         recordingRetentionPolicy: savedRetentionPolicy ?? DEFAULT_RECORDING_RETENTION_POLICY,
         selectedAudioInputDeviceName: savedAudioDevice ?? "",
         isCopyResultToClipboard: savedCopyResultToClipboard ?? false,
+        successDisplayDurationSec: (savedSuccessDisplayDurationSec ?? DEFAULT_SUCCESS_DISPLAY_DURATION_SEC) as SuccessDisplayDurationSec,
       });
     } catch (err) {
       logError(

@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
-import { useSettingsStore } from "@/stores/settingsStore";
+import { useSettingsStore, type SuccessDisplayDurationSec } from "@/stores/settingsStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import {
   LANGUAGE_OPTIONS,
@@ -17,6 +17,8 @@ import {
   type SupportedLocale,
   type TranscriptionLocale,
 } from "@/i18n/languageConfig";
+
+const DURATION_OPTIONS: SuccessDisplayDurationSec[] = [1, 1.5, 2, 3, 5];
 
 export default function AppSection() {
   const { t } = useTranslation();
@@ -26,11 +28,13 @@ export default function AppSection() {
   const selectedTranscriptionLocale = useSettingsStore((s) => s.selectedTranscriptionLocale);
   const isAutoStartEnabled = useSettingsStore((s) => s.isAutoStartEnabled);
   const isCopyResultToClipboard = useSettingsStore((s) => s.isCopyResultToClipboard);
+  const successDisplayDurationSec = useSettingsStore((s) => s.successDisplayDurationSec);
   const saveLocale = useSettingsStore((s) => s.saveLocale);
   const saveTranscriptionLocale = useSettingsStore((s) => s.saveTranscriptionLocale);
   const toggleAutoStart = useSettingsStore((s) => s.toggleAutoStart);
   const loadAutoStartStatus = useSettingsStore((s) => s.loadAutoStartStatus);
   const saveCopyResultToClipboard = useSettingsStore((s) => s.saveCopyResultToClipboard);
+  const saveSuccessDisplayDuration = useSettingsStore((s) => s.saveSuccessDisplayDuration);
 
   const [isTogglingAutoStart, setIsTogglingAutoStart] = useState(false);
 
@@ -65,6 +69,16 @@ export default function AppSection() {
           ? t("settings.copyResultToClipboard.enabled")
           : t("settings.copyResultToClipboard.disabled"),
       );
+    } catch (err) {
+      feedback.show("error", err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleSuccessDisplayDurationChange(value: string) {
+    try {
+      const sec = Number(value) as SuccessDisplayDurationSec;
+      await saveSuccessDisplayDuration(sec);
+      feedback.show("success", t("settings.successDisplayDuration.updated"));
     } catch (err) {
       feedback.show("error", err instanceof Error ? err.message : String(err));
     }
@@ -136,6 +150,28 @@ export default function AppSection() {
           checked={isCopyResultToClipboard}
           onCheckedChange={(val) => void handleToggleCopyResultToClipboard(val)}
         />
+      </SettingsRow>
+
+      <SettingsRow
+        label={t("settings.successDisplayDuration.label")}
+        description={t("settings.successDisplayDuration.description")}
+        htmlFor="success-display-duration"
+      >
+        <Select
+          value={String(successDisplayDurationSec)}
+          onValueChange={(val) => void handleSuccessDisplayDurationChange(val)}
+        >
+          <SelectTrigger id="success-display-duration" className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DURATION_OPTIONS.map((sec) => (
+              <SelectItem key={sec} value={String(sec)}>
+                {t("settings.successDisplayDuration.seconds", { value: sec })}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </SettingsRow>
 
       <SettingsRow

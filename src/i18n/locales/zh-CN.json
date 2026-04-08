@@ -190,6 +190,12 @@
       "transcriptionLanguageUpdated": "转录语言已更新",
       "autoDetect": "自动检测"
     },
+    "successDisplayDuration": {
+      "label": "结果显示时间",
+      "description": "语音识别结果在画面上停留的秒数",
+      "updated": "显示时间已更新",
+      "seconds": "{value} 秒"
+    },
     "copyResultToClipboard": {
       "label": "转录结果存到剪贴板",
       "description": "开启后可重复粘贴转录结果",
@@ -486,7 +492,7 @@
     "vocabularyLearned": "{terms}",
     "vocabularyLearnedTruncated": "{terms} 等 {count} 个",
     "correctionDetected": "检测到修正",
-    "correctionPromptHint": "复制正确的词 (⌘C) 即可加入",
+    "correctionPromptHint": "复制正确的词 (⌘C) 即可新增词汇",
     "retryFailed": "识别失败，请重新录音",
     "cancelled": "已取消"
   },

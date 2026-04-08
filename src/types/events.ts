@@ -34,7 +34,8 @@ export type SettingsKey =
   | "soundEffectsEnabled"
   | "promptMode"
   | "audioInputDevice"
-  | "contextAwareEnabled";
+  | "contextAwareEnabled"
+  | "successDisplayDuration";
 
 export interface SettingsUpdatedPayload {
   key: SettingsKey;

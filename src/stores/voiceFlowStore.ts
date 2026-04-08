@@ -79,7 +79,7 @@ import {
 
 // ── Constants ──
 
-const SUCCESS_DISPLAY_DURATION_MS = 1000;
+const DEFAULT_SUCCESS_DISPLAY_DURATION_MS = 1500;
 const ERROR_DISPLAY_DURATION_MS = 3000;
 const ERROR_WITH_RETRY_DISPLAY_DURATION_MS = 6000;
 const CANCELLED_DISPLAY_DURATION_MS = 1000;
@@ -195,9 +195,16 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
       writeErrorLog(`voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`);
       captureError(err, { source: "voice-flow", step: "showHud" });
     });
+    const successDurationMs = (() => {
+      try {
+        return getSettingsStoreFromAccessors().successDisplayDurationSec * 1000;
+      } catch {
+        return DEFAULT_SUCCESS_DISPLAY_DURATION_MS;
+      }
+    })();
     setAutoHideTimer(() => {
       transitionTo("idle");
-    }, SUCCESS_DISPLAY_DURATION_MS);
+    }, successDurationMs);
     return;
   }
 

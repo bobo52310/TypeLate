@@ -190,6 +190,12 @@
       "transcriptionLanguageUpdated": "Transcription language updated",
       "autoDetect": "Auto Detect"
     },
+    "successDisplayDuration": {
+      "label": "Result display duration",
+      "description": "How long the transcription result stays visible",
+      "updated": "Display duration updated",
+      "seconds": "{value} sec"
+    },
     "copyResultToClipboard": {
       "label": "Copy result to clipboard",
       "description": "Enable to paste the result again from clipboard",

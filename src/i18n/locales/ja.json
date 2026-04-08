@@ -190,6 +190,12 @@
       "transcriptionLanguageUpdated": "文字起こし言語が更新されました",
       "autoDetect": "自動検出"
     },
+    "successDisplayDuration": {
+      "label": "結果表示時間",
+      "description": "文字起こし結果が画面に表示される秒数",
+      "updated": "表示時間が更新されました",
+      "seconds": "{value} 秒"
+    },
     "copyResultToClipboard": {
       "label": "文字起こし結果をクリップボードに保存",
       "description": "オンにすると文字起こし結果を再度貼り付けできます",
