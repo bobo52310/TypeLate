@@ -4,15 +4,9 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
 import { KeyRound, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useSettingsStore } from "@/stores/settingsStore";
-import {
-  formatTimestamp,
-  truncateText,
-  getDisplayText,
-} from "@/lib/formatUtils";
 import { useQuotaInfo } from "@/hooks/useQuotaInfo";
 import { useRateLimitStore, type RateLimitPayload } from "@/stores/rateLimitStore";
 import HeroMetricCard from "@/components/dashboard/HeroMetricCard";
@@ -28,7 +22,6 @@ export default function DashboardView() {
   const { t } = useTranslation();
   const refreshDashboard = useHistoryStore((s) => s.refreshDashboard);
   const dashboardStats = useHistoryStore((s) => s.dashboardStats);
-  const recentTranscriptionList = useHistoryStore((s) => s.recentTranscriptionList);
   const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
 
   const apiKey = useSettingsStore((s) => s.apiKey);
@@ -72,10 +65,6 @@ export default function DashboardView() {
       for (const fn of unlistenFns) fn();
     };
   }, [refreshDashboard]);
-
-  function navigateToHistory() {
-    window.location.hash = "#/history";
-  }
 
   function openCommunityUrl() {
     void open(COMMUNITY_URL);
@@ -212,50 +201,6 @@ export default function DashboardView() {
                     .replace("-", "/")}
                 </span>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent transcriptions */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle className="text-base">{t("dashboard.recentTranscriptions")}</CardTitle>
-          {recentTranscriptionList.length > 0 && (
-            <Button variant="link" onClick={navigateToHistory}>
-              {t("dashboard.viewAll")}
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent>
-          {recentTranscriptionList.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-muted-foreground">
-              {t("dashboard.emptyState")}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {recentTranscriptionList.map((record) => (
-                <Button
-                  key={record.id}
-                  variant="ghost"
-                  className="flex h-auto w-full flex-col items-start rounded-lg border border-border px-4 py-3 text-left"
-                  onClick={navigateToHistory}
-                >
-                  <div className="flex w-full items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {formatTimestamp(record.timestamp)}
-                    </span>
-                    {record.wasEnhanced && (
-                      <Badge className="border-0 bg-primary/20 text-primary">
-                        {t("dashboard.aiEnhanced")}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="mt-1 w-full truncate text-sm text-muted-foreground">
-                    {truncateText(getDisplayText(record))}
-                  </p>
-                </Button>
-              ))}
             </div>
           )}
         </CardContent>
