@@ -629,6 +629,15 @@
       "cancel": "取消",
       "startUpdate": "開始更新"
     },
+    "updateDialog": {
+      "title": "TypeLate 有新版本可以更新！",
+      "versionComparison": "TypeLate {{newVersion}} 已經推出 — 你目前使用 {{currentVersion}}。",
+      "whatsNew": "V{{version}} 更新內容",
+      "skipVersion": "跳過此版本",
+      "remindLater": "稍後提醒",
+      "installUpdate": "安裝更新",
+      "defaultChangelogItem": "錯誤修正與效能改善"
+    },
     "upgradeNotice": {
       "title": "TypeLate 更新摘要",
       "item1": "1. 安全修正：macOS 上選擇麥克風後停止錄音，麥克風不會關閉的問題已修復",

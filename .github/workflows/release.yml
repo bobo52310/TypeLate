@@ -199,7 +199,7 @@ jobs:
           echo "RELEASE_TAG=$RAW_TAG" >> "$GITHUB_ENV"
           echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
 
-      - name: Clean up duplicate and unnecessary assets
+      - name: Clean up duplicate assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -214,32 +214,101 @@ jobs:
           # Delete Tauri-named NSIS exe (replaced by custom-named one)
           gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64-setup.exe" --yes 2>/dev/null || true
 
-          # Delete .sig files (signatures are already embedded in latest.json)
-          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64-setup.exe.sig" --yes 2>/dev/null || true
-          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_aarch64.app.tar.gz.sig" --yes 2>/dev/null || true
-          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_x64.app.tar.gz.sig" --yes 2>/dev/null || true
-
           # Delete MSI artifacts (in case they were built)
           gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64_en-US.msi" --yes 2>/dev/null || true
           gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64_en-US.msi.sig" --yes 2>/dev/null || true
 
-      - name: Update latest.json to reference custom-named Windows installer
+      - name: Consolidate latest.json from all platform signatures
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           REPO="${GITHUB_REPOSITORY}"
           TAG="${RELEASE_TAG}"
           VER="${RELEASE_VERSION}"
+          BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
 
-          # Download current latest.json
-          gh release download "$TAG" --repo "$REPO" -p "latest.json" -D /tmp --clobber
+          # Download signature files (uploaded by tauri-action per platform)
+          mkdir -p /tmp/sigs
+          gh release download "$TAG" --repo "$REPO" -p "*.sig" -D /tmp/sigs --clobber 2>/dev/null || true
+          gh release download "$TAG" --repo "$REPO" -p "latest.json" -D /tmp --clobber 2>/dev/null || true
 
-          # Replace Tauri-named Windows exe URL with custom name
-          sed -i "s|TypeLate_[0-9.]*_x64-setup\.exe|TypeLate-v${VER}-windows-x64.exe|g" /tmp/latest.json
+          # Read signatures (base64-encoded content of .sig files)
+          MAC_ARM64_SIG=""
+          MAC_X64_SIG=""
+          WIN_X64_SIG=""
 
-          # Re-upload modified latest.json
+          if [ -f "/tmp/sigs/TypeLate_aarch64.app.tar.gz.sig" ]; then
+            MAC_ARM64_SIG=$(cat "/tmp/sigs/TypeLate_aarch64.app.tar.gz.sig")
+          fi
+          if [ -f "/tmp/sigs/TypeLate_x64.app.tar.gz.sig" ]; then
+            MAC_X64_SIG=$(cat "/tmp/sigs/TypeLate_x64.app.tar.gz.sig")
+          fi
+          if [ -f "/tmp/sigs/TypeLate_${VER}_x64-setup.exe.sig" ]; then
+            WIN_X64_SIG=$(cat "/tmp/sigs/TypeLate_${VER}_x64-setup.exe.sig")
+          elif [ -f "/tmp/latest.json" ]; then
+            # Fallback: extract Windows sig from existing latest.json
+            WIN_X64_SIG=$(python3 -c "
+          import json, sys
+          with open('/tmp/latest.json') as f:
+              data = json.load(f)
+          for key in ['windows-x86_64', 'windows-x86_64-nsis']:
+              if key in data.get('platforms', {}):
+                  print(data['platforms'][key].get('signature', ''))
+                  sys.exit(0)
+          " 2>/dev/null || true)
+          fi
+
+          # Build consolidated latest.json with all available platforms
+          python3 -c "
+          import json, datetime
+
+          platforms = {}
+
+          mac_arm64_sig = '''${MAC_ARM64_SIG}'''
+          mac_x64_sig = '''${MAC_X64_SIG}'''
+          win_x64_sig = '''${WIN_X64_SIG}'''
+          base_url = '${BASE_URL}'
+          ver = '${VER}'
+
+          if mac_arm64_sig.strip():
+              platforms['darwin-aarch64'] = {
+                  'signature': mac_arm64_sig.strip(),
+                  'url': f'{base_url}/TypeLate_aarch64.app.tar.gz'
+              }
+
+          if mac_x64_sig.strip():
+              platforms['darwin-x86_64'] = {
+                  'signature': mac_x64_sig.strip(),
+                  'url': f'{base_url}/TypeLate_x64.app.tar.gz'
+              }
+
+          if win_x64_sig.strip():
+              platforms['windows-x86_64'] = {
+                  'signature': win_x64_sig.strip(),
+                  'url': f'{base_url}/TypeLate-v{ver}-windows-x64.exe'
+              }
+
+          result = {
+              'version': ver,
+              'notes': 'See the assets to download and install this version.',
+              'pub_date': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+              'platforms': platforms
+          }
+
+          with open('/tmp/latest.json', 'w') as f:
+              json.dump(result, f, indent=2)
+
+          print(f'Consolidated latest.json with platforms: {list(platforms.keys())}')
+          "
+
+          # Upload consolidated latest.json
           gh release delete-asset "$TAG" --repo "$REPO" "latest.json" --yes 2>/dev/null || true
           gh release upload "$TAG" --repo "$REPO" /tmp/latest.json
+
+          # Clean up .sig files from release (signatures are now in latest.json)
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_${VER}_x64-setup.exe.sig" --yes 2>/dev/null || true
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_aarch64.app.tar.gz.sig" --yes 2>/dev/null || true
+          gh release delete-asset "$TAG" --repo "$REPO" "TypeLate_x64.app.tar.gz.sig" --yes 2>/dev/null || true
 
       - uses: actions/checkout@v4
         with:
@@ -291,6 +360,32 @@ jobs:
 
             echo 'NOTES_EOF'
           } >> "$GITHUB_ENV"
+
+      - name: Inject release notes into latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${RELEASE_TAG}"
+          REPO="${GITHUB_REPOSITORY}"
+
+          gh release download "$TAG" --repo "$REPO" -p "latest.json" -D /tmp --clobber
+
+          python3 -c "
+          import json, os
+
+          notes = os.environ.get('RELEASE_NOTES', 'See the assets to download and install this version.')
+
+          with open('/tmp/latest.json') as f:
+              data = json.load(f)
+
+          data['notes'] = notes
+
+          with open('/tmp/latest.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          "
+
+          gh release delete-asset "$TAG" --repo "$REPO" "latest.json" --yes 2>/dev/null || true
+          gh release upload "$TAG" --repo "$REPO" /tmp/latest.json
 
       - name: Publish GitHub Release
         env:

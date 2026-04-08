@@ -621,6 +621,15 @@
       "cancel": "取消",
       "startUpdate": "开始更新"
     },
+    "updateDialog": {
+      "title": "TypeLate 有新版本可以更新！",
+      "versionComparison": "TypeLate {{newVersion}} 已经推出 — 你目前使用 {{currentVersion}}。",
+      "whatsNew": "V{{version}} 更新内容",
+      "skipVersion": "跳过此版本",
+      "remindLater": "稍后提醒",
+      "installUpdate": "安装更新",
+      "defaultChangelogItem": "错误修正与性能改善"
+    },
     "upgradeNotice": {
       "title": "TypeLate 更新摘要",
       "item1": "1. 安全修复：macOS 上选择麦克风后停止录音，麦克风不会关闭的问题已修复",

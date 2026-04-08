@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { UpdateAvailableDialog } from "@/components/UpdateAvailableDialog";
 import {
   Sidebar,
   SidebarContent,
@@ -88,7 +89,7 @@ const SETTINGS_SUB_ITEMS: { path: RoutePath; labelKey: string }[] = [
 
 // ── Update UI types ──
 
-type UpdateUiState = "idle" | "checking" | "downloading" | "ready-to-install" | "installing";
+type UpdateUiState = "idle" | "checking" | "update-available" | "downloading" | "ready-to-install" | "installing";
 
 const AUTO_CHECK_INITIAL_DELAY_MS = 5_000;
 const AUTO_CHECK_INTERVAL_MS = 15 * 60_000; // 15 minutes
@@ -172,8 +173,12 @@ export function DashboardApp() {
   const [availableVersion, setAvailableVersion] = useState("");
   const updateFeedback = useFeedbackMessage();
 
+  // Update dialog state
+  const [releaseBody, setReleaseBody] = useState("");
+  const [showUpdateAvailableDialog, setShowUpdateAvailableDialog] = useState(false);
+  const [isUpdateDownloading, setIsUpdateDownloading] = useState(false);
+
   // AlertDialog visibility
-  const [showAutoInstallDialog, setShowAutoInstallDialog] = useState(false);
   const [showManualUpdateDialog, setShowManualUpdateDialog] = useState(false);
   const [showUpgradeNoticeDialog, setShowUpgradeNoticeDialog] = useState(false);
 
@@ -206,32 +211,33 @@ export function DashboardApp() {
 
   // ── Auto-update flow ──
 
-  const autoCheckAndDownload = useCallback(async () => {
+  const autoCheckForUpdate = useCallback(async () => {
     // Only proceed when idle to avoid concurrent checks
     const currentState = updateStateRef.current;
     if (currentState !== "idle") return;
 
     try {
-      const { checkForAppUpdate, downloadUpdate } = await import("@/lib/autoUpdater");
+      const { checkForAppUpdate } = await import("@/lib/autoUpdater");
       const result = await checkForAppUpdate();
 
       if (result.status !== "update-available" || !result.version) return;
 
+      // Skip if user chose to skip this version
+      const skipped = useSettingsStore.getState().skippedUpdateVersion;
+      if (result.version === skipped) return;
+
       setAvailableVersion(result.version);
-      setUpdateState("downloading");
+      setReleaseBody(result.body ?? "");
+      setUpdateState("update-available");
 
-      await downloadUpdate();
-
-      setUpdateState("ready-to-install");
-
-      // Show Dashboard window and prompt for install
+      // Show Dashboard window and prompt user
       const currentWindow = getCurrentWindow();
       await currentWindow.show();
       await currentWindow.setFocus();
 
-      setShowAutoInstallDialog(true);
+      setShowUpdateAvailableDialog(true);
     } catch (err) {
-      logError("dashboard", "Auto update check/download failed", err);
+      logError("dashboard", "Auto update check failed", err);
       captureError(err, { source: "updater", step: "auto-check" });
       setUpdateState("idle");
     }
@@ -243,27 +249,34 @@ export function DashboardApp() {
     updateStateRef.current = updateState;
   }, [updateState]);
 
-  const handleAutoInstall = useCallback(async () => {
-    setShowAutoInstallDialog(false);
-    setUpdateState("installing");
+  const handleInstallUpdate = useCallback(async () => {
+    setIsUpdateDownloading(true);
     try {
-      const { installAndRelaunch } = await import("@/lib/autoUpdater");
-      await installAndRelaunch();
+      const { downloadInstallAndRelaunch } = await import("@/lib/autoUpdater");
+      await downloadInstallAndRelaunch();
     } catch (err) {
-      logError("dashboard", "Auto install failed", err);
-      updateFeedback.show("error", t("mainApp.update.installFailed"));
+      logError("dashboard", "Update install failed", err);
+      updateFeedback.show("error", t("mainApp.update.updateFailed"));
+      setIsUpdateDownloading(false);
+      setShowUpdateAvailableDialog(false);
       setUpdateState("idle");
-      setAvailableVersion("");
     }
   }, [t, updateFeedback]);
 
-  const handleAutoInstallLater = useCallback(() => {
-    setShowAutoInstallDialog(false);
-    // Keep ready-to-install state — icon rail still shows indicator
+  const handleSkipVersion = useCallback(() => {
+    setShowUpdateAvailableDialog(false);
+    setUpdateState("idle");
+    void useSettingsStore.getState().saveSkippedUpdateVersion(availableVersion);
+    setAvailableVersion("");
+  }, [availableVersion]);
+
+  const handleRemindLater = useCallback(() => {
+    setShowUpdateAvailableDialog(false);
+    setUpdateState("idle");
   }, []);
 
   const handleSidebarInstall = useCallback(() => {
-    setShowAutoInstallDialog(true);
+    setShowUpdateAvailableDialog(true);
   }, []);
 
   // ── Manual update flow ──
@@ -336,9 +349,9 @@ export function DashboardApp() {
 
       // Auto-update schedule: 5s delay, then every 15 min
       autoCheckTimeoutRef.current = setTimeout(() => {
-        void autoCheckAndDownload();
+        void autoCheckForUpdate();
         autoCheckIntervalRef.current = setInterval(
-          () => void autoCheckAndDownload(),
+          () => void autoCheckForUpdate(),
           AUTO_CHECK_INTERVAL_MS,
         );
       }, AUTO_CHECK_INITIAL_DELAY_MS);
@@ -360,7 +373,7 @@ export function DashboardApp() {
       if (autoCheckIntervalRef.current) clearInterval(autoCheckIntervalRef.current);
       cleanupAutoSync();
     };
-  }, [autoCheckAndDownload]);
+  }, [autoCheckForUpdate]);
 
   // ── Recording auto-cleanup (runs when retention policy changes) ──
   useEffect(() => {
@@ -505,7 +518,7 @@ export function DashboardApp() {
                     )
                   )}
                 </div>
-                {updateState === "ready-to-install" && (
+                {(updateState === "update-available" || updateState === "ready-to-install") && (
                   <Button
                     size="sm"
                     className="h-6 gap-1 px-2 text-xs"
@@ -550,27 +563,17 @@ export function DashboardApp() {
         onClose={() => setShowAccessibilityGuide(false)}
       />
 
-      {/* Auto-install AlertDialog: update downloaded, ask to install & restart */}
-      <AlertDialog open={showAutoInstallDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("mainApp.update.autoInstallTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("mainApp.update.autoInstallDescription", {
-                version: availableVersion,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleAutoInstallLater}>
-              {t("mainApp.update.later")}
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleAutoInstall}>
-              {t("mainApp.update.installRestart")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Update available dialog: rich changelog + skip/remind/install */}
+      <UpdateAvailableDialog
+        open={showUpdateAvailableDialog}
+        newVersion={availableVersion}
+        currentVersion={APP_VERSION}
+        releaseBody={releaseBody}
+        isDownloading={isUpdateDownloading}
+        onSkipVersion={handleSkipVersion}
+        onRemindLater={handleRemindLater}
+        onInstallUpdate={handleInstallUpdate}
+      />
 
       {/* Upgrade notice AlertDialog */}
       <AlertDialog open={showUpgradeNoticeDialog}>

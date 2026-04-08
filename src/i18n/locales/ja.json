@@ -621,6 +621,15 @@
       "cancel": "キャンセル",
       "startUpdate": "更新を開始"
     },
+    "updateDialog": {
+      "title": "TypeLate の新しいバージョンが利用可能です！",
+      "versionComparison": "TypeLate {{newVersion}} が公開されました — 現在のバージョンは {{currentVersion}} です。",
+      "whatsNew": "V{{version}} の新機能",
+      "skipVersion": "このバージョンをスキップ",
+      "remindLater": "後で通知",
+      "installUpdate": "アップデート",
+      "defaultChangelogItem": "バグ修正とパフォーマンスの改善"
+    },
     "upgradeNotice": {
       "title": "TypeLate アップデート概要",
       "item1": "1. セキュリティ修正：macOS でマイクを選択後、録音停止してもマイクが解放されない問題を修正",

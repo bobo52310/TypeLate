@@ -5,6 +5,8 @@ import { logInfo, logError } from "@/lib/logger";
 export interface UpdateCheckResult {
   status: "up-to-date" | "update-available" | "error";
   version?: string;
+  currentVersion?: string;
+  body?: string;
   error?: string;
 }
 
@@ -25,7 +27,12 @@ export async function checkForAppUpdate(): Promise<UpdateCheckResult> {
 
     logInfo("updater", `Update available: v${update.version}`);
     pendingUpdate = update;
-    return { status: "update-available", version: update.version };
+    return {
+      status: "update-available",
+      version: update.version,
+      currentVersion: update.currentVersion,
+      body: update.body,
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logError("updater", `Update check failed: ${message}`);

@@ -133,6 +133,7 @@ interface SettingsState {
   isContextAwareEnabled: boolean;
   contextAppOverrides: Record<string, AppCategory>;
   successDisplayDurationSec: SuccessDisplayDurationSec;
+  skippedUpdateVersion: string;
 
   // -- Derived getters --
   triggerMode: () => TriggerMode;
@@ -188,6 +189,7 @@ interface SettingsState {
   saveSuccessDisplayDuration: (sec: SuccessDisplayDurationSec) => Promise<void>;
   saveLocale: (locale: SupportedLocale) => Promise<void>;
   saveTranscriptionLocale: (locale: TranscriptionLocale) => Promise<void>;
+  saveSkippedUpdateVersion: (version: string) => Promise<void>;
   refreshCrossWindowSettings: () => Promise<void>;
   loadAutoStartStatus: () => Promise<void>;
   toggleAutoStart: () => Promise<void>;
@@ -239,6 +241,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   isContextAwareEnabled: false,
   contextAppOverrides: {} as Record<string, AppCategory>,
   successDisplayDurationSec: DEFAULT_SUCCESS_DISPLAY_DURATION_SEC as SuccessDisplayDurationSec,
+  skippedUpdateVersion: "",
 
   // -- Derived getters --
   triggerMode: () => get().hotkeyConfig?.triggerMode ?? "toggle",
@@ -448,6 +451,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const savedContextAwareEnabled = await store.get<boolean>("contextAwareEnabled");
       const savedContextAppOverrides = await store.get<Record<string, AppCategory>>("contextAppOverrides");
 
+      // Skipped update version
+      const savedSkippedUpdateVersion = await store.get<string>("skippedUpdateVersion");
+
       set({
         hotkeyConfig: { triggerKey: key, triggerMode: mode },
         selectedProviderId: resolvedProviderId,
@@ -477,6 +483,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         successDisplayDurationSec: (savedSuccessDisplayDurationSec ?? DEFAULT_SUCCESS_DISPLAY_DURATION_SEC) as SuccessDisplayDurationSec,
         isContextAwareEnabled: savedContextAwareEnabled ?? false,
         contextAppOverrides: savedContextAppOverrides ?? {},
+        skippedUpdateVersion: savedSkippedUpdateVersion ?? "",
       });
 
       // Sync saved config to Rust on startup
@@ -1186,6 +1193,19 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       logError("settings", "saveSuccessDisplayDuration failed:", extractErrorMessage(err));
       captureError(err, { source: "settings", step: "save-success-display-duration" });
       throw err;
+    }
+  },
+
+  saveSkippedUpdateVersion: async (version: string) => {
+    try {
+      const store = await load(STORE_NAME);
+      await store.set("skippedUpdateVersion", version);
+      await store.save();
+      set({ skippedUpdateVersion: version });
+      logInfo("settings", `Skipped update version: ${version}`);
+    } catch (err) {
+      logError("settings", "saveSkippedUpdateVersion failed:", extractErrorMessage(err));
+      captureError(err, { source: "settings", step: "skip-update" });
     }
   },
 

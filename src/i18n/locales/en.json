@@ -629,6 +629,15 @@
       "cancel": "Cancel",
       "startUpdate": "Start Update"
     },
+    "updateDialog": {
+      "title": "A new version of TypeLate is available!",
+      "versionComparison": "TypeLate {{newVersion}} is now available — you have {{currentVersion}}.",
+      "whatsNew": "What's New in V{{version}}",
+      "skipVersion": "Skip This Version",
+      "remindLater": "Remind Me Later",
+      "installUpdate": "Install Update",
+      "defaultChangelogItem": "Bug fixes and performance improvements"
+    },
     "upgradeNotice": {
       "title": "TypeLate Update Summary",
       "item1": "1. Security fix: microphone stays active after stopping recording on macOS when a specific device is selected — now fixed",
