@@ -185,15 +185,25 @@ pub fn paste_text<R: Runtime>(
     }
 
     // 5) 背景還原原始剪貼簿內容（延遲 500ms 確保目標 app 完成貼上處理）
-    if let Some(original) = original_clipboard {
+    if preserve_clipboard {
         thread::spawn(move || {
             thread::sleep(Duration::from_millis(500));
             match Clipboard::new() {
                 Ok(mut cb) => {
-                    if let Err(e) = cb.set_text(&original) {
-                        eprintln!("[clipboard-paste] Failed to restore clipboard: {}", e);
+                    if let Some(original) = original_clipboard {
+                        if let Err(e) = cb.set_text(&original) {
+                            eprintln!("[clipboard-paste] Failed to restore clipboard: {}", e);
+                        } else {
+                            println!("[clipboard-paste] Original clipboard restored");
+                        }
                     } else {
-                        println!("[clipboard-paste] Original clipboard restored");
+                        // Original clipboard was empty or non-text — clear it
+                        // so the transcription text doesn't linger
+                        if let Err(e) = cb.clear() {
+                            eprintln!("[clipboard-paste] Failed to clear clipboard: {}", e);
+                        } else {
+                            println!("[clipboard-paste] Clipboard cleared (original was empty/non-text)");
+                        }
                     }
                 }
                 Err(e) => {
