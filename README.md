@@ -123,6 +123,18 @@ Runs on macOS (Apple Silicon and Intel) and Windows.
 | macOS (Intel)         | [TypeLate-mac-x64.dmg](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-mac-x64.dmg)         |
 | Windows               | [TypeLate-windows-x64.exe](https://github.com/bobo52310/TypeLate/releases/latest/download/TypeLate-windows-x64.exe) |
 
+### macOS: First launch (unsigned build)
+
+TypeLate is currently distributed without an Apple Developer signature, so
+macOS Gatekeeper will block the first launch. To open it:
+
+1. Drag **TypeLate.app** into your **Applications** folder.
+2. Double-click — macOS will show _"TypeLate cannot be opened because the developer cannot be verified"_.
+3. Open **System Settings → Privacy & Security**, scroll to the bottom, and click **Open Anyway** next to the TypeLate warning.
+4. Confirm **Open** in the next dialog.
+
+> **Upgrading from a previous version?** Open **Privacy & Security → Accessibility**, remove the old TypeLate entry with the `—` button, then re-add the new one after first launch. macOS caches Accessibility permission against the code signature, so stale entries look checked but don't actually grant access — this is the #1 cause of "hotkey doesn't work after update".
+
 ## Quick Start
 
 1. Download and install TypeLate for your platform.

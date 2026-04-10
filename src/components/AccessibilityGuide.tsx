@@ -6,6 +6,10 @@ import { captureError } from "@/lib/sentry";
 import { ShieldCheck, ExternalLink } from "lucide-react";
 
 const PERMISSION_CHECK_INTERVAL_MS = 2000;
+// After this much time without detecting permission, assume the user has a
+// stale TCC entry (common when reinstalling / upgrading an unsigned build
+// where the code signature changed) and surface a hint to re-add the entry.
+const STALE_ENTRY_HINT_DELAY_MS = 15000;
 
 interface AccessibilityGuideProps {
   visible: boolean;
@@ -18,6 +22,7 @@ export function AccessibilityGuide({ visible, onClose }: AccessibilityGuideProps
   const { t } = useTranslation();
   const [isReinitializing, setIsReinitializing] = useState(false);
   const [reinitializeError, setReinitializeError] = useState<string | null>(null);
+  const [showStaleEntryHint, setShowStaleEntryHint] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -37,9 +42,13 @@ export function AccessibilityGuide({ visible, onClose }: AccessibilityGuideProps
   useEffect(() => {
     if (!visible) return;
     setReinitializeError(null);
+    setShowStaleEntryHint(false);
     primaryButtonRef.current?.focus();
 
     let cancelled = false;
+    const staleHintTimer = setTimeout(() => {
+      if (!cancelled) setShowStaleEntryHint(true);
+    }, STALE_ENTRY_HINT_DELAY_MS);
     const intervalId = setInterval(async () => {
       if (cancelled) return;
       try {
@@ -65,6 +74,7 @@ export function AccessibilityGuide({ visible, onClose }: AccessibilityGuideProps
     return () => {
       cancelled = true;
       clearInterval(intervalId);
+      clearTimeout(staleHintTimer);
     };
   }, [visible]);
 
@@ -138,6 +148,11 @@ export function AccessibilityGuide({ visible, onClose }: AccessibilityGuideProps
           <p className="text-sm text-primary">{t("accessibility.reinitializing")}</p>
         )}
         {reinitializeError && <p className="text-sm text-destructive">{reinitializeError}</p>}
+        {showStaleEntryHint && !isReinitializing && (
+          <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs leading-relaxed text-foreground">
+            {t("accessibility.staleEntryHint")}
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           <Button

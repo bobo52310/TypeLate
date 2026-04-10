@@ -489,7 +489,8 @@
     "reinitializing": "권한이 감지되었습니다. 단축키를 활성화하는 중...",
     "reinitializeError": "단축키 재초기화에 실패했습니다. 앱을 다시 시작해주세요.",
     "openSettings": "시스템 설정 열기",
-    "later": "나중에 설정"
+    "later": "나중에 설정",
+    "staleEntryHint": "체크했는데도 작동하지 않나요? 목록에서 TypeLate를 선택하고 \"−\" 버튼으로 제거한 다음 위 버튼으로 다시 추가해 주세요. macOS는 이전 버전의 코드 서명에 접근성 권한을 연결하므로 업데이트 후에는 다시 추가해야 합니다."
   },
   "voiceFlow": {
     "noSpeechDetected": "음성이 감지되지 않았습니다",

@@ -489,7 +489,8 @@
     "reinitializing": "偵測到權限已授予，正在啟用快捷鍵...",
     "reinitializeError": "快捷鍵重新初始化失敗，請重新啟動應用程式。",
     "openSettings": "開啟系統設定",
-    "later": "稍後設定"
+    "later": "稍後設定",
+    "staleEntryHint": "已勾選但還是沒反應？請在清單中選取 TypeLate 並點擊「−」移除，再重新透過上方按鈕加入。macOS 會把權限綁在舊版本的簽章上，升級後需要重新加入才能生效。"
   },
   "voiceFlow": {
     "noSpeechDetected": "未偵測到語音",

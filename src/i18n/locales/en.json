@@ -489,7 +489,8 @@
     "reinitializing": "Permission detected. Activating hotkey...",
     "reinitializeError": "Failed to reinitialize hotkey. Please restart the application.",
     "openSettings": "Open System Settings",
-    "later": "Later"
+    "later": "Later",
+    "staleEntryHint": "Already ticked but still not working? Select TypeLate in the list, click the \"−\" button to remove it, then re-add it via the button above. macOS ties Accessibility permission to the previous version's code signature, so upgrades require re-adding the entry."
   },
   "voiceFlow": {
     "noSpeechDetected": "No speech detected",

@@ -489,7 +489,8 @@
     "reinitializing": "检测到权限已授予，正在启用快捷键...",
     "reinitializeError": "快捷键重新初始化失败，请重新启动应用程序。",
     "openSettings": "打开系统设置",
-    "later": "稍后设置"
+    "later": "稍后设置",
+    "staleEntryHint": "已勾选但还是没反应？请在列表中选中 TypeLate 并点击「−」移除，再重新通过上方按钮加入。macOS 会把权限绑定在旧版本的签名上，升级后需要重新加入才能生效。"
   },
   "voiceFlow": {
     "noSpeechDetected": "未检测到语音",
