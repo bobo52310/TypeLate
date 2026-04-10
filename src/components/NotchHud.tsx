@@ -107,6 +107,7 @@ function getWaveformElementClass(mode: VisualMode): string {
 const ALL_PROMPT_MODES: PromptMode[] = ["minimal", "active", "custom"];
 
 const MODE_LABEL_KEYS: Record<PromptMode, string> = {
+  none: "settings.prompt.modeNone",
   minimal: "settings.prompt.modeMinimal",
   active: "settings.prompt.modeActive",
   custom: "settings.prompt.modeCustom",
@@ -643,11 +644,13 @@ export function NotchHud({
 
     if (visualMode === "recording") {
       const modeLabelKey =
-        promptMode === "active"
-          ? "settings.prompt.modeActive"
-          : promptMode === "custom"
-            ? "settings.prompt.modeCustom"
-            : "settings.prompt.modeMinimal";
+        promptMode === "none"
+          ? "settings.prompt.modeNone"
+          : promptMode === "active"
+            ? "settings.prompt.modeActive"
+            : promptMode === "custom"
+              ? "settings.prompt.modeCustom"
+              : "settings.prompt.modeMinimal";
       return (
         <>
           <span

@@ -61,6 +61,7 @@ export async function syncTrayHotkey(key: TriggerKey, mode: TriggerMode): Promis
 }
 
 const PROMPT_MODE_TRAY_LABELS: Record<string, string> = {
+  none: "無整理",
   minimal: "潤稿",
   active: "排版",
   custom: "自訂",

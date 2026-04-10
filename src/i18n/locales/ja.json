@@ -126,7 +126,11 @@
     "prompt": {
       "title": "AI 整理 Prompt",
       "description": "整理モードを選択するか、プロンプトをカスタマイズします。",
+      "aiToggle": "AI 整理を有効化",
+      "aiToggleDescription": "音声認識結果を AI で整理してから貼り付け",
       "modeTitle": "整理モード",
+      "modeNone": "なし",
+      "modeNoneDescription": "AI 処理なし、音声認識の原文をそのまま貼り付け",
       "modeMinimal": "校正",
       "modeMinimalDescription": "誤字修正・句読点補完、原文の構造を維持",
       "modeActive": "整形",

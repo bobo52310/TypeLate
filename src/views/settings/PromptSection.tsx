@@ -1,16 +1,38 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Wand2, AlignLeft, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { SettingsGroup, SettingsFeedback } from "@/components/settings-layout";
+import { SettingsGroup, SettingsRow, SettingsFeedback } from "@/components/settings-layout";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { isKnownDefaultPrompt } from "@/i18n/prompts";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 
-type PromptMode = "minimal" | "active" | "custom";
+type PromptMode = "none" | "minimal" | "active" | "custom";
+type AiMode = Exclude<PromptMode, "none">;
+
+const AI_MODES: { value: AiMode; labelKey: string; descKey: string; icon: typeof Wand2 }[] = [
+  {
+    value: "minimal",
+    labelKey: "settings.prompt.modeMinimal",
+    descKey: "settings.prompt.modeMinimalDescription",
+    icon: Wand2,
+  },
+  {
+    value: "active",
+    labelKey: "settings.prompt.modeActive",
+    descKey: "settings.prompt.modeActiveDescription",
+    icon: AlignLeft,
+  },
+  {
+    value: "custom",
+    labelKey: "settings.prompt.modeCustom",
+    descKey: "settings.prompt.modeCustomDescription",
+    icon: PenLine,
+  },
+];
 
 export default function PromptSection() {
   const { t } = useTranslation();
@@ -48,16 +70,15 @@ export default function PromptSection() {
     return () => clearTimeout(resetConfirmTimeoutRef.current);
   }, []);
 
-  async function handlePromptModeChange(mode: string) {
-    const newMode = mode as PromptMode;
+  async function handlePromptModeChange(mode: PromptMode) {
     const previousMode = selectedPromptMode;
-    setSelectedPromptMode(newMode);
+    setSelectedPromptMode(mode);
     try {
-      await savePromptMode(newMode);
-      if (newMode === "custom") {
+      await savePromptMode(mode);
+      if (mode === "custom") {
         setPromptInput("");
         setLastSavedPrompt("");
-      } else {
+      } else if (mode !== "none") {
         const currentPrompt = getAiPrompt();
         setPromptInput(currentPrompt);
         setLastSavedPrompt(currentPrompt);
@@ -67,6 +88,10 @@ export default function PromptSection() {
       setSelectedPromptMode(previousMode);
       feedback.show("error", err instanceof Error ? err.message : String(err));
     }
+  }
+
+  function handleAiToggle(checked: boolean) {
+    void handlePromptModeChange(checked ? "minimal" : "none");
   }
 
   function handlePromptInput(value: string) {
@@ -134,95 +159,95 @@ export default function PromptSection() {
     }
   }
 
+  const isAiEnabled = selectedPromptMode !== "none";
   const hasUnsavedChanges =
     selectedPromptMode === "custom"
       ? promptInput.trim() !== "" && promptInput.trim() !== lastSavedPrompt.trim()
       : isPresetDirty;
   const isSaveDisabled = isSubmitting || !hasUnsavedChanges;
 
-  const modes: { value: PromptMode; labelKey: string; descKey: string }[] = [
-    {
-      value: "minimal",
-      labelKey: "settings.prompt.modeMinimal",
-      descKey: "settings.prompt.modeMinimalDescription",
-    },
-    {
-      value: "active",
-      labelKey: "settings.prompt.modeActive",
-      descKey: "settings.prompt.modeActiveDescription",
-    },
-    {
-      value: "custom",
-      labelKey: "settings.prompt.modeCustom",
-      descKey: "settings.prompt.modeCustomDescription",
-    },
-  ];
-
   return (
     <SettingsGroup title={t("settings.prompt.title")}>
-      <div className="space-y-4 px-4 py-3">
-        <p className="text-sm text-muted-foreground">{t("settings.prompt.description")}</p>
-
-        {/* Mode selector */}
-        <div className="space-y-2">
-          <Label>{t("settings.prompt.modeTitle")}</Label>
-          <RadioGroup
-            value={selectedPromptMode}
-            onValueChange={(val) => void handlePromptModeChange(val)}
-            className="flex flex-col gap-2"
-          >
-            {modes.map((mode) => (
-              <Label
-                key={mode.value}
-                htmlFor={`mode-${mode.value}`}
-                className={cn(
-                  "flex cursor-pointer items-center gap-3 rounded-md border border-border px-4 py-3 transition-colors",
-                  selectedPromptMode === mode.value
-                    ? "border-primary bg-primary/5"
-                    : "hover:bg-muted/50",
-                )}
-              >
-                <RadioGroupItem
-                  id={`mode-${mode.value}`}
-                  value={mode.value}
-                  className="shrink-0"
-                />
-                <div>
-                  <span className="text-sm font-medium">{t(mode.labelKey)}</span>
-                  <p className="text-xs leading-relaxed text-muted-foreground">{t(mode.descKey)}</p>
-                </div>
-              </Label>
-            ))}
-          </RadioGroup>
-        </div>
-
-        <Textarea
-          value={promptInput}
-          onChange={(e) => handlePromptInput(e.target.value)}
-          placeholder={
-            selectedPromptMode === "custom" ? t("settings.prompt.customPlaceholder") : undefined
-          }
-          className="min-h-[120px] font-mono"
+      <SettingsRow
+        label={t("settings.prompt.aiToggle")}
+        description={t("settings.prompt.aiToggleDescription")}
+        htmlFor="ai-enhance-toggle"
+      >
+        <Switch
+          id="ai-enhance-toggle"
+          checked={isAiEnabled}
+          onCheckedChange={handleAiToggle}
         />
+      </SettingsRow>
 
-        <div className="flex justify-end gap-2">
-          <Button disabled={isSaveDisabled} onClick={() => void handleSavePrompt()}>
-            {t("common.save")}
-          </Button>
-          <Button
-            variant="outline"
-            className={cn(
-              isConfirmingReset && "border-destructive text-destructive hover:bg-destructive/10",
-            )}
-            disabled={isSubmitting}
-            onClick={requestResetPrompt}
-          >
-            {isConfirmingReset ? t("settings.prompt.confirmReset") : t("settings.prompt.reset")}
-          </Button>
+      {isAiEnabled && (
+        <div className="space-y-4 px-4 py-3">
+          {/* Mode cards */}
+          <div className="grid grid-cols-3 gap-2">
+            {AI_MODES.map((mode) => {
+              const Icon = mode.icon;
+              const isSelected = selectedPromptMode === mode.value;
+              return (
+                <button
+                  key={mode.value}
+                  type="button"
+                  onClick={() => void handlePromptModeChange(mode.value)}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 rounded-lg border px-2 py-3 text-center transition-colors",
+                    isSelected
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/50",
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "size-5",
+                      isSelected ? "text-primary" : "text-muted-foreground",
+                    )}
+                  />
+                  <span className="text-sm font-medium">{t(mode.labelKey)}</span>
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    {t(mode.descKey)}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Prompt editor */}
+          <Textarea
+            value={promptInput}
+            onChange={(e) => handlePromptInput(e.target.value)}
+            placeholder={
+              selectedPromptMode === "custom"
+                ? t("settings.prompt.customPlaceholder")
+                : undefined
+            }
+            className="min-h-[120px] font-mono"
+          />
+
+          <div className="flex justify-end gap-2">
+            <Button disabled={isSaveDisabled} onClick={() => void handleSavePrompt()}>
+              {t("common.save")}
+            </Button>
+            <Button
+              variant="outline"
+              className={cn(
+                isConfirmingReset &&
+                  "border-destructive text-destructive hover:bg-destructive/10",
+              )}
+              disabled={isSubmitting}
+              onClick={requestResetPrompt}
+            >
+              {isConfirmingReset
+                ? t("settings.prompt.confirmReset")
+                : t("settings.prompt.reset")}
+            </Button>
+          </div>
         </div>
+      )}
 
-        <SettingsFeedback message={feedback.message} type={feedback.type} className="px-0" />
-      </div>
+      <SettingsFeedback message={feedback.message} type={feedback.type} />
     </SettingsGroup>
   );
 }

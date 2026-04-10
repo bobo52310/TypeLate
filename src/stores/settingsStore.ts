@@ -269,6 +269,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   getAiPrompt: () => {
     const { promptMode, aiPrompt, getEffectivePromptLocale: getLocale } = get();
     if (promptMode === "custom") return aiPrompt;
+    if (promptMode === "none") return "";
     return getPromptForModeAndLocale(promptMode, getLocale());
   },
 

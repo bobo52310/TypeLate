@@ -126,7 +126,11 @@
     "prompt": {
       "title": "AI 정리 Prompt",
       "description": "정리 모드를 선택하거나 프롬프트를 사용자 정의합니다.",
+      "aiToggle": "AI 정리 활성화",
+      "aiToggleDescription": "음성 인식 결과를 AI로 정리한 후 붙여넣기",
       "modeTitle": "정리 모드",
+      "modeNone": "없음",
+      "modeNoneDescription": "AI 처리 없이 음성 인식 원문을 그대로 붙여넣기",
       "modeMinimal": "교정",
       "modeMinimalDescription": "오타 교정, 문장 부호 추가, 원문 구조 유지",
       "modeActive": "정리",

@@ -680,8 +680,9 @@ export async function handleStopRecording(): Promise<void> {
 
     // ── Enhancement ──
     if (
-      !settingsStore.isEnhancementThresholdEnabled ||
-      result.rawText.length >= settingsStore.enhancementThresholdCharCount
+      settingsStore.promptMode !== "none" &&
+      (!settingsStore.isEnhancementThresholdEnabled ||
+        result.rawText.length >= settingsStore.enhancementThresholdCharCount)
     ) {
       transitionTo("enhancing", t("voiceFlow.enhancing"));
       const enhancementStartTime = performance.now();
@@ -909,7 +910,9 @@ export async function handleReEnhanceWithMode(targetMode: PromptMode): Promise<v
 
     // Build prompt for target mode
     let systemPrompt: string;
-    if (targetMode === "custom") {
+    if (targetMode === "none") {
+      systemPrompt = "";
+    } else if (targetMode === "custom") {
       systemPrompt = settingsStore.aiPrompt || settingsStore.getAiPrompt();
     } else {
       const locale = settingsStore.getEffectivePromptLocale();

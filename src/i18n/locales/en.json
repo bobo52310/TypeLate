@@ -126,7 +126,11 @@
     "prompt": {
       "title": "AI Enhancement Prompt",
       "description": "Choose an enhancement mode or customize your prompt.",
+      "aiToggle": "AI Enhancement",
+      "aiToggleDescription": "Process transcription with AI before pasting",
       "modeTitle": "Enhancement Mode",
+      "modeNone": "None",
+      "modeNoneDescription": "Paste the raw transcription without any AI processing",
       "modeMinimal": "Clean",
       "modeMinimalDescription": "Correct errors and add punctuation while preserving your original phrasing",
       "modeActive": "Format",

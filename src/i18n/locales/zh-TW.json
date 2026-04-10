@@ -126,7 +126,11 @@
     "prompt": {
       "title": "AI 整理 Prompt",
       "description": "選擇整理模式或自訂 Prompt。",
+      "aiToggle": "啟用 AI 整理",
+      "aiToggleDescription": "錄音結果經過 AI 整理後再貼上",
       "modeTitle": "整理模式",
+      "modeNone": "無整理",
+      "modeNoneDescription": "直接貼上原始語音轉錄文字，不經過 AI 處理",
       "modeMinimal": "潤稿",
       "modeMinimalDescription": "修正錯字、補標點，維持原有句子結構",
       "modeActive": "排版",
