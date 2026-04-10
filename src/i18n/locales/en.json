@@ -28,7 +28,7 @@
   "settings": {
     "about": {
       "title": "About TypeLate",
-      "description": "Hold to speak, release to paste. TypeLate is an open-source desktop speech-to-text tool, licensed under MIT.",
+      "description": "Hands off the keyboard — your voice types straight to the cursor. TypeLate is an open-source desktop speech-to-text tool, licensed under MIT.",
       "author": "Author:",
       "website": "Website",
       "sourceCode": "View Source Code",

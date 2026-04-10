@@ -28,7 +28,7 @@
   "settings": {
     "about": {
       "title": "關於 TypeLate",
-      "description": "按住說話，放開貼上。TypeLate 是開源的桌面語音轉文字工具，採用 MIT 授權。",
+      "description": "動嘴不動手，語音直達游標。TypeLate 是開源的桌面語音轉文字工具，採用 MIT 授權。",
       "author": "作者：",
       "website": "個人網站",
       "sourceCode": "查看原始碼",

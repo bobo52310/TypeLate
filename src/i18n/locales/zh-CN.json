@@ -28,7 +28,7 @@
   "settings": {
     "about": {
       "title": "关于 TypeLate",
-      "description": "按住说话，放开贴上。TypeLate 是开源的桌面语音转文字工具，采用 MIT 授权。",
+      "description": "动嘴不动手，语音直达光标。TypeLate 是开源的桌面语音转文字工具，采用 MIT 授权。",
       "author": "作者：",
       "website": "个人网站",
       "sourceCode": "查看源代码",
