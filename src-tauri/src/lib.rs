@@ -536,26 +536,7 @@ pub fn run() {
             app.manage(plugins::google_auth::OAuthListenerState::new());
 
             // ── macOS Application Menu (menu bar) ──
-            let app_menu = {
-                let about = PredefinedMenuItem::about(app, Some("About TypeLate"), Some(AboutMetadata::default()))?;
-                let settings = MenuItem::with_id(app, "menu-settings", "設定...", true, Some("CmdOrCtrl+,"))?;
-                let check_update = MenuItem::with_id(app, "menu-check-update", "檢查更新...", true, None::<&str>)?;
-                let separator = PredefinedMenuItem::separator(app)?;
-                let hide = PredefinedMenuItem::hide(app, Some("Hide TypeLate"))?;
-                let hide_others = PredefinedMenuItem::hide_others(app, Some("Hide Others"))?;
-                let show_all = PredefinedMenuItem::show_all(app, Some("Show All"))?;
-                let separator2 = PredefinedMenuItem::separator(app)?;
-                let quit = PredefinedMenuItem::quit(app, Some("Quit TypeLate"))?;
-
-                let app_submenu = Submenu::with_items(
-                    app,
-                    "TypeLate",
-                    true,
-                    &[&about, &separator, &settings, &check_update, &separator2, &hide, &hide_others, &show_all, &separator2, &quit],
-                )?;
-
-                Menu::with_items(app, &[&app_submenu])?
-            };
+            let app_menu = build_app_menu(app)?;
             app.set_menu(app_menu)?;
             app.on_menu_event(|app_handle, event| {
                 match event.id().as_ref() {
@@ -732,6 +713,132 @@ pub fn run() {
                 _ => {}
             }
         });
+}
+
+/// Declarative descriptor of a predefined menu item, used by `APP_MENU_SPEC`.
+/// Keeping this as pure data lets us unit-test the menu structure without
+/// constructing real `muda` items (which require the main thread).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PredefinedKind {
+    About,
+    Separator,
+    Hide,
+    HideOthers,
+    ShowAll,
+    Quit,
+    Undo,
+    Redo,
+    Cut,
+    Copy,
+    Paste,
+    SelectAll,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum MenuEntry {
+    Predefined(PredefinedKind),
+    Item { id: &'static str, label: &'static str, accel: Option<&'static str> },
+}
+
+struct SubmenuSpec {
+    label: &'static str,
+    entries: &'static [MenuEntry],
+}
+
+/// The application menu bar structure. Defined as static data so both the
+/// runtime builder and the regression tests read from one source of truth.
+///
+/// The Edit submenu is required on macOS — without it, Cmd+C/V/X/A/Z do not
+/// work in any WebView text input (regression fix for onboarding API key paste).
+const APP_MENU_SPEC: &[SubmenuSpec] = &[
+    SubmenuSpec {
+        label: "TypeLate",
+        entries: &[
+            MenuEntry::Predefined(PredefinedKind::About),
+            MenuEntry::Predefined(PredefinedKind::Separator),
+            MenuEntry::Item { id: "menu-settings", label: "設定...", accel: Some("CmdOrCtrl+,") },
+            MenuEntry::Item { id: "menu-check-update", label: "檢查更新...", accel: None },
+            MenuEntry::Predefined(PredefinedKind::Separator),
+            MenuEntry::Predefined(PredefinedKind::Hide),
+            MenuEntry::Predefined(PredefinedKind::HideOthers),
+            MenuEntry::Predefined(PredefinedKind::ShowAll),
+            MenuEntry::Predefined(PredefinedKind::Separator),
+            MenuEntry::Predefined(PredefinedKind::Quit),
+        ],
+    },
+    SubmenuSpec {
+        label: "Edit",
+        entries: &[
+            MenuEntry::Predefined(PredefinedKind::Undo),
+            MenuEntry::Predefined(PredefinedKind::Redo),
+            MenuEntry::Predefined(PredefinedKind::Separator),
+            MenuEntry::Predefined(PredefinedKind::Cut),
+            MenuEntry::Predefined(PredefinedKind::Copy),
+            MenuEntry::Predefined(PredefinedKind::Paste),
+            MenuEntry::Predefined(PredefinedKind::SelectAll),
+        ],
+    },
+];
+
+fn build_predefined<R: Runtime, M: Manager<R>>(
+    manager: &M,
+    kind: PredefinedKind,
+) -> tauri::Result<PredefinedMenuItem<R>> {
+    match kind {
+        PredefinedKind::About => PredefinedMenuItem::about(manager, Some("About TypeLate"), Some(AboutMetadata::default())),
+        PredefinedKind::Separator => PredefinedMenuItem::separator(manager),
+        PredefinedKind::Hide => PredefinedMenuItem::hide(manager, Some("Hide TypeLate")),
+        PredefinedKind::HideOthers => PredefinedMenuItem::hide_others(manager, Some("Hide Others")),
+        PredefinedKind::ShowAll => PredefinedMenuItem::show_all(manager, Some("Show All")),
+        PredefinedKind::Quit => PredefinedMenuItem::quit(manager, Some("Quit TypeLate")),
+        PredefinedKind::Undo => PredefinedMenuItem::undo(manager, None),
+        PredefinedKind::Redo => PredefinedMenuItem::redo(manager, None),
+        PredefinedKind::Cut => PredefinedMenuItem::cut(manager, None),
+        PredefinedKind::Copy => PredefinedMenuItem::copy(manager, None),
+        PredefinedKind::Paste => PredefinedMenuItem::paste(manager, None),
+        PredefinedKind::SelectAll => PredefinedMenuItem::select_all(manager, None),
+    }
+}
+
+/// Build the application menu bar from `APP_MENU_SPEC`.
+fn build_app_menu<R: Runtime, M: Manager<R>>(manager: &M) -> tauri::Result<Menu<R>> {
+    use tauri::menu::IsMenuItem;
+
+    let mut submenus: Vec<Submenu<R>> = Vec::with_capacity(APP_MENU_SPEC.len());
+    // Hold built items so borrow lifetimes extend across the Submenu::with_items call.
+    for spec in APP_MENU_SPEC {
+        let mut predefined: Vec<PredefinedMenuItem<R>> = Vec::new();
+        let mut items: Vec<MenuItem<R>> = Vec::new();
+        // First pass: build concrete items.
+        let mut order: Vec<(bool, usize)> = Vec::with_capacity(spec.entries.len());
+        for entry in spec.entries {
+            match entry {
+                MenuEntry::Predefined(kind) => {
+                    predefined.push(build_predefined(manager, *kind)?);
+                    order.push((true, predefined.len() - 1));
+                }
+                MenuEntry::Item { id, label, accel } => {
+                    items.push(MenuItem::with_id(manager, *id, *label, true, *accel)?);
+                    order.push((false, items.len() - 1));
+                }
+            }
+        }
+        // Second pass: assemble trait-object slice in original order.
+        let refs: Vec<&dyn IsMenuItem<R>> = order
+            .iter()
+            .map(|(is_pre, idx)| -> &dyn IsMenuItem<R> {
+                if *is_pre {
+                    &predefined[*idx]
+                } else {
+                    &items[*idx]
+                }
+            })
+            .collect();
+        submenus.push(Submenu::with_items(manager, spec.label, true, &refs)?);
+    }
+
+    let menu_refs: Vec<&dyn IsMenuItem<R>> = submenus.iter().map(|s| s as &dyn IsMenuItem<R>).collect();
+    Menu::with_items(manager, &menu_refs)
 }
 
 #[cfg(test)]
@@ -1039,5 +1146,70 @@ mod tests {
         // 置中偏移 = (1920 - 400) / 2 = 760
         let x = calculate_centered_window_x_logical(1920, 1.0, 400.0);
         assert!((x - 760.0).abs() < 0.001);
+    }
+
+    // ============================================================
+    // APP_MENU_SPEC 測試 — regression: Edit submenu must exist so
+    // Cmd+C/V/X/A/Z work in WebView text inputs on macOS.
+    //
+    // Before this fix, the menu bar only contained the TypeLate submenu.
+    // macOS WebView requires a PredefinedMenuItem::paste in a menu somewhere
+    // for Cmd+V to dispatch to the focused text input (onboarding API key
+    // paste silently failed).
+    //
+    // We verify APP_MENU_SPEC (the static data source) rather than building
+    // real `muda` items, because muda requires main-thread construction which
+    // cargo test workers cannot guarantee.
+    // ============================================================
+
+    fn find_submenu(label: &str) -> Option<&'static SubmenuSpec> {
+        APP_MENU_SPEC.iter().find(|s| s.label == label)
+    }
+
+    fn submenu_contains(spec: &SubmenuSpec, kind: PredefinedKind) -> bool {
+        spec.entries.iter().any(|e| matches!(e, MenuEntry::Predefined(k) if *k == kind))
+    }
+
+    #[test]
+    fn test_app_menu_has_edit_submenu() {
+        assert!(
+            find_submenu("Edit").is_some(),
+            "APP_MENU_SPEC must declare an Edit submenu — required for Cmd+C/V/X/A/Z in WebView inputs on macOS"
+        );
+    }
+
+    #[test]
+    fn test_edit_submenu_contains_paste() {
+        let edit = find_submenu("Edit").expect("Edit submenu missing");
+        assert!(
+            submenu_contains(edit, PredefinedKind::Paste),
+            "Edit submenu must contain Paste (regression: onboarding API key paste failed without this)"
+        );
+    }
+
+    #[test]
+    fn test_edit_submenu_contains_full_clipboard_set() {
+        let edit = find_submenu("Edit").expect("Edit submenu missing");
+        for kind in [
+            PredefinedKind::Undo,
+            PredefinedKind::Redo,
+            PredefinedKind::Cut,
+            PredefinedKind::Copy,
+            PredefinedKind::Paste,
+            PredefinedKind::SelectAll,
+        ] {
+            assert!(
+                submenu_contains(edit, kind),
+                "Edit submenu must contain {:?}",
+                kind
+            );
+        }
+    }
+
+    #[test]
+    fn test_typelate_submenu_still_present() {
+        let app = find_submenu("TypeLate").expect("TypeLate submenu missing");
+        assert!(submenu_contains(app, PredefinedKind::About));
+        assert!(submenu_contains(app, PredefinedKind::Quit));
     }
 }
