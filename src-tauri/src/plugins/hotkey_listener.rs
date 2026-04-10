@@ -362,7 +362,10 @@ fn start_event_tap<R: Runtime>(app_handle: AppHandle<R>, state: HotkeyListenerSt
                     core_graphics::event::EventField::KEYBOARD_EVENT_KEYCODE,
                 ) as u16;
 
-                let trigger = state.trigger_key.lock().unwrap().clone();
+                let trigger = match state.trigger_key.lock() {
+                    Ok(guard) => guard.clone(),
+                    Err(poisoned) => poisoned.into_inner().clone(),
+                };
 
                 match event_type {
                     CGEventType::FlagsChanged => {
