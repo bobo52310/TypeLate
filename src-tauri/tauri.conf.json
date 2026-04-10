@@ -78,7 +78,13 @@
     ],
     "macOS": {
       "entitlements": "./Entitlements.plist",
-      "signingIdentity": "-"
+      "signingIdentity": "-",
+      "dmg": {
+        "background": "assets/dmg/background.png",
+        "windowSize": { "width": 660, "height": 400 },
+        "appPosition": { "x": 230, "y": 200 },
+        "applicationFolderPosition": { "x": 435, "y": 200 }
+      }
     }
   }
 }
