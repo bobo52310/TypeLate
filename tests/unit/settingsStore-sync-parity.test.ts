@@ -26,6 +26,9 @@ const REFRESH_EXCLUDED_KEYS: Record<string, string> = {
   // not from the in-memory store, so cross-window sync is not required.
   isContextAwareEnabled: "Read from persistent store at recording start",
   contextAppOverrides: "Read from persistent store at recording start",
+  // Skipped update version is only used by the Dashboard update-check flow;
+  // HUD never reads it, so cross-window sync is not required.
+  skippedUpdateVersion: "Only consumed by Dashboard update-check logic",
 };
 
 /**
