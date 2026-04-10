@@ -438,9 +438,9 @@
       "fetchUrl": "取得",
       "fetchingUrl": "取得中...",
       "invalidUrl": "http:// または https:// で始まる有効なURLを入力してください",
-      "urlPreviewCharCount": "{{count}} 文字",
+      "urlPreviewCharCount": "{count} 文字",
       "urlPreviewAnalyzeAll": "すべての内容が分析されます",
-      "urlPreviewTruncated": "コンテンツが長いため、最初の {{limit}} 文字のみ分析されます（{{percent}}%）",
+      "urlPreviewTruncated": "コンテンツが長いため、最初の {limit} 文字のみ分析されます（{percent}%）",
       "urlPreviewEdit": "テキストを編集",
       "urlPreviewClear": "クリア"
     },
@@ -647,8 +647,8 @@
     },
     "updateDialog": {
       "title": "TypeLate の新しいバージョンが利用可能です！",
-      "versionComparison": "TypeLate {{newVersion}} が公開されました — 現在のバージョンは {{currentVersion}} です。",
-      "whatsNew": "V{{version}} の新機能",
+      "versionComparison": "TypeLate {newVersion} が公開されました — 現在のバージョンは {currentVersion} です。",
+      "whatsNew": "V{version} の新機能",
       "skipVersion": "このバージョンをスキップ",
       "remindLater": "後で通知",
       "installUpdate": "アップデート",

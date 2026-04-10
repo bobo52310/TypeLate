@@ -438,9 +438,9 @@
       "fetchUrl": "Fetch",
       "fetchingUrl": "Fetching...",
       "invalidUrl": "Please enter a valid URL starting with http:// or https://",
-      "urlPreviewCharCount": "{{count}} characters",
+      "urlPreviewCharCount": "{count} characters",
       "urlPreviewAnalyzeAll": "All content will be analyzed",
-      "urlPreviewTruncated": "Content is long — only first {{limit}} characters will be analyzed ({{percent}}%)",
+      "urlPreviewTruncated": "Content is long — only first {limit} characters will be analyzed ({percent}%)",
       "urlPreviewEdit": "Edit text",
       "urlPreviewClear": "Clear"
     },
@@ -647,8 +647,8 @@
     },
     "updateDialog": {
       "title": "A new version of TypeLate is available!",
-      "versionComparison": "TypeLate {{newVersion}} is now available — you have {{currentVersion}}.",
-      "whatsNew": "What's New in V{{version}}",
+      "versionComparison": "TypeLate {newVersion} is now available — you have {currentVersion}.",
+      "whatsNew": "What's New in V{version}",
       "skipVersion": "Skip This Version",
       "remindLater": "Remind Me Later",
       "installUpdate": "Install Update",

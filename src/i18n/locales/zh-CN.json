@@ -438,9 +438,9 @@
       "fetchUrl": "提取",
       "fetchingUrl": "提取中...",
       "invalidUrl": "请输入有效的网址（以 http:// 或 https:// 开头）",
-      "urlPreviewCharCount": "{{count}} 字符",
+      "urlPreviewCharCount": "{count} 字符",
       "urlPreviewAnalyzeAll": "全部内容将送出分析",
-      "urlPreviewTruncated": "内容较长，仅前 {{limit}} 字符将送出分析（{{percent}}%）",
+      "urlPreviewTruncated": "内容较长，仅前 {limit} 字符将送出分析（{percent}%）",
       "urlPreviewEdit": "编辑全文",
       "urlPreviewClear": "清除"
     },
@@ -647,8 +647,8 @@
     },
     "updateDialog": {
       "title": "TypeLate 有新版本可以更新！",
-      "versionComparison": "TypeLate {{newVersion}} 已经推出 — 你目前使用 {{currentVersion}}。",
-      "whatsNew": "V{{version}} 更新内容",
+      "versionComparison": "TypeLate {newVersion} 已经推出 — 你目前使用 {currentVersion}。",
+      "whatsNew": "V{version} 更新内容",
       "skipVersion": "跳过此版本",
       "remindLater": "稍后提醒",
       "installUpdate": "安装更新",

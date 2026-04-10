@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { type ChangelogSection, parseReleaseNotes } from "@/lib/releaseNotes";
@@ -79,9 +78,9 @@ export function UpdateAvailableDialog({
           <h3 className="mb-3 text-sm font-semibold">
             {t("mainApp.updateDialog.whatsNew", { version: newVersion })}
           </h3>
-          <ScrollArea className="max-h-[200px] pr-3">
+          <div className="max-h-[240px] overflow-y-auto pr-3">
             <ChangelogContent sections={sections} />
-          </ScrollArea>
+          </div>
         </div>
 
         <Separator />
