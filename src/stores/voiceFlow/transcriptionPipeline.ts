@@ -179,6 +179,7 @@ export function buildTranscriptionRecord(params: {
       params.enhancementDurationMs !== null ? Math.round(params.enhancementDurationMs) : null,
     charCount: params.rawText.length,
     triggerMode: settingsStore.triggerMode(),
+    promptMode: settingsStore.promptMode,
     wasEnhanced: params.wasEnhanced,
     wasModified: null,
     createdAt: "",

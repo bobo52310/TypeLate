@@ -1,4 +1,5 @@
 import type { TriggerMode } from "./index";
+import type { PromptMode } from "./settings";
 
 export type TranscriptionStatus = "success" | "failed";
 
@@ -12,6 +13,7 @@ export interface TranscriptionRecord {
   enhancementDurationMs: number | null;
   charCount: number;
   triggerMode: TriggerMode;
+  promptMode: PromptMode | null;
   wasEnhanced: boolean;
   wasModified: boolean | null;
   createdAt: string;

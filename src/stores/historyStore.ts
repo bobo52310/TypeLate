@@ -7,6 +7,8 @@ import type {
   DailyUsageTrend,
 } from "@/types/transcription";
 import type { TriggerMode } from "@/types";
+import type { PromptMode } from "@/types/settings";
+import { PROMPT_MODE_VALUES } from "@/types/settings";
 import type { TranscriptionCompletedPayload } from "@/types/events";
 import { invoke } from "@tauri-apps/api/core";
 import { getDatabase } from "@/lib/database";
@@ -27,6 +29,7 @@ interface RawTranscriptionRow {
   enhancement_duration_ms: number | null;
   char_count: number;
   trigger_mode: string;
+  prompt_mode: string | null;
   was_enhanced: number;
   was_modified: number | null;
   created_at: string;
@@ -34,6 +37,11 @@ interface RawTranscriptionRow {
   status: string;
   whisper_model_id: string | null;
   llm_model_id: string | null;
+}
+
+function parsePromptMode(value: string | null): PromptMode | null {
+  if (value === null) return null;
+  return (PROMPT_MODE_VALUES as readonly string[]).includes(value) ? (value as PromptMode) : null;
 }
 
 function mapRowToRecord(row: RawTranscriptionRow): TranscriptionRecord {
@@ -47,6 +55,7 @@ function mapRowToRecord(row: RawTranscriptionRow): TranscriptionRecord {
     enhancementDurationMs: row.enhancement_duration_ms,
     charCount: row.char_count,
     triggerMode: row.trigger_mode as TriggerMode,
+    promptMode: parsePromptMode(row.prompt_mode),
     wasEnhanced: row.was_enhanced === 1,
     wasModified: row.was_modified === null ? null : row.was_modified === 1,
     createdAt: row.created_at,
@@ -61,15 +70,15 @@ const INSERT_SQL = `
   INSERT INTO transcriptions (
     id, timestamp, raw_text, processed_text,
     recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
-    char_count, trigger_mode, was_enhanced, was_modified,
+    char_count, trigger_mode, prompt_mode, was_enhanced, was_modified,
     audio_file_path, status, whisper_model_id, llm_model_id
-  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 `;
 
 const SELECT_ALL_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
-         char_count, trigger_mode, was_enhanced, was_modified, created_at,
+         char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
          audio_file_path, status, whisper_model_id, llm_model_id
   FROM transcriptions
   ORDER BY timestamp DESC
@@ -78,7 +87,7 @@ const SELECT_ALL_SQL = `
 const SELECT_PAGED_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
-         char_count, trigger_mode, was_enhanced, was_modified, created_at,
+         char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
          audio_file_path, status, whisper_model_id, llm_model_id
   FROM transcriptions
   ORDER BY timestamp DESC
@@ -88,7 +97,7 @@ const SELECT_PAGED_SQL = `
 const SEARCH_PAGED_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
-         char_count, trigger_mode, was_enhanced, was_modified, created_at,
+         char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
          audio_file_path, status, whisper_model_id, llm_model_id
   FROM transcriptions
   WHERE raw_text LIKE $1 ESCAPE '\\' OR processed_text LIKE $1 ESCAPE '\\'
@@ -166,7 +175,7 @@ const UPDATE_TEXT_SQL = `
 const SELECT_RECENT_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
-         char_count, trigger_mode, was_enhanced, was_modified, created_at,
+         char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
          audio_file_path, status, whisper_model_id, llm_model_id
   FROM transcriptions
   ORDER BY timestamp DESC
@@ -412,6 +421,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         record.enhancementDurationMs,
         record.charCount,
         record.triggerMode,
+        record.promptMode,
         record.wasEnhanced ? 1 : 0,
         record.wasModified === null ? null : record.wasModified ? 1 : 0,
         record.audioFilePath,

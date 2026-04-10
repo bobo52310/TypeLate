@@ -81,6 +81,9 @@ export const v9TriggerModeDoubleTap: Migration = {
 };
 
 async function createNewTable(db: import("@tauri-apps/plugin-sql").default) {
+  // NOTE: prompt_mode column is added by v11 migration via ALTER TABLE;
+  // it is intentionally absent from v9's CREATE TABLE so the copy INSERT
+  // at v9 matches the original 16-column schema.
   await db.execute(`
     CREATE TABLE transcriptions (
       id TEXT PRIMARY KEY,

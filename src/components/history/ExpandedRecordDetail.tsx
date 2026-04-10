@@ -19,7 +19,15 @@ import { useHistoryStore } from "@/stores/historyStore";
 import { useRecordVocabularyAnalysis } from "@/hooks/useRecordVocabularyAnalysis";
 import { getDisplayText, formatDurationMs } from "@/lib/formatUtils";
 import type { TranscriptionRecord } from "@/types/transcription";
+import type { PromptMode } from "@/types/settings";
 import VocabularyResultsPanel from "./VocabularyResultsPanel";
+
+const PROMPT_MODE_LABEL_KEYS: Record<PromptMode, string> = {
+  none: "settings.prompt.modeNone",
+  minimal: "settings.prompt.modeMinimal",
+  active: "settings.prompt.modeActive",
+  custom: "settings.prompt.modeCustom",
+};
 
 interface ExpandedRecordDetailProps {
   record: TranscriptionRecord;
@@ -274,10 +282,12 @@ export default function ExpandedRecordDetail({
             {t("history.aiLabel")} {formatDurationMs(record.enhancementDurationMs)}
           </span>
         )}
-        <span>
-          {t("history.modeLabel")}
-          {record.triggerMode === "hold" ? t("history.holdMode") : t("history.toggleMode")}
-        </span>
+        {record.promptMode && (
+          <span>
+            {t("history.modeLabel")}
+            {t(PROMPT_MODE_LABEL_KEYS[record.promptMode])}
+          </span>
+        )}
         {record.whisperModelId && (
           <span>{t("history.whisperModel", { model: record.whisperModelId })}</span>
         )}
