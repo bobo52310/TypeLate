@@ -618,6 +618,10 @@ export function NotchHud({
             src={`data:image/png;base64,${appIconBase64}`}
             className={styles.appIconInline}
             alt={appName ?? ""}
+            onError={(e) => {
+              // Hide broken-image placeholder if PNG data fails to decode.
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
           />
         )}
         <div className={styles.waveformContainer} style={waveformContainerStyle}>

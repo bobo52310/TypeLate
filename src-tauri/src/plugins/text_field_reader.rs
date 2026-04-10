@@ -443,6 +443,12 @@ mod macos {
     const ICON_SIZE: f64 = 32.0;
 
     /// Extract app icon as base64-encoded PNG string, constrained to ~32x32.
+    ///
+    /// Uses NSImage's TIFFRepresentation path rather than CGImageForProposedRect
+    /// because some apps (notably Electron-based VS Code) have NSImage icons
+    /// whose preferred CGImage representation cannot be PNG-encoded directly by
+    /// NSBitmapImageRep, producing invalid PNG data and a broken-image placeholder
+    /// in the HUD.
     unsafe fn get_app_icon_base64(app: *mut Object) -> String {
         use objc::runtime::Class;
         use objc::{msg_send, sel, sel_impl};
@@ -452,37 +458,30 @@ mod macos {
             return String::new();
         }
 
-        // Request a CGImage at 32×32 logical size (may return @2x on Retina)
-        let mut proposed_rect = CGRect {
-            origin: CGPoint { x: 0.0, y: 0.0 },
-            size: CGSize {
-                width: ICON_SIZE,
-                height: ICON_SIZE,
-            },
+        // Constrain display size to 32×32 points (TIFF rep respects this).
+        let size = CGSize {
+            width: ICON_SIZE,
+            height: ICON_SIZE,
         };
-        let nil: *mut Object = std::ptr::null_mut();
-        let cg_image: *mut std::ffi::c_void = msg_send![
-            icon,
-            CGImageForProposedRect: &mut proposed_rect as *mut CGRect
-            context: nil
-            hints: nil
-        ];
-        if cg_image.is_null() {
+        let _: () = msg_send![icon, setSize: size];
+
+        // TIFFRepresentation works reliably across all NSImage backings.
+        let tiff_data: *mut Object = msg_send![icon, TIFFRepresentation];
+        if tiff_data.is_null() {
             return String::new();
         }
 
-        // Create NSBitmapImageRep from the size-constrained CGImage
         let bitmap_class = match Class::get("NSBitmapImageRep") {
             Some(c) => c,
             None => return String::new(),
         };
-        let bitmap: *mut Object = msg_send![bitmap_class, alloc];
-        let bitmap: *mut Object = msg_send![bitmap, initWithCGImage: cg_image];
+        let bitmap: *mut Object = msg_send![bitmap_class, imageRepWithData: tiff_data];
         if bitmap.is_null() {
             return String::new();
         }
 
         // Convert to PNG (NSBitmapImageFileType.png = 4)
+        let nil: *mut Object = std::ptr::null_mut();
         let png_data: *mut Object =
             msg_send![bitmap, representationUsingType: 4u64 properties: nil];
         if png_data.is_null() {
