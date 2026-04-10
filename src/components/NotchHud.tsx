@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTranslation } from "react-i18next";
 import { logInfo } from "@/lib/logger";
 import type { HudStatus } from "@/types";
@@ -36,6 +37,8 @@ interface NotchHudProps {
   lastSuccessPromptMode: PromptMode | null;
   onCopyOriginal: () => void;
   onReEnhance: (mode: PromptMode) => void;
+  onPauseAutoHide: () => void;
+  onResumeAutoHide: () => void;
 }
 
 // --- Constants ---
@@ -125,6 +128,8 @@ export function NotchHud({
   lastSuccessPromptMode,
   onCopyOriginal,
   onReEnhance,
+  onPauseAutoHide,
+  onResumeAutoHide,
 }: NotchHudProps) {
   const { t } = useTranslation();
 
@@ -135,6 +140,8 @@ export function NotchHud({
   const [pendingLearnedTermList, setPendingLearnedTermList] = useState<string[][]>([]);
   const [learnedDisplayText, setLearnedDisplayText] = useState("");
   const [showModeLabel, setShowModeLabel] = useState(false);
+  const [showReEnhanceSubmenu, setShowReEnhanceSubmenu] = useState(false);
+  const [showCopiedFeedback, setShowCopiedFeedback] = useState(false);
 
   // Refs to access latest state inside timers/callbacks without re-subscribing
   const visualModeRef = useRef<VisualMode>(visualMode);
@@ -219,6 +226,25 @@ export function NotchHud({
       }
     };
   }, [visualMode, lastSuccessWasEnhanced, successDisplayDurationSec]);
+
+  // --- Reset submenu/feedback when entering or leaving action-bar mode ---
+  useEffect(() => {
+    if (visualMode !== "action-bar") {
+      setShowReEnhanceSubmenu(false);
+      setShowCopiedFeedback(false);
+    }
+  }, [visualMode]);
+
+  // --- Ensure cursor events are enabled when action bar is shown ---
+  useEffect(() => {
+    if (visualMode === "action-bar") {
+      void getCurrentWindow()
+        .setIgnoreCursorEvents(false)
+        .catch(() => {
+          /* non-critical */
+        });
+    }
+  }, [visualMode]);
 
   // --- Timer helpers ---
 
@@ -539,11 +565,8 @@ export function NotchHud({
     };
   }, [clearMorphingTimer, clearCollapsingTimer, clearLearnedTimer, stopWaveformAnimation]);
 
-  // --- Action bar: available modes (exclude current) ---
-  const actionBarModeList = useMemo(() => {
-    if (!lastSuccessPromptMode) return ALL_PROMPT_MODES;
-    return ALL_PROMPT_MODES.filter((m) => m !== lastSuccessPromptMode);
-  }, [lastSuccessPromptMode]);
+  // --- Action bar: show all 3 prompt modes in re-enhance submenu ---
+  const actionBarModeList = ALL_PROMPT_MODES;
 
   // --- Render ---
 
@@ -705,6 +728,16 @@ export function NotchHud({
           [styles.notchWrapperSuccess]: visualMode === "success",
           [styles.notchWrapperLearned]: visualMode === "learned" || visualMode === "correction-prompt",
         })}
+        onMouseEnter={() => {
+          if (visualMode === "success" || visualMode === "action-bar" || visualMode === "error") {
+            onPauseAutoHide();
+          }
+        }}
+        onMouseLeave={() => {
+          if (visualMode === "success" || visualMode === "action-bar" || visualMode === "error") {
+            onResumeAutoHide();
+          }
+        }}
       >
         <div
           className={cn(styles.notchHud, {
@@ -716,37 +749,75 @@ export function NotchHud({
         >
           {isActionBar ? (
             <div className={styles.actionBarContent}>
-              <button
-                type="button"
-                className={styles.actionBarButton}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCopyOriginal();
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-                <span>{t("voiceFlow.copyOriginal")}</span>
-              </button>
-              {actionBarModeList.map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={styles.actionBarButton}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onReEnhance(mode);
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="23 4 23 10 17 10" />
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              {showCopiedFeedback ? (
+                <div className={styles.actionBarCopiedFeedback}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12l6 6L20 6" />
                   </svg>
-                  <span>{t(MODE_LABEL_KEYS[mode])}</span>
-                </button>
-              ))}
+                  <span>{t("voiceFlow.copied")}</span>
+                </div>
+              ) : showReEnhanceSubmenu ? (
+                <>
+                  <button
+                    type="button"
+                    className={styles.actionBarBackButton}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowReEnhanceSubmenu(false);
+                    }}
+                    aria-label="Back"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                  </button>
+                  {actionBarModeList.map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className={styles.actionBarButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReEnhance(mode);
+                      }}
+                    >
+                      <span>{t(MODE_LABEL_KEYS[mode])}</span>
+                    </button>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={styles.actionBarButton}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowCopiedFeedback(true);
+                      onCopyOriginal();
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    <span>{t("voiceFlow.copyOriginal")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.actionBarButton}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowReEnhanceSubmenu(true);
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
+                      <path d="M18 14l.75 2.25L21 17l-2.25.75L18 20l-.75-2.25L15 17l2.25-.75L18 14z" />
+                    </svg>
+                    <span>{t("voiceFlow.reEnhance")}</span>
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <>

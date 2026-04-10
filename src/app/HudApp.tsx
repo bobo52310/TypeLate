@@ -25,6 +25,8 @@ export function HudApp() {
   const lastSuccessPromptMode = useVoiceFlowStore((s) => s.lastSuccessPromptMode);
   const handleCopyOriginal = useVoiceFlowStore((s) => s.handleCopyOriginal);
   const handleReEnhance = useVoiceFlowStore((s) => s.handleReEnhance);
+  const pauseAutoHide = useVoiceFlowStore((s) => s.pauseAutoHide);
+  const resumeAutoHide = useVoiceFlowStore((s) => s.resumeAutoHide);
 
   const initializedRef = useRef(false);
 
@@ -42,6 +44,14 @@ export function HudApp() {
     },
     [handleReEnhance],
   );
+
+  const onPauseAutoHide = useCallback(() => {
+    pauseAutoHide();
+  }, [pauseAutoHide]);
+
+  const onResumeAutoHide = useCallback(() => {
+    resumeAutoHide();
+  }, [resumeAutoHide]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -136,6 +146,8 @@ export function HudApp() {
         lastSuccessPromptMode={lastSuccessPromptMode}
         onCopyOriginal={onCopyOriginal}
         onReEnhance={onReEnhance}
+        onPauseAutoHide={onPauseAutoHide}
+        onResumeAutoHide={onResumeAutoHide}
       />
     </div>
   );

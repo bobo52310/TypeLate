@@ -507,7 +507,8 @@
     "correctionPromptHint": "Copy the correct term (⌘C) to add",
     "retryFailed": "Recognition failed, please record again",
     "cancelled": "Cancelled",
-    "copyOriginal": "Original",
+    "copyOriginal": "Copy Original",
+    "reEnhance": "Re-enhance with AI",
     "copied": "Copied"
   },
   "errors": {

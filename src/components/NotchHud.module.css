@@ -534,6 +534,35 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+.actionBarBackButton {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  margin-right: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.actionBarBackButton:hover {
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.actionBarCopiedFeedback {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(34, 197, 94, 0.95);
+  font-size: 13px;
+  font-weight: 600;
+  animation: actionBarFadeIn 0.2s ease-out;
+}
+
 @keyframes actionBarFadeIn {
   from {
     opacity: 0;

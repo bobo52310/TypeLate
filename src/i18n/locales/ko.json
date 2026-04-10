@@ -499,7 +499,8 @@
     "correctionPromptHint": "올바른 단어를 복사 (⌘C)하여 추가",
     "retryFailed": "인식 실패, 다시 녹음해 주세요",
     "cancelled": "취소됨",
-    "copyOriginal": "원문",
+    "copyOriginal": "원문 복사",
+    "reEnhance": "AI 로 다시 정리",
     "copied": "복사 완료"
   },
   "errors": {

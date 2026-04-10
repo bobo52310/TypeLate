@@ -499,7 +499,8 @@
     "correctionPromptHint": "复制正确的词 (⌘C) 即可新增词汇",
     "retryFailed": "识别失败，请重新录音",
     "cancelled": "已取消",
-    "copyOriginal": "原文",
+    "copyOriginal": "复制原文",
+    "reEnhance": "重新送 AI 整理",
     "copied": "已复制"
   },
   "errors": {

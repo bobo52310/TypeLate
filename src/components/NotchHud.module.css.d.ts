@@ -34,5 +34,7 @@ declare const styles: {
   readonly successModeLabel: string;
   readonly actionBarContent: string;
   readonly actionBarButton: string;
+  readonly actionBarBackButton: string;
+  readonly actionBarCopiedFeedback: string;
 };
 export default styles;

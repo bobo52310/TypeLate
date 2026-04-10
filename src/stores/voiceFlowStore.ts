@@ -63,7 +63,6 @@ import {
   handleStartRecording,
   handleStopRecording,
   handleReEnhanceWithMode,
-  handleCopyOriginalText,
   restoreSystemAudio,
   getAbortController,
   setVoiceFlowActions,
@@ -140,6 +139,8 @@ export interface VoiceFlowState {
   handleRetryTranscription: () => Promise<void>;
   handleCopyOriginal: () => Promise<void>;
   handleReEnhance: (mode: PromptMode) => Promise<void>;
+  pauseAutoHide: () => void;
+  resumeAutoHide: () => void;
 }
 
 /**
@@ -463,10 +464,69 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
   },
 
   handleCopyOriginal: async () => {
-    await handleCopyOriginalText();
+    const state = get();
+    const rawText = state._lastSuccessRawText;
+    writeInfoLog(
+      `voiceFlowStore: handleCopyOriginal called, rawText=${rawText ? `${String(rawText.length)} chars` : "null"}`,
+    );
+    if (!rawText) {
+      writeErrorLog("voiceFlowStore: handleCopyOriginal - no rawText available");
+      return;
+    }
+
+    try {
+      await invoke("copy_to_clipboard", { text: rawText });
+      writeInfoLog("voiceFlowStore: copy_to_clipboard succeeded");
+      // Clear wasEnhanced so action bar doesn't re-appear on next success
+      set({ lastSuccessWasEnhanced: false });
+      // NotchHud shows inline "Copied!" feedback; close HUD shortly after
+      clearAutoHideTimer();
+      setAutoHideTimer(() => {
+        transitionTo("idle");
+      }, 1200);
+    } catch (err) {
+      writeErrorLog(
+        `voiceFlowStore: copy_to_clipboard failed: ${extractErrorMessage(err)}`,
+      );
+      captureError(err, { source: "voice-flow", step: "copy-original" });
+    }
   },
 
   handleReEnhance: async (mode: PromptMode) => {
     await handleReEnhanceWithMode(mode);
+  },
+
+  pauseAutoHide: () => {
+    clearAutoHideTimer();
+    writeInfoLog("voiceFlowStore: auto-hide paused (hover start)");
+  },
+
+  resumeAutoHide: () => {
+    const state = get();
+    // Only resume auto-hide for success or error states that currently have a timer
+    if (state.status === "success") {
+      const successDurationMs = (() => {
+        try {
+          return getSettingsStoreFromAccessors().successDisplayDurationSec * 1000;
+        } catch {
+          return DEFAULT_SUCCESS_DISPLAY_DURATION_MS;
+        }
+      })();
+      const totalDuration = state.lastSuccessWasEnhanced
+        ? successDurationMs + ACTION_BAR_DISPLAY_DURATION_MS
+        : successDurationMs;
+      setAutoHideTimer(() => {
+        transitionTo("idle");
+      }, totalDuration);
+      writeInfoLog("voiceFlowStore: auto-hide resumed (hover end, success)");
+    } else if (state.status === "error") {
+      const errorDuration = state.canRetry
+        ? ERROR_WITH_RETRY_DISPLAY_DURATION_MS
+        : ERROR_DISPLAY_DURATION_MS;
+      setAutoHideTimer(() => {
+        transitionTo("idle");
+      }, errorDuration);
+      writeInfoLog("voiceFlowStore: auto-hide resumed (hover end, error)");
+    }
   },
 }));

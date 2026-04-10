@@ -858,26 +858,6 @@ export async function handleStopRecording(): Promise<void> {
   }
 }
 
-// ── Copy Original Text ──
-
-export async function handleCopyOriginalText(): Promise<void> {
-  const { getState, transitionTo } = actions();
-  const rawText = getState()._lastSuccessRawText;
-  if (!rawText) return;
-
-  try {
-    await invoke("copy_to_clipboard", { text: rawText });
-    const preview = rawText.trim().length > 30 ? rawText.trim().slice(0, 30) + "…" : rawText.trim();
-    // Clear wasEnhanced so action bar doesn't re-appear
-    actions().setState({ lastSuccessWasEnhanced: false });
-    transitionTo("success", `${t("voiceFlow.copied")} · ${preview}`);
-    writeInfoLog("voiceFlowStore: copied original text to clipboard");
-  } catch (err) {
-    writeErrorLog(`voiceFlowStore: copy_to_clipboard failed: ${extractErrorMessage(err)}`);
-    captureError(err, { source: "voice-flow", step: "copy-original" });
-  }
-}
-
 // ── Re-enhance with a different mode ──
 
 export async function handleReEnhanceWithMode(targetMode: PromptMode): Promise<void> {

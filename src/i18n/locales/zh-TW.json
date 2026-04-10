@@ -507,7 +507,8 @@
     "correctionPromptHint": "複製正確的詞 (⌘C) 即可新增詞彙",
     "retryFailed": "辨識失敗，請重新錄音",
     "cancelled": "已取消",
-    "copyOriginal": "原文",
+    "copyOriginal": "複製原文",
+    "reEnhance": "重新送 AI 整理",
     "copied": "已複製"
   },
   "errors": {
