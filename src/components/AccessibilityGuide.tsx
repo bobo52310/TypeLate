@@ -20,54 +20,53 @@ export function AccessibilityGuide({ visible, onClose }: AccessibilityGuideProps
   const [reinitializeError, setReinitializeError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
-  const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const stopPermissionPolling = useCallback(() => {
-    if (pollingTimerRef.current !== null) {
-      clearInterval(pollingTimerRef.current);
-      pollingTimerRef.current = null;
-    }
-  }, []);
+  // Refs hold the latest callbacks so the polling effect below can depend
+  // only on `visible` — otherwise parent re-renders (DashboardApp re-renders
+  // on every Zustand store update) would tear down and restart the setInterval
+  // before its 2s tick ever fires, leaving the dialog stuck forever.
+  const onCloseRef = useRef(onClose);
+  const tRef = useRef(t);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
-  const handlePermissionGranted = useCallback(async () => {
-    setIsReinitializing(true);
+  useEffect(() => {
+    if (!visible) return;
     setReinitializeError(null);
-    try {
-      await invoke("reinitialize_hotkey_listener");
-      onClose();
-    } catch (error) {
-      captureError(error, { source: "accessibility", step: "reinitialize" });
-      setReinitializeError(t("accessibility.reinitializeError"));
-    } finally {
-      setIsReinitializing(false);
-    }
-  }, [onClose, t]);
+    primaryButtonRef.current?.focus();
 
-  const startPermissionPolling = useCallback(() => {
-    stopPermissionPolling();
-    pollingTimerRef.current = setInterval(async () => {
+    let cancelled = false;
+    const intervalId = setInterval(async () => {
+      if (cancelled) return;
       try {
         const hasPermission = await invoke<boolean>("check_accessibility_permission_command");
-        if (hasPermission) {
-          stopPermissionPolling();
-          await handlePermissionGranted();
+        if (cancelled || !hasPermission) return;
+        clearInterval(intervalId);
+        setIsReinitializing(true);
+        setReinitializeError(null);
+        try {
+          await invoke("reinitialize_hotkey_listener");
+          if (!cancelled) onCloseRef.current();
+        } catch (error) {
+          captureError(error, { source: "accessibility", step: "reinitialize" });
+          if (!cancelled) setReinitializeError(tRef.current("accessibility.reinitializeError"));
+        } finally {
+          if (!cancelled) setIsReinitializing(false);
         }
       } catch (error) {
         captureError(error, { source: "accessibility", step: "check-permission" });
       }
     }, PERMISSION_CHECK_INTERVAL_MS);
-  }, [stopPermissionPolling, handlePermissionGranted]);
 
-  useEffect(() => {
-    if (visible) {
-      setReinitializeError(null);
-      primaryButtonRef.current?.focus();
-      startPermissionPolling();
-    } else {
-      stopPermissionPolling();
-    }
-    return () => stopPermissionPolling();
-  }, [visible, startPermissionPolling, stopPermissionPolling]);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [visible]);
 
   const handleKeydown = useCallback(
     (event: React.KeyboardEvent) => {
