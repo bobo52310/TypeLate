@@ -57,61 +57,44 @@ pub fn open_microphone_settings() -> Result<(), String> {
     Ok(())
 }
 
-/// Trigger the macOS microphone TCC prompt by briefly attempting to open a
-/// cpal input stream on a background thread.
+/// Trigger the macOS microphone TCC prompt via
+/// `+[AVCaptureDevice requestAccessForMediaType:completionHandler:]`.
 ///
-/// - If status is `notDetermined`, macOS shows the system dialog and returns
-///   the resulting status once the user answers (best-effort; we poll briefly).
-/// - If status is `denied` or `restricted`, we cannot re-prompt; the caller
-///   should open System Settings instead.
+/// - If status is `notDetermined`, macOS presents the system dialog and
+///   invokes the completion block on an arbitrary thread once the user
+///   answers. We ignore the result — the frontend polls `check_microphone_permission`
+///   to pick up the new status.
+/// - If status is `denied` or `restricted`, `requestAccess` does NOT re-prompt;
+///   the caller should open System Settings instead.
 /// - If already `granted`, this is a no-op.
+#[cfg(target_os = "macos")]
+#[allow(unexpected_cfgs)]
+fn trigger_mic_permission_prompt() {
+    use block::ConcreteBlock;
+    use objc::runtime::{Class, BOOL};
+    unsafe {
+        let cls = match Class::get("AVCaptureDevice") {
+            Some(c) => c,
+            None => return,
+        };
+        // Fire-and-forget completion handler; frontend polls for the result.
+        let block = ConcreteBlock::new(|_granted: BOOL| {});
+        let block = block.copy();
+        let _: () = msg_send![
+            cls,
+            requestAccessForMediaType: AVMediaTypeAudio
+            completionHandler: &*block
+        ];
+    }
+}
+
 #[tauri::command]
 pub fn request_microphone_permission() -> Result<String, String> {
     #[cfg(target_os = "macos")]
     {
         let status = mic_authorization_status();
         if status == 0 {
-            std::thread::spawn(|| {
-                use cpal::traits::{DeviceTrait, HostTrait};
-                let host = cpal::default_host();
-                if let Some(device) = host.default_input_device() {
-                    if let Ok(supported) = device.default_input_config() {
-                        let config: cpal::StreamConfig = supported.clone().into();
-                        // Drop immediately — the act of building a stream triggers
-                        // the TCC prompt on macOS; we don't need audio samples.
-                        match supported.sample_format() {
-                            cpal::SampleFormat::F32 => {
-                                let _ = device.build_input_stream::<f32, _, _>(
-                                    &config,
-                                    |_data, _| {},
-                                    |_err| {},
-                                    None,
-                                );
-                            }
-                            cpal::SampleFormat::I16 => {
-                                let _ = device.build_input_stream::<i16, _, _>(
-                                    &config,
-                                    |_data, _| {},
-                                    |_err| {},
-                                    None,
-                                );
-                            }
-                            cpal::SampleFormat::U16 => {
-                                let _ = device.build_input_stream::<u16, _, _>(
-                                    &config,
-                                    |_data, _| {},
-                                    |_err| {},
-                                    None,
-                                );
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-            });
-            // Give macOS a moment to present the dialog, then re-read status.
-            // The user may still be deciding — frontend will keep polling.
-            std::thread::sleep(std::time::Duration::from_millis(400));
+            trigger_mic_permission_prompt();
         }
         return Ok(status_to_string(mic_authorization_status()).to_string());
     }

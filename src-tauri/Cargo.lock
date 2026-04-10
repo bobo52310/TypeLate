@@ -383,6 +383,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "block"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6329,10 +6335,11 @@ checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
 
 [[package]]
 name = "typelate"
-version = "1.4.2"
+version = "1.4.3"
 dependencies = [
  "arboard",
  "base64 0.22.1",
+ "block",
  "core-foundation 0.10.1",
  "core-graphics",
  "cpal",
