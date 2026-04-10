@@ -16,7 +16,8 @@
     "typecheck": "tsc -b",
     "format:check": "prettier --check .",
     "check": "tsc -b && eslint . && prettier --check . && vitest run",
-    "bump": "bash scripts/bump-version.sh"
+    "bump": "bash scripts/bump-version.sh",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "@sentry/react": "^9.20.1",
