@@ -501,7 +501,7 @@
     "cancelled": "已取消",
     "copyOriginal": "复制原文",
     "reEnhance": "重新送 AI 整理",
-    "copied": "已复制"
+    "copied": "已复制原文"
   },
   "errors": {
     "databaseInitFailed": "数据库初始化失败，历史记录暂时无法使用。请重新启动应用程序。",

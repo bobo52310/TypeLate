@@ -509,7 +509,7 @@
     "cancelled": "已取消",
     "copyOriginal": "複製原文",
     "reEnhance": "重新送 AI 整理",
-    "copied": "已複製"
+    "copied": "已複製原文"
   },
   "errors": {
     "databaseInitFailed": "資料庫初始化失敗，歷史記錄暫時無法使用。請重新啟動應用程式。",

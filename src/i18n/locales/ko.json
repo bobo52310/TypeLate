@@ -501,7 +501,7 @@
     "cancelled": "취소됨",
     "copyOriginal": "원문 복사",
     "reEnhance": "AI 로 다시 정리",
-    "copied": "복사 완료"
+    "copied": "원문 복사 완료"
   },
   "errors": {
     "databaseInitFailed": "데이터베이스 초기화에 실패했습니다. 기록을 일시적으로 사용할 수 없습니다. 앱을 다시 시작해 주세요.",

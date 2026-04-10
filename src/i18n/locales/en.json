@@ -509,7 +509,7 @@
     "cancelled": "Cancelled",
     "copyOriginal": "Copy Original",
     "reEnhance": "Re-enhance with AI",
-    "copied": "Copied"
+    "copied": "Original Copied"
   },
   "errors": {
     "databaseInitFailed": "Database initialization failed. History is temporarily unavailable. Please restart the app.",

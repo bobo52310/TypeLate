@@ -501,7 +501,7 @@
     "cancelled": "キャンセル",
     "copyOriginal": "原文をコピー",
     "reEnhance": "AI で再整形",
-    "copied": "コピー済み"
+    "copied": "原文をコピー済み"
   },
   "errors": {
     "databaseInitFailed": "データベースの初期化に失敗しました。履歴が一時的に使用できません。アプリを再起動してください。",
