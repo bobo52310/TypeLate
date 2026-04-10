@@ -502,7 +502,9 @@
     "correctionDetected": "Correction detected",
     "correctionPromptHint": "Copy the correct term (⌘C) to add",
     "retryFailed": "Recognition failed, please record again",
-    "cancelled": "Cancelled"
+    "cancelled": "Cancelled",
+    "copyOriginal": "Original",
+    "copied": "Copied"
   },
   "errors": {
     "databaseInitFailed": "Database initialization failed. History is temporarily unavailable. Please restart the app.",

@@ -19,6 +19,7 @@ import i18n from "@/i18n";
 import { extractErrorMessage, getHotkeyErrorMessage } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
 import type { HudStatus } from "@/types";
+import type { PromptMode } from "@/types/settings";
 import type {
   HotkeyEventPayload,
   HotkeyErrorPayload,
@@ -61,6 +62,8 @@ import {
 import {
   handleStartRecording,
   handleStopRecording,
+  handleReEnhanceWithMode,
+  handleCopyOriginalText,
   restoreSystemAudio,
   getAbortController,
   setVoiceFlowActions,
@@ -80,6 +83,7 @@ import {
 // ── Constants ──
 
 const DEFAULT_SUCCESS_DISPLAY_DURATION_MS = 1500;
+const ACTION_BAR_DISPLAY_DURATION_MS = 6500;
 const ERROR_DISPLAY_DURATION_MS = 3000;
 const ERROR_WITH_RETRY_DISPLAY_DURATION_MS = 6000;
 const CANCELLED_DISPLAY_DURATION_MS = 1000;
@@ -115,6 +119,10 @@ export interface VoiceFlowState {
   frontmostAppName: string | null;
   frontmostAppIconBase64: string | null;
 
+  // Post-success action bar state (consumed by HUD component)
+  lastSuccessWasEnhanced: boolean;
+  lastSuccessPromptMode: PromptMode | null;
+
   // Internal state (used by sub-modules, prefixed with _ to indicate internal)
   /** @internal */ _isAborted: boolean;
   /** @internal */ _isRetryAttempt: boolean;
@@ -123,11 +131,15 @@ export interface VoiceFlowState {
   /** @internal */ _lastFailedRecordingDurationMs: number;
   /** @internal */ _lastFailedPeakEnergyLevel: number;
   /** @internal */ _lastFailedRmsEnergyLevel: number;
+  /** @internal */ _lastSuccessRawText: string | null;
+  /** @internal */ _lastSuccessTranscriptionId: string | null;
 
   // Actions
   initialize: (stores: VoiceFlowInitStores) => Promise<void>;
   cleanup: () => void;
   handleRetryTranscription: () => Promise<void>;
+  handleCopyOriginal: () => Promise<void>;
+  handleReEnhance: (mode: PromptMode) => Promise<void>;
 }
 
 /**
@@ -191,10 +203,19 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
   }
 
   if (nextStatus === "success") {
-    showHud().catch((err: unknown) => {
-      writeErrorLog(`voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`);
-      captureError(err, { source: "voice-flow", step: "showHud" });
-    });
+    const wasEnhanced = useVoiceFlowStore.getState().lastSuccessWasEnhanced;
+    const showPromise = showHud();
+    if (wasEnhanced) {
+      showPromise.then(() => enableCursorEvents()).catch((err: unknown) => {
+        writeErrorLog(`voiceFlowStore: showHud/enableCursor failed: ${extractErrorMessage(err)}`);
+        captureError(err, { source: "voice-flow", step: "showHud-enableCursor-success" });
+      });
+    } else {
+      showPromise.catch((err: unknown) => {
+        writeErrorLog(`voiceFlowStore: showHud failed: ${extractErrorMessage(err)}`);
+        captureError(err, { source: "voice-flow", step: "showHud" });
+      });
+    }
     const successDurationMs = (() => {
       try {
         return getSettingsStoreFromAccessors().successDisplayDurationSec * 1000;
@@ -202,9 +223,12 @@ export function transitionTo(nextStatus: HudStatus, nextMessage = ""): void {
         return DEFAULT_SUCCESS_DISPLAY_DURATION_MS;
       }
     })();
+    const totalDuration = wasEnhanced
+      ? successDurationMs + ACTION_BAR_DISPLAY_DURATION_MS
+      : successDurationMs;
     setAutoHideTimer(() => {
       transitionTo("idle");
-    }, successDurationMs);
+    }, totalDuration);
     return;
   }
 
@@ -271,13 +295,13 @@ export function failRecordingFlow(errorMessage: string, logMessage: string, erro
 function handleEscapeAbort(): void {
   const state = useVoiceFlowStore.getState();
   const currentStatus = state.status;
-  if (
-    currentStatus === "idle" ||
-    currentStatus === "success" ||
-    currentStatus === "error" ||
-    currentStatus === "cancelled"
-  )
+  if (currentStatus === "idle" || currentStatus === "cancelled") return;
+
+  // ESC during success or error dismisses immediately
+  if (currentStatus === "success" || currentStatus === "error") {
+    transitionTo("idle");
     return;
+  }
 
   writeInfoLog(`voiceFlowStore: ESC abort from ${currentStatus}`);
   useVoiceFlowStore.setState({ _isAborted: true, isRecording: false });
@@ -318,6 +342,10 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
   frontmostAppName: null,
   frontmostAppIconBase64: null,
 
+  // Post-success action bar state
+  lastSuccessWasEnhanced: false,
+  lastSuccessPromptMode: null,
+
   // Internal state
   _isAborted: false,
   _isRetryAttempt: false,
@@ -326,6 +354,8 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
   _lastFailedRecordingDurationMs: 0,
   _lastFailedPeakEnergyLevel: 0,
   _lastFailedRmsEnergyLevel: 0,
+  _lastSuccessRawText: null,
+  _lastSuccessTranscriptionId: null,
 
   // ── Actions ──
 
@@ -430,5 +460,13 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
 
   handleRetryTranscription: async () => {
     await retryTranscription();
+  },
+
+  handleCopyOriginal: async () => {
+    await handleCopyOriginalText();
+  },
+
+  handleReEnhance: async (mode: PromptMode) => {
+    await handleReEnhanceWithMode(mode);
   },
 }));

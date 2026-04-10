@@ -502,7 +502,9 @@
     "correctionDetected": "偵測到修正",
     "correctionPromptHint": "複製正確的詞 (⌘C) 即可新增詞彙",
     "retryFailed": "辨識失敗，請重新錄音",
-    "cancelled": "已取消"
+    "cancelled": "已取消",
+    "copyOriginal": "原文",
+    "copied": "已複製"
   },
   "errors": {
     "databaseInitFailed": "資料庫初始化失敗，歷史記錄暫時無法使用。請重新啟動應用程式。",

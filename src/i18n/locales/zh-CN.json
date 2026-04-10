@@ -494,7 +494,9 @@
     "correctionDetected": "检测到修正",
     "correctionPromptHint": "复制正确的词 (⌘C) 即可新增词汇",
     "retryFailed": "识别失败，请重新录音",
-    "cancelled": "已取消"
+    "cancelled": "已取消",
+    "copyOriginal": "原文",
+    "copied": "已复制"
   },
   "errors": {
     "databaseInitFailed": "数据库初始化失败，历史记录暂时无法使用。请重新启动应用程序。",

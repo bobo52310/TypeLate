@@ -25,10 +25,12 @@ import { getProviderConfig } from "@/lib/providerConfig";
 import { detectHallucination, detectEnhancementAnomaly } from "@/lib/hallucinationDetector";
 import { calculateWhisperCostCeiling, calculateChatCostCeiling } from "@/lib/apiPricing";
 import { retryWithBackoff } from "@/lib/retryWithBackoff";
+import { getPromptForModeAndLocale } from "@/i18n/prompts";
 import type { StopRecordingResult, TranscriptionResult, FrontmostAppInfo } from "@/types/audio";
 import type { TranscriptionRecord, ChatUsageData } from "@/types/transcription";
 import type { TranscriptionCompletedPayload } from "@/types/events";
 import type { HudStatus } from "@/types";
+import type { PromptMode } from "@/types/settings";
 import { emitToWindow, TRANSCRIPTION_COMPLETED } from "@/hooks/useTauriEvent";
 import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
 import { useRateLimitStore } from "@/stores/rateLimitStore";
@@ -73,6 +75,8 @@ interface VoiceFlowActions {
     isRecording: boolean;
     _isAborted: boolean;
     lastWasModified: boolean | null;
+    _lastSuccessRawText: string | null;
+    _lastSuccessTranscriptionId: string | null;
   };
   setState: (partial: Record<string, unknown>) => void;
   transitionTo: (status: HudStatus, message?: string) => void;
@@ -308,9 +312,18 @@ async function completePasteFlow(params: {
 }): Promise<void> {
   const { transitionTo, failRecordingFlow } = actions();
   try {
-    const preserveClipboard = !getSettingsStore().isCopyResultToClipboard;
+    const settingsStore = getSettingsStore();
+    const preserveClipboard = !settingsStore.isCopyResultToClipboard;
     await invoke("paste_text", { text: params.text, preserveClipboard });
     actions().setState({ isRecording: false });
+
+    // Save post-success data for action bar (copy original / re-enhance)
+    actions().setState({
+      lastSuccessWasEnhanced: params.record.wasEnhanced,
+      lastSuccessPromptMode: settingsStore.promptMode,
+      _lastSuccessRawText: params.record.rawText,
+      _lastSuccessTranscriptionId: params.record.id,
+    });
 
     // Show text preview in success message (truncate to ~30 chars)
     const preview =
@@ -382,6 +395,11 @@ export async function handleStartRecording(): Promise<void> {
     isRecording: true,
     lastWasModified: null,
     _isAborted: false,
+    // Clear post-success action bar state
+    lastSuccessWasEnhanced: false,
+    lastSuccessPromptMode: null,
+    _lastSuccessRawText: null,
+    _lastSuccessTranscriptionId: null,
     _lastFailedTranscriptionId: null,
     _lastFailedAudioFilePath: null,
     _lastFailedRecordingDurationMs: 0,
@@ -833,6 +851,138 @@ export async function handleStopRecording(): Promise<void> {
     failRecordingFlow(
       userMessage,
       `voiceFlowStore: stop recording failed: ${technicalMessage}`,
+      error,
+    );
+  }
+}
+
+// ── Copy Original Text ──
+
+export async function handleCopyOriginalText(): Promise<void> {
+  const { getState, transitionTo } = actions();
+  const rawText = getState()._lastSuccessRawText;
+  if (!rawText) return;
+
+  try {
+    await invoke("copy_to_clipboard", { text: rawText });
+    const preview = rawText.trim().length > 30 ? rawText.trim().slice(0, 30) + "…" : rawText.trim();
+    // Clear wasEnhanced so action bar doesn't re-appear
+    actions().setState({ lastSuccessWasEnhanced: false });
+    transitionTo("success", `${t("voiceFlow.copied")} · ${preview}`);
+    writeInfoLog("voiceFlowStore: copied original text to clipboard");
+  } catch (err) {
+    writeErrorLog(`voiceFlowStore: copy_to_clipboard failed: ${extractErrorMessage(err)}`);
+    captureError(err, { source: "voice-flow", step: "copy-original" });
+  }
+}
+
+// ── Re-enhance with a different mode ──
+
+export async function handleReEnhanceWithMode(targetMode: PromptMode): Promise<void> {
+  const { getState, setState, transitionTo, failRecordingFlow } = actions();
+  const rawText = getState()._lastSuccessRawText;
+  const transcriptionId = getState()._lastSuccessTranscriptionId;
+  if (!rawText || !transcriptionId) return;
+
+  transitionTo("enhancing", t("voiceFlow.enhancing"));
+
+  try {
+    const settingsStore = getSettingsStore();
+    let apiKey = settingsStore.getApiKey();
+
+    if (!apiKey) {
+      await settingsStore.refreshApiKey();
+      apiKey = settingsStore.getApiKey();
+    }
+
+    if (!apiKey) {
+      failRecordingFlow(
+        t("errors.apiKeyMissing"),
+        "voiceFlowStore: missing API key during re-enhancement",
+      );
+      return;
+    }
+
+    const providerConfig = getProviderConfig(settingsStore.selectedProviderId);
+    const vocabularyStore = getVocabularyStore();
+    const enhancementTermList = await vocabularyStore.getTopTermListByWeight(50);
+
+    // Build prompt for target mode
+    let systemPrompt: string;
+    if (targetMode === "custom") {
+      systemPrompt = settingsStore.aiPrompt || settingsStore.getAiPrompt();
+    } else {
+      const locale = settingsStore.getEffectivePromptLocale();
+      systemPrompt = getPromptForModeAndLocale(targetMode, locale);
+    }
+
+    const enhanceResult = await enhanceText(rawText, apiKey, {
+      systemPrompt,
+      vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
+      modelId: settingsStore.selectedLlmModelId,
+      chatApiUrl: providerConfig.chatBaseUrl,
+    });
+
+    // Paste new result
+    const preserveClipboard = !settingsStore.isCopyResultToClipboard;
+    await invoke("paste_text", { text: enhanceResult.text, preserveClipboard });
+
+    // Update state for action bar (allow further re-enhancement)
+    setState({
+      lastSuccessWasEnhanced: true,
+      lastSuccessPromptMode: targetMode,
+      _lastSuccessRawText: rawText,
+      _lastSuccessTranscriptionId: transcriptionId,
+    });
+
+    const preview =
+      enhanceResult.text.trim().length > 30
+        ? enhanceResult.text.trim().slice(0, 30) + "…"
+        : enhanceResult.text.trim();
+    transitionTo("success", `${t("voiceFlow.pasteSuccess")} · ${preview}`);
+
+    writeInfoLog(`voiceFlowStore: re-enhanced with mode=${targetMode}`);
+
+    // Update DB record (fire-and-forget)
+    void (async () => {
+      try {
+        const historyStore = getHistoryStore();
+        await historyStore.updateTranscriptionOnRetrySuccess(
+          {
+            id: transcriptionId,
+            rawText,
+            processedText: enhanceResult.text,
+            transcriptionDurationMs: 0,
+            enhancementDurationMs: 0,
+            wasEnhanced: true,
+            charCount: rawText.length,
+          },
+          { skipEmit: true },
+        );
+        const payload: TranscriptionCompletedPayload = {
+          id: transcriptionId,
+          rawText,
+          processedText: enhanceResult.text,
+          recordingDurationMs: 0,
+          transcriptionDurationMs: 0,
+          enhancementDurationMs: 0,
+          charCount: rawText.length,
+          wasEnhanced: true,
+        };
+        await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
+      } catch (dbErr) {
+        writeErrorLog(
+          `voiceFlowStore: re-enhance DB update failed: ${extractErrorMessage(dbErr)}`,
+        );
+      }
+    })();
+  } catch (error) {
+    const errorDetail = getEnhancementErrorMessage(error);
+    writeErrorLog(`voiceFlowStore: re-enhancement failed: ${errorDetail}`);
+    captureError(error, { source: "voice-flow", step: "re-enhance" });
+    failRecordingFlow(
+      t("errors.enhancementTimeout"),
+      `voiceFlowStore: re-enhancement failed: ${errorDetail}`,
       error,
     );
   }

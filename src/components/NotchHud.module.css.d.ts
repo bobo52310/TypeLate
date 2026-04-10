@@ -31,5 +31,8 @@ declare const styles: {
   readonly retryIcon: string;
   readonly notchCollapsing: string;
   readonly appIconInline: string;
+  readonly successModeLabel: string;
+  readonly actionBarContent: string;
+  readonly actionBarButton: string;
 };
 export default styles;

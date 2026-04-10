@@ -10,6 +10,7 @@ import { initSentryForHud } from "@/lib/sentry";
 import { SETTINGS_UPDATED, VOCABULARY_CHANGED, TRAY_CYCLE_PROMPT_MODE } from "@/hooks/useTauriEvent";
 import { logInfo, logError } from "@/lib/logger";
 import { NotchHud } from "@/components/NotchHud";
+import type { PromptMode } from "@/types/settings";
 import "@/i18n";
 
 export function HudApp() {
@@ -20,12 +21,27 @@ export function HudApp() {
   const handleRetryTranscription = useVoiceFlowStore((s) => s.handleRetryTranscription);
   const frontmostAppName = useVoiceFlowStore((s) => s.frontmostAppName);
   const frontmostAppIconBase64 = useVoiceFlowStore((s) => s.frontmostAppIconBase64);
+  const lastSuccessWasEnhanced = useVoiceFlowStore((s) => s.lastSuccessWasEnhanced);
+  const lastSuccessPromptMode = useVoiceFlowStore((s) => s.lastSuccessPromptMode);
+  const handleCopyOriginal = useVoiceFlowStore((s) => s.handleCopyOriginal);
+  const handleReEnhance = useVoiceFlowStore((s) => s.handleReEnhance);
 
   const initializedRef = useRef(false);
 
   const handleRetry = useCallback(() => {
     void handleRetryTranscription();
   }, [handleRetryTranscription]);
+
+  const onCopyOriginal = useCallback(() => {
+    void handleCopyOriginal();
+  }, [handleCopyOriginal]);
+
+  const onReEnhance = useCallback(
+    (mode: PromptMode) => {
+      void handleReEnhance(mode);
+    },
+    [handleReEnhance],
+  );
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -116,6 +132,10 @@ export function HudApp() {
         onRetry={handleRetry}
         appName={frontmostAppName}
         appIconBase64={frontmostAppIconBase64}
+        lastSuccessWasEnhanced={lastSuccessWasEnhanced}
+        lastSuccessPromptMode={lastSuccessPromptMode}
+        onCopyOriginal={onCopyOriginal}
+        onReEnhance={onReEnhance}
       />
     </div>
   );

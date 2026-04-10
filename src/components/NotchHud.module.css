@@ -488,6 +488,61 @@
   }
 }
 
+/* ---- Success: mode label after checkmark ---- */
+.successModeLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(34, 197, 94, 0.8);
+  margin-left: 24px;
+  white-space: nowrap;
+  animation: learnedTextFadeIn 0.3s ease-out 0.35s both;
+}
+
+/* ---- Action Bar ---- */
+.actionBarContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 0 28px;
+  animation: actionBarFadeIn 0.25s ease-out;
+}
+
+.actionBarButton {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.actionBarButton:hover {
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.actionBarButton:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+@keyframes actionBarFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* ---- Reduced Motion ---- */
 @media (prefers-reduced-motion: reduce) {
   .waveformBar,
@@ -525,6 +580,14 @@
   }
 
   .appIconInline {
+    animation: none !important;
+  }
+
+  .actionBarContent {
+    animation: none !important;
+  }
+
+  .successModeLabel {
     animation: none !important;
   }
 }

@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { logInfo } from "@/lib/logger";
 import type { HudStatus } from "@/types";
+import type { PromptMode } from "@/types/settings";
 import type { VocabularyLearnedPayload } from "@/types/events";
 import { useAudioWaveform } from "@/hooks/useAudioWaveform";
 import { useTauriEvent, VOCABULARY_LEARNED, CORRECTION_PROMPT } from "@/hooks/useTauriEvent";
@@ -20,7 +21,8 @@ type VisualMode =
   | "cancelled"
   | "collapsing"
   | "learned"
-  | "correction-prompt";
+  | "correction-prompt"
+  | "action-bar";
 
 interface NotchHudProps {
   status: HudStatus;
@@ -30,6 +32,10 @@ interface NotchHudProps {
   onRetry: () => void;
   appName: string | null;
   appIconBase64: string | null;
+  lastSuccessWasEnhanced: boolean;
+  lastSuccessPromptMode: PromptMode | null;
+  onCopyOriginal: () => void;
+  onReEnhance: (mode: PromptMode) => void;
 }
 
 // --- Constants ---
@@ -98,6 +104,14 @@ function getWaveformElementClass(mode: VisualMode): string {
 
 // --- Component ---
 
+const ALL_PROMPT_MODES: PromptMode[] = ["minimal", "active", "custom"];
+
+const MODE_LABEL_KEYS: Record<PromptMode, string> = {
+  minimal: "settings.prompt.modeMinimal",
+  active: "settings.prompt.modeActive",
+  custom: "settings.prompt.modeCustom",
+};
+
 export function NotchHud({
   status,
   recordingElapsedSeconds,
@@ -106,10 +120,15 @@ export function NotchHud({
   onRetry,
   appName,
   appIconBase64,
+  lastSuccessWasEnhanced,
+  lastSuccessPromptMode,
+  onCopyOriginal,
+  onReEnhance,
 }: NotchHudProps) {
   const { t } = useTranslation();
 
   const promptMode = useSettingsStore((s) => s.promptMode);
+  const successDisplayDurationSec = useSettingsStore((s) => s.successDisplayDurationSec);
 
   const [visualMode, setVisualMode] = useState<VisualMode>("hidden");
   const [pendingLearnedTermList, setPendingLearnedTermList] = useState<string[][]>([]);
@@ -127,6 +146,7 @@ export function NotchHud({
   const collapsingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const learnedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const modeLabelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const actionBarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { waveformLevelList, startWaveformAnimation, stopWaveformAnimation } = useAudioWaveform();
 
@@ -176,6 +196,29 @@ export function NotchHud({
     };
   }, [visualMode]);
 
+  // --- Action bar: transition from success to action-bar after delay ---
+  useEffect(() => {
+    if (visualMode !== "success" || !lastSuccessWasEnhanced) {
+      if (actionBarTimerRef.current) {
+        clearTimeout(actionBarTimerRef.current);
+        actionBarTimerRef.current = null;
+      }
+      return;
+    }
+    const delayMs = successDisplayDurationSec * 1000;
+    actionBarTimerRef.current = setTimeout(() => {
+      if (visualModeRef.current === "success") {
+        setVisualMode("action-bar");
+      }
+    }, delayMs);
+    return () => {
+      if (actionBarTimerRef.current) {
+        clearTimeout(actionBarTimerRef.current);
+        actionBarTimerRef.current = null;
+      }
+    };
+  }, [visualMode, lastSuccessWasEnhanced, successDisplayDurationSec]);
+
   // --- Timer helpers ---
 
   const clearMorphingTimer = useCallback(() => {
@@ -204,6 +247,7 @@ export function NotchHud({
   const hasErrorMessage = visualMode === "error" && message !== "";
   const hasSuccessPreview = visualMode === "success" && message !== "" && message.includes("·");
   const isExpandedMode = hasErrorMessage || visualMode === "learned" || visualMode === "correction-prompt" || hasSuccessPreview;
+  const isActionBar = visualMode === "action-bar";
 
   const isHighPriorityMode =
     visualMode === "recording" ||
@@ -221,12 +265,15 @@ export function NotchHud({
     if (isExpandedMode) {
       params = { ...params, height: ERROR_WITH_MESSAGE_HEIGHT };
     }
+    if (isActionBar) {
+      params = { ...DEFAULT_NOTCH_SHAPE };
+    }
     return {
       width: `${params.width}px`,
       height: `${params.height}px`,
       clipPath: buildNotchPath(params),
     };
-  }, [visualMode, isExpandedMode]);
+  }, [visualMode, isExpandedMode, isActionBar]);
 
   const formattedElapsedTime = useMemo(() => {
     const minutes = Math.floor(recordingElapsedSeconds / 60);
@@ -433,6 +480,11 @@ export function NotchHud({
 
     if (status === "transcribing" || status === "enhancing") {
       stopWaveformAnimation();
+      // Clear action bar timer if transitioning from success/action-bar to enhancing (re-enhance)
+      if (actionBarTimerRef.current) {
+        clearTimeout(actionBarTimerRef.current);
+        actionBarTimerRef.current = null;
+      }
       if (visualModeRef.current === "recording" || visualModeRef.current === "morphing") {
         setVisualMode("morphing");
         morphingTimerRef.current = setTimeout(() => {
@@ -479,8 +531,18 @@ export function NotchHud({
       clearCollapsingTimer();
       clearLearnedTimer();
       stopWaveformAnimation();
+      if (actionBarTimerRef.current) {
+        clearTimeout(actionBarTimerRef.current);
+        actionBarTimerRef.current = null;
+      }
     };
   }, [clearMorphingTimer, clearCollapsingTimer, clearLearnedTimer, stopWaveformAnimation]);
+
+  // --- Action bar: available modes (exclude current) ---
+  const actionBarModeList = useMemo(() => {
+    if (!lastSuccessPromptMode) return ALL_PROMPT_MODES;
+    return ALL_PROMPT_MODES.filter((m) => m !== lastSuccessPromptMode);
+  }, [lastSuccessPromptMode]);
 
   // --- Render ---
 
@@ -544,16 +606,23 @@ export function NotchHud({
           ))}
         </div>
         {visualMode === "success" && (
-          <svg className={styles.checkmarkSvg} width="18" height="18" viewBox="0 0 24 24">
-            <path
-              d="M4 12l6 6L20 6"
-              fill="none"
-              stroke="#22c55e"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <>
+            <svg className={styles.checkmarkSvg} width="18" height="18" viewBox="0 0 24 24">
+              <path
+                d="M4 12l6 6L20 6"
+                fill="none"
+                stroke="#22c55e"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {lastSuccessPromptMode && (
+              <span className={styles.successModeLabel}>
+                {t(MODE_LABEL_KEYS[lastSuccessPromptMode])}
+              </span>
+            )}
+          </>
         )}
       </>
     );
@@ -642,36 +711,74 @@ export function NotchHud({
           })}
           style={notchStyle}
         >
-          <div className={styles.notchContent}>
-            <div className={styles.notchLeft}>{renderLeftContent()}</div>
-            <div className={styles.notchCameraGap} />
-            <div className={styles.notchRight}>{renderRightContent()}</div>
-          </div>
-
-          {visualMode === "learned" && (
-            <div className={styles.learnedTermsRow}>
-              <span className={styles.learnedTerms}>{learnedDisplayText}</span>
+          {isActionBar ? (
+            <div className={styles.actionBarContent}>
+              <button
+                type="button"
+                className={styles.actionBarButton}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCopyOriginal();
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <span>{t("voiceFlow.copyOriginal")}</span>
+              </button>
+              {actionBarModeList.map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={styles.actionBarButton}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReEnhance(mode);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                  </svg>
+                  <span>{t(MODE_LABEL_KEYS[mode])}</span>
+                </button>
+              ))}
             </div>
-          )}
+          ) : (
+            <>
+              <div className={styles.notchContent}>
+                <div className={styles.notchLeft}>{renderLeftContent()}</div>
+                <div className={styles.notchCameraGap} />
+                <div className={styles.notchRight}>{renderRightContent()}</div>
+              </div>
 
-          {visualMode === "correction-prompt" && (
-            <div className={styles.learnedTermsRow}>
-              <span className={styles.learnedTerms}>{t("voiceFlow.correctionPromptHint")}</span>
-            </div>
-          )}
+              {visualMode === "learned" && (
+                <div className={styles.learnedTermsRow}>
+                  <span className={styles.learnedTerms}>{learnedDisplayText}</span>
+                </div>
+              )}
 
-          {hasSuccessPreview && (
-            <div className={styles.errorMessageRow}>
-              <span className={styles.errorMessage} style={{ color: "rgba(255,255,255,0.7)" }}>
-                {message.split("·").slice(1).join("·").trim()}
-              </span>
-            </div>
-          )}
+              {visualMode === "correction-prompt" && (
+                <div className={styles.learnedTermsRow}>
+                  <span className={styles.learnedTerms}>{t("voiceFlow.correctionPromptHint")}</span>
+                </div>
+              )}
 
-          {hasErrorMessage && (
-            <div className={styles.errorMessageRow}>
-              <span className={styles.errorMessage}>{message}</span>
-            </div>
+              {hasSuccessPreview && (
+                <div className={styles.errorMessageRow}>
+                  <span className={styles.errorMessage} style={{ color: "rgba(255,255,255,0.7)" }}>
+                    {message.split("·").slice(1).join("·").trim()}
+                  </span>
+                </div>
+              )}
+
+              {hasErrorMessage && (
+                <div className={styles.errorMessageRow}>
+                  <span className={styles.errorMessage}>{message}</span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

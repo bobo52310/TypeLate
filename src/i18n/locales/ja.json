@@ -494,7 +494,9 @@
     "correctionDetected": "修正を検出",
     "correctionPromptHint": "正しい語をコピー (⌘C) で追加",
     "retryFailed": "認識失敗、もう一度録音してください",
-    "cancelled": "キャンセル"
+    "cancelled": "キャンセル",
+    "copyOriginal": "原文",
+    "copied": "コピー済み"
   },
   "errors": {
     "databaseInitFailed": "データベースの初期化に失敗しました。履歴が一時的に使用できません。アプリを再起動してください。",

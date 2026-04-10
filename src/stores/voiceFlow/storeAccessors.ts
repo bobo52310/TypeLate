@@ -10,6 +10,8 @@
 // ── Lazy accessor type definitions ──
 
 export interface SettingsStoreAccessor {
+  promptMode: import("@/types/settings").PromptMode;
+  aiPrompt: string;
   triggerMode: () => "hold" | "toggle" | "doubleTap";
   selectedProviderId: import("@/lib/providerConfig").ProviderId;
   selectedAudioInputDeviceName: string;
@@ -27,6 +29,7 @@ export interface SettingsStoreAccessor {
   getAiPrompt: () => string;
   isContextAwareEnabled: boolean;
   getContextAwarePrompt: (bundleId: string | null) => string;
+  getEffectivePromptLocale: () => import("@/i18n/languageConfig").SupportedLocale;
   getWhisperLanguageCode: () => string | null;
   isCopyResultToClipboard: boolean;
   successDisplayDurationSec: number;
