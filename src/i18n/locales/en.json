@@ -242,7 +242,39 @@
       "voice": "Voice & Audio",
       "ai": "AI & Enhancement",
       "about": "About",
-      "dictionary": "Dictionary"
+      "dictionary": "Dictionary",
+      "permissions": "Permissions"
+    },
+    "permissions": {
+      "title": "App Permissions",
+      "subtitle": "TypeLate requires the following permissions to function properly",
+      "requestAll": "Request Permission",
+      "allGranted": "All Set",
+      "skipForNow": "Skip for now",
+      "openSettings": "Open Settings",
+      "grant": "Grant",
+      "refresh": "Re-check",
+      "nonMacNote": "Permission management is primarily a macOS feature. On other platforms these checks will always report granted.",
+      "status": {
+        "granted": "Granted",
+        "denied": "Denied",
+        "notDetermined": "Not requested yet",
+        "restricted": "Restricted",
+        "unknown": "Unknown"
+      },
+      "keyboard": {
+        "title": "Keyboard Shortcut",
+        "description": "Set up a keyboard shortcut to trigger TypeLate anywhere",
+        "configure": "Configure"
+      },
+      "microphone": {
+        "title": "Microphone Access",
+        "description": "Allow TypeLate to record your voice for transcription"
+      },
+      "accessibility": {
+        "title": "Accessibility Access",
+        "description": "Allow TypeLate to paste transcribed text directly at your cursor position"
+      }
     },
     "smartDictionary": {
       "title": "Smart Dictionary Learning",

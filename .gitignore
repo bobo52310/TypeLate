@@ -15,3 +15,4 @@ vite.config.js
 .env.local
 .env.*.local
 CLAUDE.md
+.claude/

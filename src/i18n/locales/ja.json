@@ -242,7 +242,39 @@
       "voice": "音声・オーディオ",
       "ai": "AI・テキスト整理",
       "about": "バージョン情報",
-      "dictionary": "辞書"
+      "dictionary": "辞書",
+      "permissions": "権限"
+    },
+    "permissions": {
+      "title": "アプリの権限",
+      "subtitle": "TypeLate を正常に動作させるには、以下の権限が必要です",
+      "requestAll": "権限をリクエスト",
+      "allGranted": "すべて完了",
+      "skipForNow": "後で設定",
+      "openSettings": "設定を開く",
+      "grant": "許可",
+      "refresh": "再確認",
+      "nonMacNote": "権限管理は主に macOS の機能です。他のプラットフォームでは常に許可済みとして報告されます。",
+      "status": {
+        "granted": "許可済み",
+        "denied": "拒否",
+        "notDetermined": "未リクエスト",
+        "restricted": "制限あり",
+        "unknown": "不明"
+      },
+      "keyboard": {
+        "title": "キーボードショートカット",
+        "description": "どこからでも TypeLate を起動できるショートカットキーを設定します",
+        "configure": "設定"
+      },
+      "microphone": {
+        "title": "マイクへのアクセス",
+        "description": "文字起こしのために TypeLate が音声を録音することを許可します"
+      },
+      "accessibility": {
+        "title": "アクセシビリティ権限",
+        "description": "TypeLate がカーソル位置に直接テキストを貼り付けることを許可します"
+      }
     },
     "smartDictionary": {
       "title": "スマート辞書学習",

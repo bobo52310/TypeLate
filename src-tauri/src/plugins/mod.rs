@@ -5,6 +5,7 @@ pub mod file_sync;
 pub mod google_auth;
 pub mod hotkey_listener;
 pub mod keyboard_monitor;
+pub mod permissions;
 pub mod sound_feedback;
 pub mod text_field_reader;
 pub mod transcription;

@@ -242,7 +242,39 @@
       "voice": "語音與音訊",
       "ai": "AI 與文字整理",
       "about": "關於",
-      "dictionary": "字典"
+      "dictionary": "字典",
+      "permissions": "權限"
+    },
+    "permissions": {
+      "title": "應用程式權限",
+      "subtitle": "TypeLate 需要以下權限才能正常運作",
+      "requestAll": "授予權限",
+      "allGranted": "全部完成",
+      "skipForNow": "暫時略過",
+      "openSettings": "開啟設定",
+      "grant": "授予",
+      "refresh": "重新檢查",
+      "nonMacNote": "權限管理主要是 macOS 的功能。在其他平台上這些檢查會一律顯示為已授予。",
+      "status": {
+        "granted": "已授予",
+        "denied": "已拒絕",
+        "notDetermined": "尚未請求",
+        "restricted": "受限制",
+        "unknown": "未知"
+      },
+      "keyboard": {
+        "title": "鍵盤快速鍵",
+        "description": "設定一個快速鍵，讓你在任何地方都能觸發 TypeLate",
+        "configure": "設定"
+      },
+      "microphone": {
+        "title": "麥克風存取",
+        "description": "允許 TypeLate 錄製你的聲音並進行轉錄"
+      },
+      "accessibility": {
+        "title": "輔助使用權限",
+        "description": "允許 TypeLate 直接在游標位置貼上轉錄的文字"
+      }
     },
     "smartDictionary": {
       "title": "智慧字典學習",

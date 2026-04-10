@@ -242,7 +242,39 @@
       "voice": "语音与音频",
       "ai": "AI 与文字整理",
       "about": "关于",
-      "dictionary": "字典"
+      "dictionary": "字典",
+      "permissions": "权限"
+    },
+    "permissions": {
+      "title": "应用程序权限",
+      "subtitle": "TypeLate 需要以下权限才能正常运作",
+      "requestAll": "授予权限",
+      "allGranted": "全部完成",
+      "skipForNow": "暂时跳过",
+      "openSettings": "打开设置",
+      "grant": "授予",
+      "refresh": "重新检查",
+      "nonMacNote": "权限管理主要是 macOS 的功能。在其他平台上这些检查会一律显示为已授予。",
+      "status": {
+        "granted": "已授予",
+        "denied": "已拒绝",
+        "notDetermined": "尚未请求",
+        "restricted": "受限制",
+        "unknown": "未知"
+      },
+      "keyboard": {
+        "title": "键盘快捷键",
+        "description": "设置一个快捷键，让你在任何地方都能触发 TypeLate",
+        "configure": "设置"
+      },
+      "microphone": {
+        "title": "麦克风访问",
+        "description": "允许 TypeLate 录制你的声音并进行转录"
+      },
+      "accessibility": {
+        "title": "辅助功能权限",
+        "description": "允许 TypeLate 直接在光标位置粘贴转录的文字"
+      }
     },
     "smartDictionary": {
       "title": "智能字典学习",

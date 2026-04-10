@@ -44,6 +44,7 @@ import { captureError, initSentryForDashboard } from "@/lib/sentry";
 import { IS_MAC } from "@/lib/platform";
 import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
 import { AccessibilityGuide } from "@/components/AccessibilityGuide";
+import { PermissionsOnboarding } from "@/components/PermissionsOnboarding";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useSyncStore } from "@/stores/syncStore";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
@@ -85,6 +86,7 @@ const SETTINGS_SUB_ITEMS: { path: RoutePath; labelKey: string }[] = [
   { path: "/settings/general", labelKey: "settings.group.general" },
   { path: "/settings/voice", labelKey: "settings.group.voice" },
   { path: "/settings/dictionary", labelKey: "settings.group.dictionary" },
+  { path: "/settings/permissions", labelKey: "settings.group.permissions" },
   { path: "/settings/about", labelKey: "settings.group.about" },
 ];
 
@@ -160,6 +162,9 @@ export function DashboardApp() {
 
   // Accessibility guide (placeholder)
   const [showAccessibilityGuide, setShowAccessibilityGuide] = useState(false);
+
+  // First-launch permissions onboarding (macOS only)
+  const [showPermissionsOnboarding, setShowPermissionsOnboarding] = useState(false);
 
   // Today's usage count for sidebar
   const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
@@ -340,6 +345,15 @@ export function DashboardApp() {
           const completed = await store.get<boolean>("onboardingCompleted");
           if (!completed && !settingsActions.hasApiKey()) {
             setShowOnboarding(true);
+          }
+          // Permissions onboarding: first-time review of OS permissions.
+          // Shown on macOS for existing users once after upgrade, and for new
+          // users right after they finish the product onboarding.
+          if (IS_MAC) {
+            const permissionsSeen = await store.get<boolean>(
+              "permissionsOnboardingCompleted",
+            );
+            if (!permissionsSeen) setShowPermissionsOnboarding(true);
           }
         } catch {
           // If check fails, skip onboarding
@@ -595,6 +609,25 @@ export function DashboardApp() {
       <AccessibilityGuide
         visible={showAccessibilityGuide}
         onClose={() => setShowAccessibilityGuide(false)}
+      />
+
+      {/* First-launch permissions review (macOS). Waits for the product
+          onboarding to finish so we don't stack two modals. */}
+      <PermissionsOnboarding
+        visible={showPermissionsOnboarding && !showOnboarding}
+        onComplete={() => {
+          setShowPermissionsOnboarding(false);
+          void (async () => {
+            try {
+              const { load } = await import("@tauri-apps/plugin-store");
+              const store = await load("settings.json");
+              await store.set("permissionsOnboardingCompleted", true);
+              await store.save();
+            } catch (err) {
+              logError("dashboard", "Failed to persist permissions onboarding flag", err);
+            }
+          })();
+        }}
       />
 
       {/* Mobile app QR code dialog */}

@@ -5,12 +5,14 @@ import RecordingSection from "@/views/settings/RecordingSection";
 import AboutSection from "@/views/settings/AboutSection";
 import SmartDictionarySection from "@/views/settings/SmartDictionarySection";
 import CloudSyncSection from "@/views/settings/CloudSyncSection";
+import PermissionsSection from "@/views/settings/PermissionsSection";
 import { useHashRouter } from "@/app/router";
 
 function getSettingsTab(): string {
   const hash = window.location.hash;
   if (hash.includes("/settings/voice")) return "voice";
   if (hash.includes("/settings/dictionary")) return "dictionary";
+  if (hash.includes("/settings/permissions")) return "permissions";
   if (hash.includes("/settings/about")) return "about";
   return "general";
 }
@@ -48,6 +50,8 @@ export default function SettingsView() {
               <CloudSyncSection />
             </>
           )}
+
+          {activeTab === "permissions" && <PermissionsSection />}
 
           {activeTab === "about" && <AboutSection />}
         </div>
