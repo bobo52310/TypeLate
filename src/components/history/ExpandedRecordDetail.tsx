@@ -11,6 +11,7 @@ import {
   Save,
   Sparkles,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { invoke } from "@tauri-apps/api/core";
@@ -18,6 +19,7 @@ import { captureError } from "@/lib/sentry";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useRecordVocabularyAnalysis } from "@/hooks/useRecordVocabularyAnalysis";
 import { getDisplayText, formatDurationMs } from "@/lib/formatUtils";
+import { retryFailedRecord } from "@/lib/retryFailedRecord";
 import type { TranscriptionRecord } from "@/types/transcription";
 import type { PromptMode } from "@/types/settings";
 import VocabularyResultsPanel from "./VocabularyResultsPanel";
@@ -57,6 +59,10 @@ export default function ExpandedRecordDetail({
   // ── Vocabulary analysis ──
   const vocabAnalysis = useRecordVocabularyAnalysis();
   const [showResults, setShowResults] = useState(false);
+
+  // ── Retry failed record state ──
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -127,8 +133,27 @@ export default function ExpandedRecordDetail({
     void vocabAnalysis.analyzeRecord(text);
   }
 
+  async function handleRetryFailed() {
+    if (isRetrying) return;
+    setIsRetrying(true);
+    setRetryError(null);
+    try {
+      const result = await retryFailedRecord(record);
+      if (!result.ok) {
+        const key = result.error ?? "transcriptionFailed";
+        setRetryError(t(`history.retryFailed.${key}`));
+      }
+    } catch (err) {
+      captureError(err, { source: "history", action: "retry-failed" });
+      setRetryError(t("history.retryFailed.transcriptionFailed"));
+    } finally {
+      setIsRetrying(false);
+    }
+  }
+
   const displayText = getDisplayText(record);
   const canAnalyze = displayText.trim().length > 0;
+  const canRetry = record.status === "failed" && !!record.audioFilePath;
 
   return (
     <div className="border-t border-border px-3 py-3 space-y-3">
@@ -269,6 +294,13 @@ export default function ExpandedRecordDetail({
         )}
       </div>
 
+      {/* Retry error */}
+      {retryError && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          {retryError}
+        </div>
+      )}
+
       {/* Metadata + Actions */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2.5 text-[11px] text-muted-foreground">
         <span>
@@ -296,30 +328,52 @@ export default function ExpandedRecordDetail({
         )}
 
         <div className="ml-auto flex items-center gap-1">
+          {/* Retry failed transcription */}
+          {canRetry && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 px-2 text-[11px] text-primary hover:text-primary"
+              disabled={isRetrying}
+              onClick={() => void handleRetryFailed()}
+            >
+              {isRetrying ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+              {isRetrying
+                ? t("history.retry.retrying")
+                : t("history.retry.button")}
+            </Button>
+          )}
+
           {/* Analyze Vocabulary */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "h-6 gap-1 px-2 text-[11px]",
-              showResults && vocabAnalysis.extractedTerms.length > 0
-                ? "text-primary"
-                : vocabAnalysis.isAnalyzing
-                  ? "text-muted-foreground"
-                  : "animate-breathe-glow rounded-md bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary",
-            )}
-            disabled={!canAnalyze || vocabAnalysis.isAnalyzing}
-            onClick={() => void handleAnalyze()}
-          >
-            {vocabAnalysis.isAnalyzing ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Sparkles className="h-3 w-3" />
-            )}
-            {vocabAnalysis.isAnalyzing
-              ? t("history.vocabAnalysis.analyzing")
-              : t("history.vocabAnalysis.analyze")}
-          </Button>
+          {!canRetry && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-6 gap-1 px-2 text-[11px]",
+                showResults && vocabAnalysis.extractedTerms.length > 0
+                  ? "text-primary"
+                  : vocabAnalysis.isAnalyzing
+                    ? "text-muted-foreground"
+                    : "animate-breathe-glow rounded-md bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary",
+              )}
+              disabled={!canAnalyze || vocabAnalysis.isAnalyzing}
+              onClick={() => void handleAnalyze()}
+            >
+              {vocabAnalysis.isAnalyzing ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
+              {vocabAnalysis.isAnalyzing
+                ? t("history.vocabAnalysis.analyzing")
+                : t("history.vocabAnalysis.analyze")}
+            </Button>
+          )}
 
           {/* Delete */}
           <Button

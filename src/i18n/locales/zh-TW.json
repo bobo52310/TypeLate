@@ -393,6 +393,16 @@
     "playRecording": "播放錄音",
     "noRecordingFile": "錄音檔案不存在",
     "failedBadge": "辨識失敗",
+    "retry": {
+      "button": "重新辨識",
+      "retrying": "辨識中..."
+    },
+    "retryFailed": {
+      "noAudioFile": "找不到原始錄音檔，無法重新辨識。",
+      "apiKeyMissing": "尚未設定 API Key，請到設定頁面填入後再試一次。",
+      "emptyResult": "辨識結果為空，可能音量過小或無法辨識內容。",
+      "transcriptionFailed": "重新辨識失敗，請檢查 API Key、網路或配額後再試。"
+    },
     "edit": {
       "edit": "編輯",
       "save": "儲存",

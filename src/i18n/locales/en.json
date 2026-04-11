@@ -393,6 +393,16 @@
     "playRecording": "Play recording",
     "noRecordingFile": "Recording file not available",
     "failedBadge": "Failed",
+    "retry": {
+      "button": "Retry",
+      "retrying": "Retrying..."
+    },
+    "retryFailed": {
+      "noAudioFile": "Audio file is not available — cannot retry.",
+      "apiKeyMissing": "API key is missing. Please configure it in Settings and try again.",
+      "emptyResult": "Transcription returned empty. The audio may be too quiet or unintelligible.",
+      "transcriptionFailed": "Retry failed. Check your API key, network, or quota and try again."
+    },
     "edit": {
       "edit": "Edit",
       "save": "Save",

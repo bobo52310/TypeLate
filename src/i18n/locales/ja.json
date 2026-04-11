@@ -393,6 +393,16 @@
     "playRecording": "録音を再生",
     "noRecordingFile": "録音ファイルがありません",
     "failedBadge": "認識失敗",
+    "retry": {
+      "button": "再認識",
+      "retrying": "認識中..."
+    },
+    "retryFailed": {
+      "noAudioFile": "録音ファイルが見つからないため、再認識できません。",
+      "apiKeyMissing": "API キーが未設定です。設定画面で入力してから再度お試しください。",
+      "emptyResult": "認識結果が空です。音量が小さすぎるか、内容を認識できませんでした。",
+      "transcriptionFailed": "再認識に失敗しました。API キー・ネットワーク・利用量を確認してください。"
+    },
     "edit": {
       "edit": "編集",
       "save": "保存",

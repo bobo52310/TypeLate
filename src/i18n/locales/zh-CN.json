@@ -393,6 +393,16 @@
     "playRecording": "播放录音",
     "noRecordingFile": "录音文件不存在",
     "failedBadge": "识别失败",
+    "retry": {
+      "button": "重新识别",
+      "retrying": "识别中..."
+    },
+    "retryFailed": {
+      "noAudioFile": "找不到原始录音文件，无法重新识别。",
+      "apiKeyMissing": "尚未设置 API Key，请到设置页面填入后再试。",
+      "emptyResult": "识别结果为空，可能音量过小或无法识别内容。",
+      "transcriptionFailed": "重新识别失败，请检查 API Key、网络或配额后再试。"
+    },
     "edit": {
       "edit": "编辑",
       "save": "保存",
