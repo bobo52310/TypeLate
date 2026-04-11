@@ -398,6 +398,12 @@
       "retrying": "인식 중..."
     },
     "retryFailed": {
+      "label": {
+        "provider": "API 서비스 오류",
+        "config": "설정 문제",
+        "local": "다시 인식할 수 없음"
+      },
+      "providerHint": "음성 인식 서비스(예: Groq)에서 반환된 오류입니다. 녹음 파일은 유지되므로 API 문제가 해결된 후 다시 시도할 수 있습니다.",
       "noAudioFile": "녹음 파일을 찾을 수 없어 다시 인식할 수 없습니다.",
       "apiKeyMissing": "API 키가 설정되지 않았습니다. 설정에서 입력한 후 다시 시도해 주세요.",
       "emptyResult": "인식 결과가 비어 있습니다. 음량이 너무 작거나 내용을 인식할 수 없습니다.",

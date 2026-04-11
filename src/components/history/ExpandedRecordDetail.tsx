@@ -62,7 +62,10 @@ export default function ExpandedRecordDetail({
 
   // ── Retry failed record state ──
   const [isRetrying, setIsRetrying] = useState(false);
-  const [retryError, setRetryError] = useState<string | null>(null);
+  const [retryError, setRetryError] = useState<{
+    category: "provider" | "config" | "local";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -140,12 +143,30 @@ export default function ExpandedRecordDetail({
     try {
       const result = await retryFailedRecord(record);
       if (!result.ok) {
-        const key = result.error ?? "transcriptionFailed";
-        setRetryError(t(`history.retryFailed.${key}`));
+        const kind = result.error ?? "transcriptionFailed";
+        if (kind === "transcriptionFailed") {
+          setRetryError({
+            category: "provider",
+            message: result.errorMessage ?? t("history.retryFailed.transcriptionFailed"),
+          });
+        } else if (kind === "apiKeyMissing") {
+          setRetryError({
+            category: "config",
+            message: t("history.retryFailed.apiKeyMissing"),
+          });
+        } else {
+          setRetryError({
+            category: "local",
+            message: t(`history.retryFailed.${kind}`),
+          });
+        }
       }
     } catch (err) {
       captureError(err, { source: "history", action: "retry-failed" });
-      setRetryError(t("history.retryFailed.transcriptionFailed"));
+      setRetryError({
+        category: "provider",
+        message: t("history.retryFailed.transcriptionFailed"),
+      });
     } finally {
       setIsRetrying(false);
     }
@@ -296,8 +317,17 @@ export default function ExpandedRecordDetail({
 
       {/* Retry error */}
       {retryError && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-          {retryError}
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive space-y-1">
+          <div className="flex items-center gap-1.5 font-medium">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" />
+            {t(`history.retryFailed.label.${retryError.category}`)}
+          </div>
+          <p className="text-destructive/90 leading-relaxed">{retryError.message}</p>
+          {retryError.category === "provider" && (
+            <p className="text-[10px] text-destructive/70">
+              {t("history.retryFailed.providerHint")}
+            </p>
+          )}
         </div>
       )}
 

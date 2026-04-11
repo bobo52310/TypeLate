@@ -398,6 +398,12 @@
       "retrying": "Retrying..."
     },
     "retryFailed": {
+      "label": {
+        "provider": "API provider error",
+        "config": "Configuration issue",
+        "local": "Cannot retry"
+      },
+      "providerHint": "This came from the speech-to-text service (e.g. Groq). The recording is still saved — you can retry once the API issue is resolved.",
       "noAudioFile": "Audio file is not available — cannot retry.",
       "apiKeyMissing": "API key is missing. Please configure it in Settings and try again.",
       "emptyResult": "Transcription returned empty. The audio may be too quiet or unintelligible.",

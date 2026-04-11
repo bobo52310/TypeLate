@@ -398,6 +398,12 @@
       "retrying": "识别中..."
     },
     "retryFailed": {
+      "label": {
+        "provider": "API 服务异常",
+        "config": "设置问题",
+        "local": "无法重新识别"
+      },
+      "providerHint": "这是语音识别服务（例如 Groq）返回的错误，录音文件仍保留着，待 API 问题解决后可再次重试。",
       "noAudioFile": "找不到原始录音文件，无法重新识别。",
       "apiKeyMissing": "尚未设置 API Key，请到设置页面填入后再试。",
       "emptyResult": "识别结果为空，可能音量过小或无法识别内容。",
