@@ -85,7 +85,6 @@ const ALL_NAV_ITEMS = NAV_GROUPS.flat();
 const SETTINGS_SUB_ITEMS: { path: RoutePath; labelKey: string }[] = [
   { path: "/settings/general", labelKey: "settings.group.general" },
   { path: "/settings/voice", labelKey: "settings.group.voice" },
-  { path: "/settings/dictionary", labelKey: "settings.group.dictionary" },
   { path: "/settings/permissions", labelKey: "settings.group.permissions" },
   { path: "/settings/about", labelKey: "settings.group.about" },
 ];

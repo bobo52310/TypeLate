@@ -18,7 +18,7 @@ import {
   type VocabularyAnalysisModelId,
 } from "@/lib/modelRegistry";
 
-export default function SmartDictionarySection() {
+export default function SmartDictionarySection({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
@@ -53,11 +53,68 @@ export default function SmartDictionarySection() {
     }
   }
 
-  return (
-    <SettingsGroup
-      title={t("settings.smartDictionary.title")}
-      description={t("settings.smartDictionary.description")}
-    >
+  if (embedded) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          {t("settings.smartDictionary.description")}
+        </p>
+
+        {/* Toggle */}
+        <div className="flex items-center justify-between">
+          <label htmlFor="smart-dictionary-toggle" className="text-sm font-medium">
+            {t("settings.smartDictionary.enableToggle")}
+          </label>
+          <Switch
+            id="smart-dictionary-toggle"
+            checked={isSmartDictionaryEnabled}
+            onCheckedChange={(val) => void handleToggle(val)}
+          />
+        </div>
+
+        {/* Model selector — stacked */}
+        {isSmartDictionaryEnabled && (
+          <div className="space-y-2 rounded-lg bg-muted/50 p-3">
+            <label htmlFor="vocabulary-analysis-model" className="text-sm font-medium">
+              {t("settings.smartDictionary.analysisModelLabel")}
+            </label>
+            <Select
+              value={selectedVocabularyAnalysisModelId}
+              onValueChange={(val) => void handleModelChange(val)}
+            >
+              <SelectTrigger id="vocabulary-analysis-model" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VOCABULARY_ANALYSIS_MODEL_LIST.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    <span className="flex items-center gap-2">
+                      {model.displayName}
+                      <Badge variant="secondary" className="text-xs">
+                        {t(model.badgeKey)}
+                      </Badge>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {vocabularyAnalysisModelDescription}
+            </p>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          {t("settings.smartDictionary.privacyNote")}
+        </p>
+
+        <SettingsFeedback message={feedback.message} type={feedback.type} />
+      </div>
+    );
+  }
+
+  const content = (
+    <>
       <SettingsRow
         label={t("settings.smartDictionary.title")}
         htmlFor="smart-dictionary-toggle"
@@ -104,6 +161,15 @@ export default function SmartDictionarySection() {
       </div>
 
       <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </>
+  );
+
+  return (
+    <SettingsGroup
+      title={t("settings.smartDictionary.title")}
+      description={t("settings.smartDictionary.description")}
+    >
+      {content}
     </SettingsGroup>
   );
 }

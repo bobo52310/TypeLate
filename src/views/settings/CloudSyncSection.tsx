@@ -46,7 +46,7 @@ function shortenPath(path: string): string {
   return path.replace(/^\/Users\/[^/]+/, "~");
 }
 
-export default function CloudSyncSection() {
+export default function CloudSyncSection({ embedded = false }: { embedded?: boolean }) {
   const { t, i18n } = useTranslation();
   const feedback = useFeedbackMessage();
 
@@ -156,9 +156,9 @@ export default function CloudSyncSection() {
   const hasClientId = storedClientId.trim().length > 0;
   const clientIdChanged = clientIdInput.trim() !== storedClientId;
 
-  return (
-    <SettingsGroup title={t("dictionary.cloudSync.title")}>
-      <div className="space-y-3 px-4 py-3">
+  const content = (
+    <>
+      <div className={embedded ? "space-y-3 py-3" : "space-y-3 px-4 py-3"}>
         <p className="text-sm text-muted-foreground">
           {t("dictionary.cloudSync.description")}
         </p>
@@ -383,6 +383,14 @@ export default function CloudSyncSection() {
       </div>
 
       <SettingsFeedback message={feedback.message} type={feedback.type} />
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <SettingsGroup title={t("dictionary.cloudSync.title")}>
+      {content}
     </SettingsGroup>
   );
 }

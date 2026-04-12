@@ -278,6 +278,7 @@
     },
     "smartDictionary": {
       "title": "スマート辞書学習",
+      "enableToggle": "スマート辞書学習を有効にする",
       "description": "貼り付け後に修正を自動検出し、AI 分析で新語を学習",
       "privacyNote": "有効にすると、AI 分析のためにカーソル付近のテキストを読み取ります。原文は保存されません",
       "analysisModelLabel": "辞書分析モデル",
@@ -509,7 +510,15 @@
       "syncUpToDate": "最新の状態です",
       "advancedGoogleDrive": "Google Drive API（上級者向け）",
       "advancedHint": "Google Drive API で直接接続します。Google Cloud プロジェクトの設定が必要です。",
-      "disconnected": "同期を切断しました"
+      "disconnected": "同期を切断しました",
+      "syncBanner": {
+        "lastSync": "最終同期：{time}",
+        "goToSettings": "同期設定",
+        "justNow": "たった今",
+        "minutesAgo": "{count} 分前",
+        "hoursAgo": "{count} 時間前",
+        "daysAgo": "{count} 日前"
+      }
     },
     "googleDrive": {
       "title": "Google Drive 同期",

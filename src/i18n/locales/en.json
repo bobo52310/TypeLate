@@ -278,6 +278,7 @@
     },
     "smartDictionary": {
       "title": "Smart Dictionary Learning",
+      "enableToggle": "Enable Smart Dictionary Learning",
       "description": "Auto-detect corrections after paste and learn new terms via AI analysis",
       "privacyNote": "When enabled, the system reads text near the cursor for AI analysis. No original text is stored",
       "analysisModelLabel": "Dictionary Analysis Model",
@@ -509,7 +510,15 @@
       "syncUpToDate": "Already up to date",
       "advancedGoogleDrive": "Google Drive API (Advanced)",
       "advancedHint": "Connect directly via Google Drive API. Requires setting up a Google Cloud project.",
-      "disconnected": "Sync disconnected"
+      "disconnected": "Sync disconnected",
+      "syncBanner": {
+        "lastSync": "Last synced: {time}",
+        "goToSettings": "Sync settings",
+        "justNow": "just now",
+        "minutesAgo": "{count}m ago",
+        "hoursAgo": "{count}h ago",
+        "daysAgo": "{count}d ago"
+      }
     },
     "googleDrive": {
       "title": "Google Drive Sync",

@@ -278,6 +278,7 @@
     },
     "smartDictionary": {
       "title": "智慧字典學習",
+      "enableToggle": "啟用智慧字典學習",
       "description": "轉錄貼上後自動偵測修正，透過 AI 分析學習新詞彙",
       "privacyNote": "啟用後，系統會讀取游標附近的文字用於 AI 分析，不儲存原文",
       "analysisModelLabel": "字典分析模型",
@@ -509,7 +510,15 @@
       "syncUpToDate": "已是最新狀態",
       "advancedGoogleDrive": "Google Drive API（進階）",
       "advancedHint": "透過 Google Drive API 直接連線，需要設定 Google Cloud 專案。",
-      "disconnected": "已取消同步"
+      "disconnected": "已取消同步",
+      "syncBanner": {
+        "lastSync": "上次同步：{time}",
+        "goToSettings": "同步設定",
+        "justNow": "剛剛",
+        "minutesAgo": "{count} 分鐘前",
+        "hoursAgo": "{count} 小時前",
+        "daysAgo": "{count} 天前"
+      }
     },
     "googleDrive": {
       "title": "Google Drive 同步",

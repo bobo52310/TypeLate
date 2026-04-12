@@ -6,9 +6,9 @@ const DictionaryView = lazy(() => import("@/views/DictionaryView"));
 const AiSettingsView = lazy(() => import("@/views/AiSettingsView"));
 const SettingsView = lazy(() => import("@/views/SettingsView"));
 
-export type RoutePath = "/dashboard" | "/history" | "/dictionary" | "/ai" | "/settings/general" | "/settings/voice" | "/settings/dictionary" | "/settings/permissions" | "/settings/about";
+export type RoutePath = "/dashboard" | "/history" | "/dictionary" | "/ai" | "/settings/general" | "/settings/voice" | "/settings/permissions" | "/settings/about";
 
-export const ROUTES: RoutePath[] = ["/dashboard", "/history", "/dictionary", "/ai", "/settings/general", "/settings/voice", "/settings/dictionary", "/settings/permissions", "/settings/about"];
+export const ROUTES: RoutePath[] = ["/dashboard", "/history", "/dictionary", "/ai", "/settings/general", "/settings/voice", "/settings/permissions", "/settings/about"];
 
 const ROUTE_COMPONENTS: Record<RoutePath, React.LazyExoticComponent<React.ComponentType>> = {
   "/dashboard": DashboardView,
@@ -17,7 +17,6 @@ const ROUTE_COMPONENTS: Record<RoutePath, React.LazyExoticComponent<React.Compon
   "/ai": AiSettingsView,
   "/settings/general": SettingsView,
   "/settings/voice": SettingsView,
-  "/settings/dictionary": SettingsView,
   "/settings/permissions": SettingsView,
   "/settings/about": SettingsView,
 };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowDownUp, FileText, List, Pencil, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowDownUp, Cloud, FileText, List, Pencil, Plus, Search, Settings, Sparkles, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,13 +14,32 @@ import {
 } from "@/components/ui/sheet";
 import { SettingsFeedback } from "@/components/settings-layout";
 import TextAnalyzerSection from "@/views/settings/TextAnalyzerSection";
+import SmartDictionarySection from "@/views/settings/SmartDictionarySection";
+import CloudSyncSection from "@/views/settings/CloudSyncSection";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
+import { useSyncStore } from "@/stores/syncStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import type { VocabularyEntry } from "@/types/vocabulary";
 
 type FilterType = "all" | "ai" | "manual";
 type SortField = "createdAt" | "term" | "weight";
 type SortDirection = "asc" | "desc";
+
+function useRelativeTime(isoString: string | null, t: (key: string, opts?: Record<string, unknown>) => string): string | null {
+  if (!isoString) return null;
+  try {
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const diffMin = Math.floor(diffMs / 60_000);
+    if (diffMin < 1) return t("dictionary.cloudSync.syncBanner.justNow");
+    if (diffMin < 60) return t("dictionary.cloudSync.syncBanner.minutesAgo", { count: diffMin });
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return t("dictionary.cloudSync.syncBanner.hoursAgo", { count: diffHr });
+    const diffDay = Math.floor(diffHr / 24);
+    return t("dictionary.cloudSync.syncBanner.daysAgo", { count: diffDay });
+  } catch {
+    return null;
+  }
+}
 
 export default function DictionaryView() {
   const { t } = useTranslation();
@@ -35,10 +54,16 @@ export default function DictionaryView() {
   const removeTerm = useVocabularyStore((s) => s.removeTerm);
   const batchAddTerms = useVocabularyStore((s) => s.batchAddTerms);
 
+  const isSyncConnected = useSyncStore((s) => s.isConnected);
+  const lastSyncAt = useSyncStore((s) => s.lastSyncAt);
+  const loadSyncStatus = useSyncStore((s) => s.loadSyncStatus);
+  const relativeTime = useRelativeTime(lastSyncAt, t);
+
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [isSyncSheetOpen, setIsSyncSheetOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -99,7 +124,8 @@ export default function DictionaryView() {
 
   useEffect(() => {
     void fetchTermList();
-  }, [fetchTermList]);
+    void loadSyncStatus();
+  }, [fetchTermList, loadSyncStatus]);
 
   // ── Add handlers ──
 
@@ -199,10 +225,40 @@ export default function DictionaryView() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">{t("mainApp.nav.dictionary")}</h1>
-            <Button onClick={() => setIsAddSheetOpen(true)}>
-              {t("dictionary.addWord")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full"
+                onClick={() => setIsSyncSheetOpen(true)}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button onClick={() => setIsAddSheetOpen(true)}>
+                {t("dictionary.addWord")}
+              </Button>
+            </div>
           </div>
+
+          {/* Sync status banner */}
+          {isSyncConnected && (
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg bg-muted/50 px-3.5 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted"
+              onClick={() => setIsSyncSheetOpen(true)}
+            >
+              <Cloud className="h-4 w-4 shrink-0 text-primary" />
+              {relativeTime && (
+                <span className="flex-1 truncate">
+                  {t("dictionary.cloudSync.syncBanner.lastSync", { time: relativeTime })}
+                </span>
+              )}
+              <span className="flex shrink-0 items-center gap-1 text-xs text-primary">
+                <Settings className="h-3 w-3" />
+                {t("dictionary.cloudSync.syncBanner.goToSettings")}
+              </span>
+            </button>
+          )}
 
           {/* Filter tabs + search */}
           <div className="flex items-center justify-between gap-3">
@@ -465,6 +521,28 @@ export default function DictionaryView() {
               <TextAnalyzerSection />
             </TabsContent>
           </Tabs>
+        </SheetContent>
+      </Sheet>
+
+      {/* Dictionary settings sheet */}
+      <Sheet open={isSyncSheetOpen} onOpenChange={setIsSyncSheetOpen}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{t("settings.group.dictionary")}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-6 px-4">
+            {/* Smart dictionary */}
+            <div>
+              <h3 className="mb-3 text-sm font-medium">{t("settings.smartDictionary.title")}</h3>
+              <SmartDictionarySection embedded />
+            </div>
+
+            {/* Cloud sync */}
+            <div className="border-t pt-4">
+              <h3 className="mb-3 text-sm font-medium">{t("dictionary.cloudSync.title")}</h3>
+              <CloudSyncSection embedded />
+            </div>
+          </div>
         </SheetContent>
       </Sheet>
     </div>

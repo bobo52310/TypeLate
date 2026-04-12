@@ -278,6 +278,7 @@
     },
     "smartDictionary": {
       "title": "智能字典学习",
+      "enableToggle": "启用智能字典学习",
       "description": "转录粘贴后自动检测修正，通过 AI 分析学习新词汇",
       "privacyNote": "启用后，系统会读取光标附近的文字用于 AI 分析，不存储原文",
       "analysisModelLabel": "字典分析模型",
@@ -509,7 +510,15 @@
       "syncUpToDate": "已是最新状态",
       "advancedGoogleDrive": "Google Drive API（高级）",
       "advancedHint": "通过 Google Drive API 直接连接，需要设置 Google Cloud 项目。",
-      "disconnected": "已取消同步"
+      "disconnected": "已取消同步",
+      "syncBanner": {
+        "lastSync": "上次同步：{time}",
+        "goToSettings": "同步设置",
+        "justNow": "刚刚",
+        "minutesAgo": "{count} 分钟前",
+        "hoursAgo": "{count} 小时前",
+        "daysAgo": "{count} 天前"
+      }
     },
     "googleDrive": {
       "title": "Google Drive 同步",

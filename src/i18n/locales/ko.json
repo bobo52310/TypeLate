@@ -278,6 +278,7 @@
     },
     "smartDictionary": {
       "title": "스마트 사전 학습",
+      "enableToggle": "스마트 사전 학습 활성화",
       "description": "붙여넣기 후 수정을 자동 감지하고 AI 분석으로 새 용어 학습",
       "privacyNote": "활성화하면 AI 분석을 위해 커서 주변의 텍스트를 읽습니다. 원문은 저장되지 않습니다",
       "analysisModelLabel": "사전 분석 모델",
@@ -509,7 +510,15 @@
       "syncUpToDate": "최신 상태입니다",
       "advancedGoogleDrive": "Google Drive API (고급)",
       "advancedHint": "Google Drive API로 직접 연결합니다. Google Cloud 프로젝트 설정이 필요합니다.",
-      "disconnected": "동기화가 해제되었습니다"
+      "disconnected": "동기화가 해제되었습니다",
+      "syncBanner": {
+        "lastSync": "마지막 동기화: {time}",
+        "goToSettings": "동기화 설정",
+        "justNow": "방금",
+        "minutesAgo": "{count}분 전",
+        "hoursAgo": "{count}시간 전",
+        "daysAgo": "{count}일 전"
+      }
     },
     "googleDrive": {
       "title": "Google Drive 동기화",
