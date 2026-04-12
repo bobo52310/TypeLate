@@ -136,6 +136,49 @@ export async function retryFailedRecord(
   return { ok: true };
 }
 
+export interface BulkRetryProgress {
+  current: number;
+  total: number;
+  record: TranscriptionRecord;
+}
+
+export interface BulkRetrySummary {
+  succeeded: number;
+  failed: number;
+  stoppedOnApiKeyMissing: boolean;
+}
+
+export async function retryAllFailedRecords(
+  records: TranscriptionRecord[],
+  onProgress?: (progress: BulkRetryProgress) => void,
+): Promise<BulkRetrySummary> {
+  const summary: BulkRetrySummary = {
+    succeeded: 0,
+    failed: 0,
+    stoppedOnApiKeyMissing: false,
+  };
+
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i];
+    if (!record) continue;
+    onProgress?.({ current: i + 1, total: records.length, record });
+
+    const result = await retryFailedRecord(record);
+    if (result.ok) {
+      summary.succeeded += 1;
+      continue;
+    }
+
+    summary.failed += 1;
+    if (result.error === "apiKeyMissing") {
+      summary.stoppedOnApiKeyMissing = true;
+      break;
+    }
+  }
+
+  return summary;
+}
+
 async function saveRetryApiUsage(
   record: TranscriptionRecord,
   chatUsage: ChatUsageData | null,

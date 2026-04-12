@@ -105,6 +105,29 @@ const SEARCH_PAGED_SQL = `
   LIMIT $2 OFFSET $3
 `;
 
+const SELECT_FAILED_PAGED_SQL = `
+  SELECT id, timestamp, raw_text, processed_text,
+         recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
+         char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
+         audio_file_path, status, whisper_model_id, llm_model_id
+  FROM transcriptions
+  WHERE status = 'failed' AND audio_file_path IS NOT NULL
+  ORDER BY timestamp DESC
+  LIMIT $1 OFFSET $2
+`;
+
+const SEARCH_FAILED_PAGED_SQL = `
+  SELECT id, timestamp, raw_text, processed_text,
+         recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
+         char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
+         audio_file_path, status, whisper_model_id, llm_model_id
+  FROM transcriptions
+  WHERE status = 'failed' AND audio_file_path IS NOT NULL
+    AND (raw_text LIKE $1 ESCAPE '\\' OR processed_text LIKE $1 ESCAPE '\\')
+  ORDER BY timestamp DESC
+  LIMIT $2 OFFSET $3
+`;
+
 const DASHBOARD_STATS_SQL = `
   SELECT
     COUNT(*) as total_count,
@@ -112,6 +135,12 @@ const DASHBOARD_STATS_SQL = `
     COALESCE(SUM(recording_duration_ms), 0) as total_recording_duration_ms
   FROM transcriptions
   WHERE status != 'failed'
+`;
+
+const FAILED_RECOVERABLE_COUNT_SQL = `
+  SELECT COUNT(*) as count
+  FROM transcriptions
+  WHERE status = 'failed' AND audio_file_path IS NOT NULL
 `;
 
 const INSERT_API_USAGE_SQL = `
@@ -203,11 +232,15 @@ interface DailyUsageTrendRow {
   total_chars: number;
 }
 
+export type HistoryStatusFilter = "all" | "failed";
+
 interface HistoryState {
   // -- State --
   transcriptionList: TranscriptionRecord[];
   isLoading: boolean;
   searchQuery: string;
+  statusFilter: HistoryStatusFilter;
+  pendingFailedFilter: boolean;
   hasMore: boolean;
   currentOffset: number;
   dashboardStats: DashboardStats;
@@ -220,10 +253,15 @@ interface HistoryState {
     query: string,
     limit?: number,
     offset?: number,
+    statusFilter?: HistoryStatusFilter,
   ) => Promise<TranscriptionRecord[]>;
   resetAndFetch: () => Promise<void>;
   loadMore: () => Promise<void>;
   setSearchQuery: (query: string) => void;
+  setStatusFilter: (filter: HistoryStatusFilter) => void;
+  requestFailedFilter: () => void;
+  consumePendingFailedFilter: () => boolean;
+  fetchFailedRecoverableCount: () => Promise<number>;
   addTranscription: (
     record: TranscriptionRecord,
     options?: { skipEmit?: boolean },
@@ -321,6 +359,8 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
   transcriptionList: [],
   isLoading: false,
   searchQuery: "",
+  statusFilter: "all",
+  pendingFailedFilter: false,
   hasMore: true,
   currentOffset: 0,
   dashboardStats: {
@@ -336,6 +376,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       vocabularyAnalysisRequestCount: 0,
       vocabularyAnalysisTotalTokens: 0,
     },
+    failedRecoverableCount: 0,
   },
   recentTranscriptionList: [],
   dailyUsageTrendList: [],
@@ -344,6 +385,34 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
 
   setSearchQuery: (query: string) => {
     set({ searchQuery: query });
+  },
+
+  setStatusFilter: (filter: HistoryStatusFilter) => {
+    set({ statusFilter: filter });
+  },
+
+  requestFailedFilter: () => {
+    set({ pendingFailedFilter: true });
+  },
+
+  consumePendingFailedFilter: () => {
+    if (get().pendingFailedFilter) {
+      set({ pendingFailedFilter: false });
+      return true;
+    }
+    return false;
+  },
+
+  fetchFailedRecoverableCount: async () => {
+    try {
+      const db = getDatabase();
+      const rows = await db.select<{ count: number }[]>(FAILED_RECOVERABLE_COUNT_SQL);
+      return rows[0]?.count ?? 0;
+    } catch (err) {
+      logError("history", `fetchFailedRecoverableCount failed: ${extractErrorMessage(err)}`);
+      captureError(err, { source: "history", step: "fetch-failed-count" });
+      return 0;
+    }
   },
 
   fetchTranscriptionList: async () => {
@@ -361,14 +430,31 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     }
   },
 
-  searchTranscriptionList: async (query: string, limit = PAGE_SIZE, offset = 0) => {
+  searchTranscriptionList: async (
+    query: string,
+    limit = PAGE_SIZE,
+    offset = 0,
+    statusFilter: HistoryStatusFilter = "all",
+  ) => {
     const db = getDatabase();
     let rows: RawTranscriptionRow[];
+    const hasQuery = query.trim().length > 0;
+    const failedOnly = statusFilter === "failed";
 
-    if (query.trim()) {
+    if (hasQuery && failedOnly) {
+      const escaped = query.trim().replace(/[%_\\]/g, "\\$&");
+      const pattern = `%${escaped}%`;
+      rows = await db.select<RawTranscriptionRow[]>(SEARCH_FAILED_PAGED_SQL, [
+        pattern,
+        limit,
+        offset,
+      ]);
+    } else if (hasQuery) {
       const escaped = query.trim().replace(/[%_\\]/g, "\\$&");
       const pattern = `%${escaped}%`;
       rows = await db.select<RawTranscriptionRow[]>(SEARCH_PAGED_SQL, [pattern, limit, offset]);
+    } else if (failedOnly) {
+      rows = await db.select<RawTranscriptionRow[]>(SELECT_FAILED_PAGED_SQL, [limit, offset]);
     } else {
       rows = await db.select<RawTranscriptionRow[]>(SELECT_PAGED_SQL, [limit, offset]);
     }
@@ -380,7 +466,12 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     set({ isLoading: true });
     try {
       set({ currentOffset: 0, hasMore: true });
-      const results = await get().searchTranscriptionList(get().searchQuery, PAGE_SIZE, 0);
+      const results = await get().searchTranscriptionList(
+        get().searchQuery,
+        PAGE_SIZE,
+        0,
+        get().statusFilter,
+      );
       set({
         transcriptionList: results,
         currentOffset: results.length,
@@ -396,8 +487,13 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     if (!hasMore || isLoading) return;
     set({ isLoading: true });
     try {
-      const { searchQuery, currentOffset, transcriptionList } = get();
-      const results = await get().searchTranscriptionList(searchQuery, PAGE_SIZE, currentOffset);
+      const { searchQuery, currentOffset, transcriptionList, statusFilter } = get();
+      const results = await get().searchTranscriptionList(
+        searchQuery,
+        PAGE_SIZE,
+        currentOffset,
+        statusFilter,
+      );
       set({
         transcriptionList: [...transcriptionList, ...results],
         currentOffset: currentOffset + results.length,
@@ -527,13 +623,14 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       vocabularyAnalysisRequestCount: 0,
       vocabularyAnalysisTotalTokens: 0,
     };
-    const [statsRows, dailyQuotaUsage] = await Promise.all([
+    const [statsRows, dailyQuotaUsage, failedRecoverableCount] = await Promise.all([
       db.select<DashboardStatsRow[]>(DASHBOARD_STATS_SQL),
       fetchDailyQuotaUsage().catch((err) => {
         logError("history", `fetchDailyQuotaUsage failed: ${extractErrorMessage(err)}`);
         captureError(err, { source: "history", step: "fetch-daily-quota" });
         return fallbackQuota;
       }),
+      get().fetchFailedRecoverableCount(),
     ]);
     const row = statsRows[0] ?? {
       total_count: 0,
@@ -551,6 +648,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
           row.total_recording_duration_ms,
       ),
       dailyQuotaUsage,
+      failedRecoverableCount,
     };
   },
 

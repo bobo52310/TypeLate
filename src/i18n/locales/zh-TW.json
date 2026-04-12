@@ -329,6 +329,11 @@
       "action": "前往設定",
       "guide": "設定導引"
     },
+    "recoveryBanner": {
+      "title": "有 {count} 筆辨識可以重新嘗試",
+      "description": "過去有些語音因為 API 問題沒辨識成功，錄音檔仍保留著，隨時可以再試一次。",
+      "action": "前往重試"
+    },
     "heroPrefix": "用嘴砲輸出，比打字快了",
     "heroMultiplier": "{value} 倍",
     "heroSuffix": "",
@@ -396,7 +401,19 @@
     "failedBadge": "辨識失敗",
     "retry": {
       "button": "重新辨識",
-      "retrying": "辨識中..."
+      "retrying": "辨識中...",
+      "success": "辨識成功，已更新紀錄",
+      "bulkHint": "共 {count} 筆可以重試",
+      "bulkAction": "全部重試 ({count})",
+      "bulkRunning": "重試中...",
+      "bulkProgress": "重試中 {current} / {total}...",
+      "bulkAllSucceeded": "成功重試 {count} 筆",
+      "bulkSummary": "成功 {succeeded} 筆，失敗 {failed} 筆",
+      "bulkStoppedApiKey": "已停止：尚未設定 API Key，請先到設定頁面填入後再試。",
+      "bulkUnknownError": "批次重試失敗，請再試一次。"
+    },
+    "failedFilter": {
+      "label": "辨識失敗 ({count})"
     },
     "retryFailed": {
       "label": {
@@ -405,6 +422,7 @@
         "local": "無法重新辨識"
       },
       "providerHint": "這是語音辨識服務（例如 Groq）回傳的錯誤，錄音檔仍保留著，待 API 問題排除後可再次重試。",
+      "openSettings": "前往 AI 設定",
       "noAudioFile": "找不到原始錄音檔，無法重新辨識。",
       "apiKeyMissing": "尚未設定 API Key，請到設定頁面填入後再試一次。",
       "emptyResult": "辨識結果為空，可能音量過小或無法辨識內容。",

@@ -38,6 +38,7 @@ export interface DashboardStats {
   totalRecordingDurationMs: number;
   estimatedTimeSavedMs: number;
   dailyQuotaUsage: DailyQuotaUsage;
+  failedRecoverableCount: number;
 }
 
 // ── Rate limit info from Groq API response headers ──

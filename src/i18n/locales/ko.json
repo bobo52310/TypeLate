@@ -329,6 +329,11 @@
       "action": "설정",
       "guide": "설정 가이드"
     },
+    "recoveryBanner": {
+      "title": "{count}건의 녹음을 다시 인식할 수 있습니다",
+      "description": "API 문제로 인식에 실패한 음성이 있습니다. 녹음 파일은 보관되어 있으니 언제든 다시 시도하세요.",
+      "action": "다시 인식하기"
+    },
     "heroPrefix": "말하면",
     "heroMultiplier": "{value}배 빠르게",
     "heroSuffix": "입력할 수 있습니다",
@@ -396,7 +401,19 @@
     "failedBadge": "인식 실패",
     "retry": {
       "button": "다시 인식",
-      "retrying": "인식 중..."
+      "retrying": "인식 중...",
+      "success": "다시 인식에 성공했습니다",
+      "bulkHint": "{count}건을 다시 인식할 수 있습니다",
+      "bulkAction": "모두 다시 인식 ({count})",
+      "bulkRunning": "다시 인식 중...",
+      "bulkProgress": "다시 인식 중 {current} / {total}...",
+      "bulkAllSucceeded": "{count}건을 다시 인식했습니다",
+      "bulkSummary": "성공 {succeeded}건, 실패 {failed}건",
+      "bulkStoppedApiKey": "중단됨: API 키가 설정되지 않았습니다. 설정에서 입력한 후 다시 시도해 주세요.",
+      "bulkUnknownError": "일괄 다시 인식에 실패했습니다. 다시 시도해 주세요."
+    },
+    "failedFilter": {
+      "label": "인식 실패 ({count})"
     },
     "retryFailed": {
       "label": {
@@ -405,6 +422,7 @@
         "local": "다시 인식할 수 없음"
       },
       "providerHint": "음성 인식 서비스(예: Groq)에서 반환된 오류입니다. 녹음 파일은 유지되므로 API 문제가 해결된 후 다시 시도할 수 있습니다.",
+      "openSettings": "AI 설정 열기",
       "noAudioFile": "녹음 파일을 찾을 수 없어 다시 인식할 수 없습니다.",
       "apiKeyMissing": "API 키가 설정되지 않았습니다. 설정에서 입력한 후 다시 시도해 주세요.",
       "emptyResult": "인식 결과가 비어 있습니다. 음량이 너무 작거나 내용을 인식할 수 없습니다.",

@@ -12,14 +12,18 @@ import {
   Sparkles,
   Loader2,
   RefreshCw,
+  Settings2,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { invoke } from "@tauri-apps/api/core";
 import { captureError } from "@/lib/sentry";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useRecordVocabularyAnalysis } from "@/hooks/useRecordVocabularyAnalysis";
+import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import { getDisplayText, formatDurationMs } from "@/lib/formatUtils";
 import { retryFailedRecord } from "@/lib/retryFailedRecord";
+import { useHashRouter } from "@/app/router";
 import type { TranscriptionRecord } from "@/types/transcription";
 import type { PromptMode } from "@/types/settings";
 import VocabularyResultsPanel from "./VocabularyResultsPanel";
@@ -66,6 +70,8 @@ export default function ExpandedRecordDetail({
     category: "provider" | "config" | "local";
     message: string;
   } | null>(null);
+  const retryFeedback = useFeedbackMessage();
+  const { navigate } = useHashRouter();
 
   useEffect(() => {
     return () => {
@@ -142,24 +148,26 @@ export default function ExpandedRecordDetail({
     setRetryError(null);
     try {
       const result = await retryFailedRecord(record);
-      if (!result.ok) {
-        const kind = result.error ?? "transcriptionFailed";
-        if (kind === "transcriptionFailed") {
-          setRetryError({
-            category: "provider",
-            message: result.errorMessage ?? t("history.retryFailed.transcriptionFailed"),
-          });
-        } else if (kind === "apiKeyMissing") {
-          setRetryError({
-            category: "config",
-            message: t("history.retryFailed.apiKeyMissing"),
-          });
-        } else {
-          setRetryError({
-            category: "local",
-            message: t(`history.retryFailed.${kind}`),
-          });
-        }
+      if (result.ok) {
+        retryFeedback.show("success", t("history.retry.success"));
+        return;
+      }
+      const kind = result.error ?? "transcriptionFailed";
+      if (kind === "transcriptionFailed") {
+        setRetryError({
+          category: "provider",
+          message: result.errorMessage ?? t("history.retryFailed.transcriptionFailed"),
+        });
+      } else if (kind === "apiKeyMissing") {
+        setRetryError({
+          category: "config",
+          message: t("history.retryFailed.apiKeyMissing"),
+        });
+      } else {
+        setRetryError({
+          category: "local",
+          message: t(`history.retryFailed.${kind}`),
+        });
       }
     } catch (err) {
       captureError(err, { source: "history", action: "retry-failed" });
@@ -183,6 +191,14 @@ export default function ExpandedRecordDetail({
         <div className="flex items-center gap-1 text-[11px] text-primary">
           <Check className="h-3 w-3" />
           {t("history.edit.saved")}
+        </div>
+      )}
+
+      {/* Retry success feedback */}
+      {retryFeedback.message && retryFeedback.type === "success" && (
+        <div className="flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-[11px] text-primary">
+          <Check className="h-3 w-3" />
+          {retryFeedback.message}
         </div>
       )}
 
@@ -317,7 +333,7 @@ export default function ExpandedRecordDetail({
 
       {/* Retry error */}
       {retryError && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive space-y-1">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive space-y-1.5">
           <div className="flex items-center gap-1.5 font-medium">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" />
             {t(`history.retryFailed.label.${retryError.category}`)}
@@ -327,6 +343,20 @@ export default function ExpandedRecordDetail({
             <p className="text-[10px] text-destructive/70">
               {t("history.retryFailed.providerHint")}
             </p>
+          )}
+          {retryError.category === "config" && (
+            <div className="pt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 gap-1 px-2 text-[11px] border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => navigate("/ai")}
+              >
+                <Settings2 className="h-3 w-3" />
+                {t("history.retryFailed.openSettings")}
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
           )}
         </div>
       )}

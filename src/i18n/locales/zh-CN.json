@@ -329,6 +329,11 @@
       "action": "前往设置",
       "guide": "设置指南"
     },
+    "recoveryBanner": {
+      "title": "有 {count} 条识别可以重新尝试",
+      "description": "过去有些语音因为 API 问题没识别成功，录音文件仍保留着，随时可以再试一次。",
+      "action": "前往重试"
+    },
     "heroPrefix": "用嘴炮输出，比打字快了",
     "heroMultiplier": "{value} 倍",
     "heroSuffix": "",
@@ -396,7 +401,19 @@
     "failedBadge": "识别失败",
     "retry": {
       "button": "重新识别",
-      "retrying": "识别中..."
+      "retrying": "识别中...",
+      "success": "识别成功，已更新记录",
+      "bulkHint": "共 {count} 条可以重试",
+      "bulkAction": "全部重试 ({count})",
+      "bulkRunning": "重试中...",
+      "bulkProgress": "重试中 {current} / {total}...",
+      "bulkAllSucceeded": "成功重试 {count} 条",
+      "bulkSummary": "成功 {succeeded} 条，失败 {failed} 条",
+      "bulkStoppedApiKey": "已停止：尚未设置 API Key，请先到设置页面填入后再试。",
+      "bulkUnknownError": "批量重试失败，请再试一次。"
+    },
+    "failedFilter": {
+      "label": "识别失败 ({count})"
     },
     "retryFailed": {
       "label": {
@@ -405,6 +422,7 @@
         "local": "无法重新识别"
       },
       "providerHint": "这是语音识别服务（例如 Groq）返回的错误，录音文件仍保留着，待 API 问题解决后可再次重试。",
+      "openSettings": "前往 AI 设置",
       "noAudioFile": "找不到原始录音文件，无法重新识别。",
       "apiKeyMissing": "尚未设置 API Key，请到设置页面填入后再试。",
       "emptyResult": "识别结果为空，可能音量过小或无法识别内容。",

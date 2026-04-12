@@ -2,11 +2,12 @@ import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
-import { KeyRound, MessageCircle } from "lucide-react";
+import { KeyRound, MessageCircle, RotateCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useHashRouter } from "@/app/router";
 import { useQuotaInfo } from "@/hooks/useQuotaInfo";
 import { useRateLimitStore, type RateLimitPayload } from "@/stores/rateLimitStore";
 import HeroMetricCard from "@/components/dashboard/HeroMetricCard";
@@ -23,6 +24,8 @@ export default function DashboardView() {
   const refreshDashboard = useHistoryStore((s) => s.refreshDashboard);
   const dashboardStats = useHistoryStore((s) => s.dashboardStats);
   const dailyUsageTrendList = useHistoryStore((s) => s.dailyUsageTrendList);
+  const requestFailedFilter = useHistoryStore((s) => s.requestFailedFilter);
+  const { navigate } = useHashRouter();
 
   const apiKey = useSettingsStore((s) => s.apiKey);
 
@@ -90,9 +93,37 @@ export default function DashboardView() {
   }
 
   const hasData = dashboardStats.totalTranscriptions > 0 && speedMultiplier > 1;
+  const failedRecoverableCount = dashboardStats.failedRecoverableCount;
+
+  function goToFailedHistory() {
+    requestFailedFilter();
+    navigate("/history");
+  }
 
   return (
     <div className="space-y-5 p-5">
+      {/* Recoverable failed records banner */}
+      {failedRecoverableCount > 0 && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="flex items-center gap-4 pt-5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+              <RotateCw className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                {t("dashboard.recoveryBanner.title", { count: failedRecoverableCount })}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t("dashboard.recoveryBanner.description")}
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={goToFailedHistory}>
+              {t("dashboard.recoveryBanner.action")}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* API Key setup prompt */}
       {apiKeyMissing && (
         <Card className="border-primary/30 bg-primary/5">

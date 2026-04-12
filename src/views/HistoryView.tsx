@@ -15,6 +15,9 @@ import {
   Square,
   Mic,
   Download,
+  AlertTriangle,
+  RotateCw,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { captureError } from "@/lib/sentry";
@@ -22,6 +25,8 @@ import { useHistoryStore } from "@/stores/historyStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import type { TranscriptionRecord } from "@/types/transcription";
 import { truncateText, getDisplayText, formatDuration } from "@/lib/formatUtils";
+import { retryAllFailedRecords, type BulkRetrySummary } from "@/lib/retryFailedRecord";
+import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import ExpandedRecordDetail from "@/components/history/ExpandedRecordDetail";
 
 const TRANSCRIPTION_COMPLETED = "transcription:completed";
@@ -115,7 +120,13 @@ export default function HistoryView() {
   const setSearchQuery = useHistoryStore((s) => s.setSearchQuery);
   const deleteTranscription = useHistoryStore((s) => s.deleteTranscription);
   const exportAllTranscriptions = useHistoryStore((s) => s.exportAllTranscriptions);
+  const statusFilter = useHistoryStore((s) => s.statusFilter);
+  const setStatusFilter = useHistoryStore((s) => s.setStatusFilter);
+  const consumePendingFailedFilter = useHistoryStore((s) => s.consumePendingFailedFilter);
+  const failedRecoverableCount = useHistoryStore((s) => s.dashboardStats.failedRecoverableCount);
+  const refreshDashboard = useHistoryStore((s) => s.refreshDashboard);
   const hotkeyConfig = useSettingsStore((s) => s.hotkeyConfig);
+  const bulkFeedback = useFeedbackMessage();
 
   const [searchInput, setSearchInput] = useState("");
   const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null);
@@ -123,6 +134,10 @@ export default function HistoryView() {
   const [playingRecordId, setPlayingRecordId] = useState<string | null>(null);
   const [playbackErrorId, setPlaybackErrorId] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<"idle" | "exporting" | "done">("idle");
+  const [bulkRetryState, setBulkRetryState] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   // Random slogan for empty state (stable per mount)
   const [slogan] = useState(() => getRandomSlogan());
@@ -169,6 +184,58 @@ export default function HistoryView() {
     [setSearchQuery, resetAndFetch],
   );
 
+  const toggleFailedFilter = useCallback(() => {
+    const next = statusFilter === "failed" ? "all" : "failed";
+    setStatusFilter(next);
+    void resetAndFetch();
+  }, [statusFilter, setStatusFilter, resetAndFetch]);
+
+  async function handleBulkRetry() {
+    if (bulkRetryState) return;
+    const targets = transcriptionList.filter(
+      (r) => r.status === "failed" && !!r.audioFilePath,
+    );
+    if (targets.length === 0) return;
+
+    setBulkRetryState({ current: 0, total: targets.length });
+    let summary: BulkRetrySummary | null = null;
+    try {
+      summary = await retryAllFailedRecords(targets, (progress) => {
+        setBulkRetryState({ current: progress.current, total: progress.total });
+      });
+    } catch (err) {
+      captureError(err, { source: "history", action: "bulk-retry" });
+    } finally {
+      setBulkRetryState(null);
+    }
+
+    await resetAndFetch();
+    await refreshDashboard();
+
+    if (!summary) {
+      bulkFeedback.show("error", t("history.retry.bulkUnknownError"));
+      return;
+    }
+    if (summary.stoppedOnApiKeyMissing) {
+      bulkFeedback.show("error", t("history.retry.bulkStoppedApiKey"));
+      return;
+    }
+    if (summary.failed === 0) {
+      bulkFeedback.show(
+        "success",
+        t("history.retry.bulkAllSucceeded", { count: summary.succeeded }),
+      );
+    } else {
+      bulkFeedback.show(
+        "error",
+        t("history.retry.bulkSummary", {
+          succeeded: summary.succeeded,
+          failed: summary.failed,
+        }),
+      );
+    }
+  }
+
   function cleanupAudio() {
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
@@ -193,19 +260,25 @@ export default function HistoryView() {
   }
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const confirmDeleteIdRef = useRef<string | null>(null);
   const confirmDeleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function requestDeleteRecord(record: TranscriptionRecord) {
-    if (confirmDeleteId === record.id) {
+    if (confirmDeleteIdRef.current === record.id) {
       // Second click — confirmed
       if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
+      confirmDeleteIdRef.current = null;
       setConfirmDeleteId(null);
       void executeDeleteRecord(record);
     } else {
       // First click — enter confirm state, auto-revert after 3s
+      confirmDeleteIdRef.current = record.id;
       setConfirmDeleteId(record.id);
       if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
-      confirmDeleteTimerRef.current = setTimeout(() => setConfirmDeleteId(null), 3000);
+      confirmDeleteTimerRef.current = setTimeout(() => {
+        confirmDeleteIdRef.current = null;
+        setConfirmDeleteId(null);
+      }, 3000);
     }
   }
 
@@ -213,6 +286,7 @@ export default function HistoryView() {
     try {
       await deleteTranscription(record.id);
       if (expandedRecordId === record.id) setExpandedRecordId(null);
+      void refreshDashboard();
     } catch (err) {
       captureError(err, { source: "history", action: "delete-record" });
     }
@@ -283,10 +357,14 @@ export default function HistoryView() {
   }
 
   useEffect(() => {
+    if (consumePendingFailedFilter()) {
+      setStatusFilter("failed");
+    }
     void resetAndFetch();
     let unlisten: (() => void) | undefined;
     listen(TRANSCRIPTION_COMPLETED, () => {
       void resetAndFetch();
+      void refreshDashboard();
     }).then((fn) => {
       unlisten = fn;
     });
@@ -297,7 +375,7 @@ export default function HistoryView() {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
       if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
     };
-  }, [resetAndFetch]);
+  }, [resetAndFetch, refreshDashboard, consumePendingFailedFilter, setStatusFilter]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -314,10 +392,19 @@ export default function HistoryView() {
 
   const isPlaying = (id: string) => playingRecordId === id;
 
+  const failedFilterActive = statusFilter === "failed";
+  const failedChipCount =
+    failedFilterActive && transcriptionList.length > 0
+      ? transcriptionList.length
+      : failedRecoverableCount;
+  const bulkRetryTargetCount = transcriptionList.filter(
+    (r) => r.status === "failed" && !!r.audioFilePath,
+  ).length;
+
   return (
     <div className="flex h-full flex-col">
       {/* Search + Export */}
-      <div className="shrink-0 px-5 pt-4 pb-2">
+      <div className="shrink-0 px-5 pt-4 pb-2 space-y-2">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -329,7 +416,21 @@ export default function HistoryView() {
               onChange={(e) => handleSearchInput(e.target.value)}
             />
           </div>
-          {transcriptionList.length > 0 && (
+          {(failedFilterActive || failedRecoverableCount > 0) && (
+            <Button
+              variant={failedFilterActive ? "destructive" : "outline"}
+              size="sm"
+              className={cn(
+                "h-8 gap-1 px-2 text-xs",
+                !failedFilterActive && "text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive",
+              )}
+              onClick={toggleFailedFilter}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {t("history.failedFilter.label", { count: failedChipCount })}
+            </Button>
+          )}
+          {transcriptionList.length > 0 && !failedFilterActive && (
             <Button
               variant="ghost"
               size="sm"
@@ -346,6 +447,50 @@ export default function HistoryView() {
             </Button>
           )}
         </div>
+
+        {/* Bulk retry row — only when failed filter is active */}
+        {failedFilterActive && bulkRetryTargetCount > 0 && (
+          <div className="flex items-center justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-1.5">
+            <span className="text-xs text-muted-foreground">
+              {bulkRetryState
+                ? t("history.retry.bulkProgress", {
+                    current: bulkRetryState.current,
+                    total: bulkRetryState.total,
+                  })
+                : t("history.retry.bulkHint", { count: bulkRetryTargetCount })}
+            </span>
+            <Button
+              size="sm"
+              variant="default"
+              className="h-7 gap-1 px-2.5 text-xs"
+              disabled={!!bulkRetryState}
+              onClick={() => void handleBulkRetry()}
+            >
+              {bulkRetryState ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RotateCw className="h-3 w-3" />
+              )}
+              {bulkRetryState
+                ? t("history.retry.bulkRunning")
+                : t("history.retry.bulkAction", { count: bulkRetryTargetCount })}
+            </Button>
+          </div>
+        )}
+
+        {/* Bulk retry feedback */}
+        {bulkFeedback.message && (
+          <div
+            className={cn(
+              "rounded-md border px-3 py-1.5 text-xs",
+              bulkFeedback.type === "success"
+                ? "border-primary/30 bg-primary/5 text-primary"
+                : "border-destructive/30 bg-destructive/5 text-destructive",
+            )}
+          >
+            {bulkFeedback.message}
+          </div>
+        )}
       </div>
 
       {/* List */}

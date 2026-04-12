@@ -329,6 +329,11 @@
       "action": "Settings",
       "guide": "Setup Guide"
     },
+    "recoveryBanner": {
+      "title": "{count} recordings ready to retry",
+      "description": "Some transcriptions failed due to API issues. The audio is still saved — try again when you're ready.",
+      "action": "Review & retry"
+    },
     "heroPrefix": "Speaking is",
     "heroMultiplier": "{value}x Faster",
     "heroSuffix": "than Typing",
@@ -396,7 +401,19 @@
     "failedBadge": "Failed",
     "retry": {
       "button": "Retry",
-      "retrying": "Retrying..."
+      "retrying": "Retrying...",
+      "success": "Transcription recovered successfully",
+      "bulkHint": "{count} recordings can be retried",
+      "bulkAction": "Retry all ({count})",
+      "bulkRunning": "Retrying...",
+      "bulkProgress": "Retrying {current} / {total}...",
+      "bulkAllSucceeded": "Recovered {count} recordings",
+      "bulkSummary": "{succeeded} succeeded, {failed} failed",
+      "bulkStoppedApiKey": "Stopped: API key is missing. Please configure it in Settings and try again.",
+      "bulkUnknownError": "Bulk retry failed. Please try again."
+    },
+    "failedFilter": {
+      "label": "Failed ({count})"
     },
     "retryFailed": {
       "label": {
@@ -405,6 +422,7 @@
         "local": "Cannot retry"
       },
       "providerHint": "This came from the speech-to-text service (e.g. Groq). The recording is still saved — you can retry once the API issue is resolved.",
+      "openSettings": "Open AI settings",
       "noAudioFile": "Audio file is not available — cannot retry.",
       "apiKeyMissing": "API key is missing. Please configure it in Settings and try again.",
       "emptyResult": "Transcription returned empty. The audio may be too quiet or unintelligible.",
