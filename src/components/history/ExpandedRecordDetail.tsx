@@ -39,12 +39,14 @@ interface ExpandedRecordDetailProps {
   record: TranscriptionRecord;
   confirmDeleteId: string | null;
   onRequestDelete: (record: TranscriptionRecord) => void;
+  onRetrySuccess?: (recordId: string) => void;
 }
 
 export default function ExpandedRecordDetail({
   record,
   confirmDeleteId,
   onRequestDelete,
+  onRetrySuccess,
 }: ExpandedRecordDetailProps) {
   const { t } = useTranslation();
   const updateTranscriptionText = useHistoryStore((s) => s.updateTranscriptionText);
@@ -150,6 +152,7 @@ export default function ExpandedRecordDetail({
       const result = await retryFailedRecord(record);
       if (result.ok) {
         retryFeedback.show("success", t("history.retry.success"));
+        onRetrySuccess?.(record.id);
         return;
       }
       const kind = result.error ?? "transcriptionFailed";

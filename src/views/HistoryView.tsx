@@ -142,6 +142,8 @@ export default function HistoryView() {
   // Random slogan for empty state (stable per mount)
   const [slogan] = useState(() => getRandomSlogan());
 
+  const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
+
   const sentinelRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -377,6 +379,24 @@ export default function HistoryView() {
     };
   }, [resetAndFetch, refreshDashboard, consumePendingFailedFilter, setStatusFilter]);
 
+  // Scroll to a record after retry success + list refresh
+  useEffect(() => {
+    if (!pendingScrollId) return;
+    // Check if the record is now in the list
+    const exists = transcriptionList.some((r) => r.id === pendingScrollId);
+    if (!exists) return;
+    // Use requestAnimationFrame to wait for DOM update
+    const rafId = requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-record-id="${pendingScrollId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setExpandedRecordId(pendingScrollId);
+      }
+      setPendingScrollId(null);
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [pendingScrollId, transcriptionList]);
+
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
@@ -543,6 +563,7 @@ export default function HistoryView() {
                 return (
                   <div
                     key={record.id}
+                    data-record-id={record.id}
                     className={cn(
                       "rounded-lg border transition-colors",
                       expanded ? "border-border bg-card" : "border-transparent hover:bg-accent/40",
@@ -662,6 +683,7 @@ export default function HistoryView() {
                         record={record}
                         confirmDeleteId={confirmDeleteId}
                         onRequestDelete={requestDeleteRecord}
+                        onRetrySuccess={setPendingScrollId}
                       />
                     )}
                   </div>
