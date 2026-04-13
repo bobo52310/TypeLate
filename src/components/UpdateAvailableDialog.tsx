@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Loader2 } from "lucide-react";
+import { Download, ExternalLink, Loader2 } from "lucide-react";
+import { open as openUrl } from "@tauri-apps/plugin-shell";
 
 import {
   Dialog,
@@ -75,9 +76,20 @@ export function UpdateAvailableDialog({
 
         {/* Changelog */}
         <div className="px-6 py-4">
-          <h3 className="mb-3 text-sm font-semibold">
-            {t("mainApp.updateDialog.whatsNew", { version: newVersion })}
-          </h3>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">
+              {t("mainApp.updateDialog.whatsNew", { version: newVersion })}
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto gap-1 px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => openUrl(`https://github.com/bobo52310/TypeLate/releases/tag/v${newVersion}`)}
+            >
+              <ExternalLink className="h-3 w-3" />
+              {t("mainApp.updateDialog.learnMore")}
+            </Button>
+          </div>
           <div className="max-h-[240px] overflow-y-auto pr-3">
             <ChangelogContent sections={sections} />
           </div>

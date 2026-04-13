@@ -730,7 +730,8 @@
       "skipVersion": "Skip This Version",
       "remindLater": "Remind Me Later",
       "installUpdate": "Install Update",
-      "defaultChangelogItem": "Bug fixes and performance improvements"
+      "defaultChangelogItem": "Bug fixes and performance improvements",
+      "learnMore": "Learn more"
     },
     "upgradeNotice": {
       "title": "TypeLate Update Summary",

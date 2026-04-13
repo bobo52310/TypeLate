@@ -730,7 +730,8 @@
       "skipVersion": "跳过此版本",
       "remindLater": "稍后提醒",
       "installUpdate": "安装更新",
-      "defaultChangelogItem": "错误修正与性能改善"
+      "defaultChangelogItem": "错误修正与性能改善",
+      "learnMore": "了解更多"
     },
     "upgradeNotice": {
       "title": "TypeLate 更新摘要",

@@ -730,7 +730,8 @@
       "skipVersion": "このバージョンをスキップ",
       "remindLater": "後で通知",
       "installUpdate": "アップデート",
-      "defaultChangelogItem": "バグ修正とパフォーマンスの改善"
+      "defaultChangelogItem": "バグ修正とパフォーマンスの改善",
+      "learnMore": "詳細を見る"
     },
     "upgradeNotice": {
       "title": "TypeLate アップデート概要",
