@@ -164,6 +164,10 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
     loadStore("settings.json")
       .then(async (store) => {
         await store.set("onboardingCompleted", true);
+        // Mark current version as seen so the upgrade notice won't fire
+        // on the next launch after a fresh install.
+        const { APP_VERSION } = await import("@/lib/version");
+        await store.set("lastSeenVersion", APP_VERSION);
         await store.save();
       })
       .catch((err) => logError("Onboarding", "Failed to save onboarding status", err));
