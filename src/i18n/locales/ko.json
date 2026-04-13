@@ -332,7 +332,9 @@
     "recoveryBanner": {
       "title": "{count}건의 녹음을 다시 인식할 수 있습니다",
       "description": "API 문제로 인식에 실패한 음성이 있습니다. 녹음 파일은 보관되어 있으니 언제든 다시 시도하세요.",
-      "action": "다시 인식하기"
+      "action": "다시 인식하기",
+      "whatsNew": "새 기능 보기",
+      "dismiss": "닫기"
     },
     "heroPrefix": "말하면",
     "heroMultiplier": "{value}배 빠르게",

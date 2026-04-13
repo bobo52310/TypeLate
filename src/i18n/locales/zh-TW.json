@@ -332,7 +332,9 @@
     "recoveryBanner": {
       "title": "有 {count} 筆辨識可以重新嘗試",
       "description": "過去有些語音因為 API 問題沒辨識成功，錄音檔仍保留著，隨時可以再試一次。",
-      "action": "前往重試"
+      "action": "前往重試",
+      "whatsNew": "了解更多",
+      "dismiss": "關閉提示"
     },
     "heroPrefix": "用嘴砲輸出，比打字快了",
     "heroMultiplier": "{value} 倍",

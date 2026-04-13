@@ -1,8 +1,8 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
-import { KeyRound, MessageCircle, RotateCw } from "lucide-react";
+import { KeyRound, MessageCircle, RotateCw, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useHistoryStore } from "@/stores/historyStore";
@@ -18,6 +18,7 @@ const TRANSCRIPTION_COMPLETED = "transcription:completed";
 const RATE_LIMIT_UPDATED = "rate-limit:updated";
 // TODO: Update URL if repo moves
 const COMMUNITY_URL = "https://github.com/bobo52310/TypeLate/issues";
+const RELEASES_URL = "https://github.com/bobo52310/TypeLate/releases/latest";
 
 export default function DashboardView() {
   const { t } = useTranslation();
@@ -95,6 +96,16 @@ export default function DashboardView() {
   const hasData = dashboardStats.totalTranscriptions > 0 && speedMultiplier > 1;
   const failedRecoverableCount = dashboardStats.failedRecoverableCount;
 
+  const RECOVERY_BANNER_DISMISSED_KEY = "recoveryBanner.dismissed";
+  const [recoveryBannerDismissed, setRecoveryBannerDismissed] = useState(
+    () => localStorage.getItem(RECOVERY_BANNER_DISMISSED_KEY) === "true",
+  );
+
+  function dismissRecoveryBanner() {
+    localStorage.setItem(RECOVERY_BANNER_DISMISSED_KEY, "true");
+    setRecoveryBannerDismissed(true);
+  }
+
   function goToFailedHistory() {
     requestFailedFilter();
     navigate("/history");
@@ -103,7 +114,7 @@ export default function DashboardView() {
   return (
     <div className="space-y-5 p-5">
       {/* Recoverable failed records banner */}
-      {failedRecoverableCount > 0 && (
+      {failedRecoverableCount > 0 && !recoveryBannerDismissed && (
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="flex items-center gap-4 pt-5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
@@ -117,8 +128,25 @@ export default function DashboardView() {
                 {t("dashboard.recoveryBanner.description")}
               </p>
             </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-muted-foreground"
+              onClick={() => open(RELEASES_URL)}
+            >
+              {t("dashboard.recoveryBanner.whatsNew")}
+            </Button>
             <Button size="sm" variant="outline" onClick={goToFailedHistory}>
               {t("dashboard.recoveryBanner.action")}
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={dismissRecoveryBanner}
+              aria-label={t("dashboard.recoveryBanner.dismiss")}
+            >
+              <X className="h-4 w-4" />
             </Button>
           </CardContent>
         </Card>

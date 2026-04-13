@@ -332,7 +332,9 @@
     "recoveryBanner": {
       "title": "有 {count} 条识别可以重新尝试",
       "description": "过去有些语音因为 API 问题没识别成功，录音文件仍保留着，随时可以再试一次。",
-      "action": "前往重试"
+      "action": "前往重试",
+      "whatsNew": "了解更多",
+      "dismiss": "关闭提示"
     },
     "heroPrefix": "用嘴炮输出，比打字快了",
     "heroMultiplier": "{value} 倍",

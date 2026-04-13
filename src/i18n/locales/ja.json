@@ -332,7 +332,9 @@
     "recoveryBanner": {
       "title": "{count} 件の録音を再認識できます",
       "description": "API の問題で認識できなかった録音が保存されています。問題が解決したら再度お試しください。",
-      "action": "再認識する"
+      "action": "再認識する",
+      "whatsNew": "新機能を確認",
+      "dismiss": "閉じる"
     },
     "heroPrefix": "話すだけで",
     "heroMultiplier": "{value} 倍速い",

@@ -332,7 +332,9 @@
     "recoveryBanner": {
       "title": "{count} recordings ready to retry",
       "description": "Some transcriptions failed due to API issues. The audio is still saved — try again when you're ready.",
-      "action": "Review & retry"
+      "action": "Review & retry",
+      "whatsNew": "What's new",
+      "dismiss": "Dismiss"
     },
     "heroPrefix": "Speaking is",
     "heroMultiplier": "{value}x Faster",
