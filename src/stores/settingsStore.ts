@@ -76,11 +76,11 @@ export const DEFAULT_ENHANCEMENT_THRESHOLD_CHAR_COUNT = 10;
 export const DEFAULT_MUTE_ON_RECORDING = true;
 const DEFAULT_SMART_DICTIONARY_ENABLED = IS_MAC;
 const DEFAULT_SOUND_EFFECTS_ENABLED = true;
-export const DEFAULT_SUCCESS_DISPLAY_DURATION_SEC = 1.5;
+export const DEFAULT_SUCCESS_DISPLAY_DURATION_SEC = 3;
 export type SuccessDisplayDurationSec = 1 | 1.5 | 2 | 3 | 5;
 const DEFAULT_PROMPT_MODE: PromptMode = "minimal";
 export type RecordingRetentionPolicy = "forever" | "30" | "14" | "7" | "none";
-const DEFAULT_RECORDING_RETENTION_POLICY: RecordingRetentionPolicy = "forever";
+const DEFAULT_RECORDING_RETENTION_POLICY: RecordingRetentionPolicy = "30";
 
 export interface RecordingsStorageInfo {
   totalSizeBytes: number;
@@ -238,7 +238,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   customSoundPaths: null,
   recordingRetentionPolicy: DEFAULT_RECORDING_RETENTION_POLICY,
   selectedAudioInputDeviceName: "",
-  isCopyResultToClipboard: false,
+  isCopyResultToClipboard: true,
   isContextAwareEnabled: false,
   contextAppOverrides: {} as Record<string, AppCategory>,
   successDisplayDurationSec: DEFAULT_SUCCESS_DISPLAY_DURATION_SEC as SuccessDisplayDurationSec,
@@ -481,7 +481,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         isSmartDictionaryEnabled: savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
         recordingRetentionPolicy: resolvedRetentionPolicy,
         selectedAudioInputDeviceName: savedAudioInputDeviceName ?? "",
-        isCopyResultToClipboard: savedCopyResultToClipboard ?? false,
+        isCopyResultToClipboard: savedCopyResultToClipboard ?? true,
         successDisplayDurationSec: (savedSuccessDisplayDurationSec ?? DEFAULT_SUCCESS_DISPLAY_DURATION_SEC) as SuccessDisplayDurationSec,
         isContextAwareEnabled: savedContextAwareEnabled ?? false,
         contextAppOverrides: savedContextAppOverrides ?? {},
@@ -1313,7 +1313,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         isSmartDictionaryEnabled: savedSmartDictionary ?? DEFAULT_SMART_DICTIONARY_ENABLED,
         recordingRetentionPolicy: savedRetentionPolicy ?? DEFAULT_RECORDING_RETENTION_POLICY,
         selectedAudioInputDeviceName: savedAudioDevice ?? "",
-        isCopyResultToClipboard: savedCopyResultToClipboard ?? false,
+        isCopyResultToClipboard: savedCopyResultToClipboard ?? true,
         successDisplayDurationSec: (savedSuccessDisplayDurationSec ?? DEFAULT_SUCCESS_DISPLAY_DURATION_SEC) as SuccessDisplayDurationSec,
       });
     } catch (err) {
