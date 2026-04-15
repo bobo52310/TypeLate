@@ -10,6 +10,7 @@ export interface StopRecordingResult {
   recordingDurationMs: number;
   peakEnergyLevel: number;
   rmsEnergyLevel: number;
+  wavData: number[];
 }
 
 export interface TranscriptionResult {

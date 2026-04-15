@@ -27,13 +27,22 @@ import { calculateWhisperCostCeiling, calculateChatCostCeiling } from "@/lib/api
 import { retryWithBackoff } from "@/lib/retryWithBackoff";
 import { getPromptForModeAndLocale } from "@/i18n/prompts";
 import type { StopRecordingResult, TranscriptionResult, FrontmostAppInfo } from "@/types/audio";
-import type { TranscriptionRecord, ChatUsageData } from "@/types/transcription";
+import type {
+  TranscriptionRecord,
+  ChatUsageData,
+  QueuedRecording,
+} from "@/types/transcription";
 import type { TranscriptionCompletedPayload } from "@/types/events";
 import type { HudStatus } from "@/types";
 import type { PromptMode } from "@/types/settings";
 import { emitToWindow, TRANSCRIPTION_COMPLETED } from "@/hooks/useTauriEvent";
 import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
 import { useRateLimitStore } from "@/stores/rateLimitStore";
+import { enqueuePaste } from "@/lib/pasteQueue";
+import {
+  setQueueAbortController,
+  deleteQueueAbortController,
+} from "./queueAbortControllers";
 import {
   startElapsedTimer,
   stopElapsedTimer,
@@ -50,34 +59,77 @@ const MAX_ENHANCEMENT_RETRY_COUNT = 3;
 const START_SOUND_DURATION_MS = 400;
 const MINIMUM_RECORDING_DURATION_MS = 300;
 
-// ── Module-level abort state ──
+// ── Per-recording pipeline context ──
 
-let abortController: AbortController | null = null;
-
-// ── Context-aware: capture frontmost app + surrounding text at recording start ──
-
-let lastRecordingBundleId: string | null = null;
-let lastSurroundingText: string | null = null;
-
-export function getAbortController(): AbortController | null {
-  return abortController;
+/**
+ * Holds all per-recording state for a single pipeline invocation. When the
+ * user chains recordings, each one has its own `PipelineContext`. The `seat`
+ * field says whether this pipeline currently owns the notch ("primary") or
+ * has been demoted to a queue card ("queue") because a newer recording took
+ * over.
+ */
+interface PipelineContext {
+  id: string;
+  abortController: AbortController;
+  bundleId: string | null;
+  surroundingText: string | null;
+  wavData: number[];
+  recordingDurationMs: number;
+  peakEnergyLevel: number;
+  rmsEnergyLevel: number;
+  audioFilePath: string | null;
+  seat: "primary" | "queue";
+  startedAt: number;
 }
 
-export function setAbortController(controller: AbortController | null): void {
-  abortController = controller;
+/**
+ * The pipeline currently displayed in the notch. Becomes null when the primary
+ * pipeline completes (success or error) or is demoted by a newer recording.
+ */
+let currentPrimaryContext: PipelineContext | null = null;
+
+/**
+ * Context-aware capture for the mic currently being opened. Gets moved onto
+ * the PipelineContext when the recording stops. Only one recording's mic can
+ * be open at a time, so a single module-level slot is enough.
+ */
+let pendingBundleId: string | null = null;
+let pendingSurroundingText: string | null = null;
+
+/**
+ * The retry-from-file flow (retryFlow.ts) registers its AbortController here
+ * so ESC can cancel a retry in progress. Retry and a primary pipeline are
+ * never live at the same time (retry only starts from the error state).
+ */
+let retryAbortController: AbortController | null = null;
+
+export function registerRetryAbortController(controller: AbortController | null): void {
+  retryAbortController = controller;
+}
+
+export function getPrimaryAbortController(): AbortController | null {
+  return currentPrimaryContext?.abortController ?? retryAbortController;
 }
 
 // ── Store actions injection (avoids circular import with voiceFlowStore) ──
 
+interface VoiceFlowStoreActions {
+  enqueueRecording: (rec: QueuedRecording) => void;
+  updateQueueItem: (id: string, patch: Partial<QueuedRecording>) => void;
+  dismissQueueItem: (id: string) => void;
+}
+
 interface VoiceFlowActions {
   getState: () => {
     status: HudStatus;
+    message: string;
     isRecording: boolean;
     _isAborted: boolean;
     lastWasModified: boolean | null;
     _lastSuccessRawText: string | null;
     _lastSuccessTranscriptionId: string | null;
-  };
+    queue: QueuedRecording[];
+  } & VoiceFlowStoreActions;
   setState: (partial: Record<string, unknown>) => void;
   transitionTo: (status: HudStatus, message?: string) => void;
   playSoundIfEnabled: (slot: "start" | "stop" | "error" | "learned") => void;
@@ -111,6 +163,116 @@ function writeErrorLog(logMessage: string): void {
 
 function isEmptyTranscription(rawText: string): boolean {
   return !rawText || !rawText.trim();
+}
+
+// ── Pipeline routing helpers ──
+
+/**
+ * Route a status transition to the right place based on the pipeline's seat.
+ * Primary pipelines update the notch (and global state); demoted pipelines
+ * only update their own queue card.
+ */
+function pipelineTransitionTo(
+  ctx: PipelineContext,
+  status: "transcribing" | "enhancing" | "success" | "error",
+  message: string,
+): void {
+  if (ctx.seat === "primary") {
+    actions().transitionTo(status as HudStatus, message);
+  } else {
+    actions().getState().updateQueueItem(ctx.id, { status, message });
+  }
+}
+
+/**
+ * Report a failure from the pipeline. Primary pipelines go through the
+ * existing `failRecordingFlow` (which updates global state and plays the
+ * error sound). Demoted pipelines only mark their queue card as errored.
+ */
+function pipelineFailRecording(
+  ctx: PipelineContext,
+  errorMessage: string,
+  logMessage: string,
+  error?: unknown,
+  canRetry = false,
+): void {
+  if (ctx.seat === "primary") {
+    actions().failRecordingFlow(errorMessage, logMessage, error);
+    currentPrimaryContext = null;
+  } else {
+    actions().getState().updateQueueItem(ctx.id, {
+      status: "error",
+      message: errorMessage,
+      errorMessage,
+      canRetry,
+    });
+    actions().playSoundIfEnabled("error");
+    if (error) {
+      captureError(error, { userMessage: errorMessage, source: "voice-flow" });
+    }
+    writeErrorLog(logMessage);
+  }
+  deleteQueueAbortController(ctx.id);
+}
+
+/**
+ * When a newer recording starts, demote the currently-primary pipeline
+ * (if any and if still in-flight) into the queue. Its pipeline continues
+ * running but further state updates go to its queue card instead of the
+ * notch. The notch is left free for the new recording.
+ */
+function demoteCurrentPrimaryIfActive(): void {
+  const prev = currentPrimaryContext;
+  if (!prev) return;
+  if (prev.abortController.signal.aborted) {
+    currentPrimaryContext = null;
+    return;
+  }
+
+  // At this point the previous pipeline is still in flight. Snapshot its
+  // current state into a queue card. If the notch hasn't yet transitioned
+  // to a pipeline state (can happen when the user presses the next hotkey
+  // during the tiny window between `stop_recording` returning and the
+  // pipeline's first `transitionTo("transcribing")`), fall back to
+  // "transcribing" — the pipeline is about to be there anyway.
+  const gState = actions().getState();
+  const mapped = mapHudStatusToQueueStatus(gState.status);
+  const status = mapped ?? "transcribing";
+  const message =
+    mapped && gState.message ? gState.message : t("voiceFlow.transcribing");
+
+  const snapshot: QueuedRecording = {
+    id: prev.id,
+    status,
+    message,
+    rawText: null,
+    processedText: null,
+    errorMessage: null,
+    audioFilePath: prev.audioFilePath,
+    recordingDurationMs: prev.recordingDurationMs,
+    transcriptionDurationMs: 0,
+    enhancementDurationMs: null,
+    peakEnergyLevel: prev.peakEnergyLevel,
+    rmsEnergyLevel: prev.rmsEnergyLevel,
+    startedAt: prev.startedAt,
+    canRetry: false,
+  };
+  prev.seat = "queue";
+  gState.enqueueRecording(snapshot);
+  currentPrimaryContext = null;
+  writeInfoLog(
+    `voiceFlowStore: demoted primary pipeline ${prev.id} to queue (status=${status}, fromNotch=${gState.status})`,
+  );
+}
+
+function mapHudStatusToQueueStatus(
+  status: HudStatus,
+): "transcribing" | "enhancing" | "success" | "error" | null {
+  if (status === "transcribing") return "transcribing";
+  if (status === "enhancing") return "enhancing";
+  if (status === "success") return "success";
+  if (status === "error") return "error";
+  return null;
 }
 
 function getSuccessMessage(enhanced: boolean): string {
@@ -304,27 +466,21 @@ function updateVocabularyWeightsAfterPaste(finalText: string): void {
 
 // ── Complete paste flow ──
 
-async function completePasteFlow(params: {
-  text: string;
-  successMessage: string;
-  record: TranscriptionRecord;
-  chatUsage: ChatUsageData | null;
-  skipRecordSaving?: boolean;
-}): Promise<void> {
-  const { transitionTo, failRecordingFlow } = actions();
+async function completePasteFlow(
+  ctx: PipelineContext,
+  params: {
+    text: string;
+    successMessage: string;
+    record: TranscriptionRecord;
+    chatUsage: ChatUsageData | null;
+    skipRecordSaving?: boolean;
+  },
+): Promise<void> {
   try {
     const settingsStore = getSettingsStore();
     const preserveClipboard = !settingsStore.isCopyResultToClipboard;
-    await invoke("paste_text", { text: params.text, preserveClipboard });
-    actions().setState({ isRecording: false });
-
-    // Save post-success data for action bar (copy original / re-enhance)
-    actions().setState({
-      lastSuccessWasEnhanced: params.record.wasEnhanced,
-      lastSuccessPromptMode: settingsStore.promptMode,
-      _lastSuccessRawText: params.record.rawText,
-      _lastSuccessTranscriptionId: params.record.id,
-    });
+    // Serialize paste invocations so chained pipelines don't race Cmd/Ctrl+V.
+    await enqueuePaste({ text: params.text, preserveClipboard });
 
     // Show text preview in success message (truncate to ~30 chars)
     const preview =
@@ -332,8 +488,32 @@ async function completePasteFlow(params: {
     const successWithPreview = preview
       ? `${params.successMessage} · ${preview}`
       : params.successMessage;
-    transitionTo("success", successWithPreview);
-    startQualityMonitorAfterPaste();
+
+    if (ctx.seat === "primary") {
+      // Primary seat: notch goes to "success", action bar state is set so the
+      // user can copy original / re-enhance.
+      actions().setState({
+        lastSuccessWasEnhanced: params.record.wasEnhanced,
+        lastSuccessPromptMode: settingsStore.promptMode,
+        _lastSuccessRawText: params.record.rawText,
+        _lastSuccessTranscriptionId: params.record.id,
+      });
+      actions().transitionTo("success", successWithPreview);
+      startQualityMonitorAfterPaste();
+      // Primary pipeline is done — vacate the slot for the next recording.
+      currentPrimaryContext = null;
+    } else {
+      // Demoted queue card: show success, then auto-dismiss.
+      // Stage 1 MVP testing: auto-dismiss disabled so users can confirm
+      // multiple cards accumulate. Click the X to dismiss manually.
+      // Stage 3 will restore a reasonable auto-dismiss (~1–2s fade).
+      actions().getState().updateQueueItem(ctx.id, {
+        status: "success",
+        message: successWithPreview,
+        rawText: params.record.rawText,
+        processedText: params.record.processedText,
+      });
+    }
 
     // Save records then emit event — api_usage must be committed before
     // the dashboard refreshes so daily quota reads up-to-date data.
@@ -364,25 +544,43 @@ async function completePasteFlow(params: {
     const finalText = params.record.processedText ?? params.record.rawText;
     updateVocabularyWeightsAfterPaste(finalText);
 
-    // Correction detection (fire-and-forget)
-    writeInfoLog(`[correction] starting flow (text=${String(params.text.length)} chars)`);
-    startCorrectionDetectionFlow(
-      params.text,
-      params.record.id,
-      "",
-      () => actions().getState().status,
-      () => actions().getState().lastWasModified,
-    );
+    // Correction detection (fire-and-forget) — only for the primary pipeline.
+    // Demoted queue pastes happen in the background; the user isn't watching
+    // the notch for them so correction-monitor isn't meaningful.
+    if (ctx.seat === "primary") {
+      writeInfoLog(`[correction] starting flow (text=${String(params.text.length)} chars)`);
+      startCorrectionDetectionFlow(
+        params.text,
+        params.record.id,
+        "",
+        () => actions().getState().status,
+        () => actions().getState().lastWasModified,
+      );
+    }
 
-    // Cleanup: release abort controller reference
-    abortController = null;
+    deleteQueueAbortController(ctx.id);
   } catch (pasteError) {
-    actions().setState({ isRecording: false });
-    failRecordingFlow(
-      t("voiceFlow.pasteFailed"),
-      `voiceFlowStore: paste_text failed: ${extractErrorMessage(pasteError)}`,
-      pasteError,
-    );
+    if (ctx.seat === "primary") {
+      actions().failRecordingFlow(
+        t("voiceFlow.pasteFailed"),
+        `voiceFlowStore: paste_text failed: ${extractErrorMessage(pasteError)}`,
+        pasteError,
+      );
+      currentPrimaryContext = null;
+    } else {
+      actions().getState().updateQueueItem(ctx.id, {
+        status: "error",
+        message: t("voiceFlow.pasteFailed"),
+        errorMessage: t("voiceFlow.pasteFailed"),
+        canRetry: true,
+      });
+      actions().playSoundIfEnabled("error");
+      captureError(pasteError, { source: "voice-flow", step: "queue-paste" });
+      writeErrorLog(
+        `voiceFlowStore: queue paste_text failed: ${extractErrorMessage(pasteError)}`,
+      );
+    }
+    deleteQueueAbortController(ctx.id);
   }
 }
 
@@ -391,6 +589,10 @@ async function completePasteFlow(params: {
 export async function handleStartRecording(): Promise<void> {
   const { getState, setState, transitionTo, playSoundIfEnabled, failRecordingFlow } = actions();
   if (getState().isRecording) return;
+
+  // If a previous recording's pipeline is still running, demote it to the
+  // queue so the notch is free for this new recording.
+  demoteCurrentPrimaryIfActive();
 
   setState({
     isRecording: true,
@@ -408,7 +610,6 @@ export async function handleStartRecording(): Promise<void> {
     _lastFailedRmsEnergyLevel: 0,
     _isRetryAttempt: false,
   });
-  abortController = new AbortController();
 
   try {
     // Capture frontmost app + surrounding text in parallel before HUD takes focus
@@ -425,8 +626,8 @@ export async function handleStartRecording(): Promise<void> {
 
       const [appInfo, surroundingText] = await Promise.all([appInfoPromise, textFieldPromise]);
 
-      lastRecordingBundleId = appInfo?.bundleId ?? null;
-      lastSurroundingText = surroundingText;
+      pendingBundleId = appInfo?.bundleId ?? null;
+      pendingSurroundingText = surroundingText;
       setState({
         frontmostAppName: appInfo?.name ?? null,
         frontmostAppIconBase64: appInfo?.iconBase64 ?? null,
@@ -465,10 +666,10 @@ export async function handleStartRecording(): Promise<void> {
   }
 }
 
-// ── Stop recording (main pipeline) ──
+// ── Stop recording (mic release only; pipeline runs in background) ──
 
 export async function handleStopRecording(): Promise<void> {
-  const { getState, setState, transitionTo, playSoundIfEnabled, failRecordingFlow } = actions();
+  const { getState, setState, playSoundIfEnabled, failRecordingFlow } = actions();
   if (!getState().isRecording) return;
   if (getState()._isAborted) return;
 
@@ -478,40 +679,107 @@ export async function handleStopRecording(): Promise<void> {
   playSoundIfEnabled("stop");
   stopElapsedTimer();
 
-  const transcriptionId = crypto.randomUUID();
-  let audioFilePath: string | null = null;
-  let recordingDurationMs = 0;
-  let peakEnergyLevel = 0;
-  let rmsEnergyLevel = 0;
+  let stopResult: StopRecordingResult;
+  try {
+    stopResult = await invoke<StopRecordingResult>("stop_recording");
+  } catch (error) {
+    setState({ isRecording: false });
+    const userMessage = getTranscriptionErrorMessage(error);
+    const technicalMessage = extractErrorMessage(error);
+    failRecordingFlow(
+      userMessage,
+      `voiceFlowStore: stop recording failed: ${technicalMessage}`,
+      error,
+    );
+    return;
+  }
+
+  // Mic is released — free the next recording immediately.
+  setState({ isRecording: false });
+  if (getState()._isAborted) return;
+
+  const ctx: PipelineContext = {
+    id: crypto.randomUUID(),
+    abortController: new AbortController(),
+    bundleId: pendingBundleId,
+    surroundingText: pendingSurroundingText,
+    wavData: stopResult.wavData,
+    recordingDurationMs: stopResult.recordingDurationMs,
+    peakEnergyLevel: stopResult.peakEnergyLevel,
+    rmsEnergyLevel: stopResult.rmsEnergyLevel,
+    audioFilePath: null,
+    seat: "primary",
+    startedAt: performance.now(),
+  };
+  pendingBundleId = null;
+  pendingSurroundingText = null;
+
+  setQueueAbortController(ctx.id, ctx.abortController);
+  currentPrimaryContext = ctx;
+
+  // Persist audio so retry-from-file works (fast, synchronous to caller).
+  const retentionPolicy = getSettingsStore().recordingRetentionPolicy;
+  if (retentionPolicy !== "none") {
+    try {
+      ctx.audioFilePath = await invoke<string>("save_recording_file", {
+        id: ctx.id,
+        wavData: ctx.wavData,
+      });
+      writeInfoLog(`voiceFlowStore: recording saved: ${ctx.audioFilePath}`);
+    } catch (saveErr) {
+      writeErrorLog(
+        `voiceFlowStore: save_recording_file failed (non-blocking): ${extractErrorMessage(saveErr)}`,
+      );
+      captureError(saveErr, { source: "voice-flow", step: "save-recording-file" });
+    }
+  } else {
+    writeInfoLog("voiceFlowStore: skipping recording save (retention=none)");
+  }
+
+  // Fire-and-forget: the pipeline runs independently so a new recording
+  // can start immediately.
+  void runTranscriptionFor(ctx);
+}
+
+// ── Transcription pipeline ──
+
+async function runTranscriptionFor(ctx: PipelineContext): Promise<void> {
+  const { setState } = actions();
+  const transcriptionId = ctx.id;
+  const recordingDurationMs = ctx.recordingDurationMs;
+  const peakEnergyLevel = ctx.peakEnergyLevel;
+  const rmsEnergyLevel = ctx.rmsEnergyLevel;
+
+  // Route-aware local wrappers so the existing pipeline body can remain
+  // mostly untouched. `transitionTo` writes either to the notch (primary seat)
+  // or to this pipeline's queue card (demoted seat).
+  const transitionTo = (
+    status: "transcribing" | "enhancing" | "success" | "error",
+    message: string,
+  ): void => {
+    pipelineTransitionTo(ctx, status, message);
+  };
+
+  const failRecordingFlow = (errorMessage: string, logMessage: string, error?: unknown): void => {
+    if (ctx.seat === "primary" && ctx.audioFilePath) {
+      // Preserve existing retry UI: global "_lastFailed*" fields drive the
+      // notch's retry button. Only set these for the primary pipeline.
+      setState({
+        _lastFailedTranscriptionId: ctx.id,
+        _lastFailedAudioFilePath: ctx.audioFilePath,
+        _lastFailedRecordingDurationMs: ctx.recordingDurationMs,
+        _lastFailedPeakEnergyLevel: ctx.peakEnergyLevel,
+        _lastFailedRmsEnergyLevel: ctx.rmsEnergyLevel,
+      });
+    }
+    pipelineFailRecording(ctx, errorMessage, logMessage, error, ctx.audioFilePath !== null);
+  };
+
+  // For the pipeline body below, we use `ctx.audioFilePath` indirectly; keep
+  // a local alias so the existing references stay readable.
+  const audioFilePath = ctx.audioFilePath;
 
   try {
-    const stopResult = await invoke<StopRecordingResult>("stop_recording");
-    if (getState()._isAborted) return;
-    recordingDurationMs = stopResult.recordingDurationMs;
-    peakEnergyLevel = stopResult.peakEnergyLevel;
-    rmsEnergyLevel = stopResult.rmsEnergyLevel;
-
-    // Save audio file (non-blocking) — skip if retention policy is "none"
-    const retentionPolicy = getSettingsStore().recordingRetentionPolicy;
-    if (retentionPolicy !== "none") {
-      try {
-        audioFilePath = await invoke<string>("save_recording_file", {
-          id: transcriptionId,
-        });
-        writeInfoLog(`voiceFlowStore: recording saved: ${audioFilePath}`);
-      } catch (saveErr) {
-        writeErrorLog(
-          `voiceFlowStore: save_recording_file failed (non-blocking): ${extractErrorMessage(saveErr)}`,
-        );
-        captureError(saveErr, {
-          source: "voice-flow",
-          step: "save-recording-file",
-        });
-      }
-    } else {
-      writeInfoLog("voiceFlowStore: skipping recording save (retention=none)");
-    }
-
     if (recordingDurationMs < MINIMUM_RECORDING_DURATION_MS) {
       const failedRecord = buildTranscriptionRecord({
         id: transcriptionId,
@@ -580,20 +848,21 @@ export async function handleStopRecording(): Promise<void> {
       result = await retryWithBackoff(
         () =>
           invoke<TranscriptionResult>("transcribe_audio", {
+            wavData: ctx.wavData,
             apiUrl: providerConfig.transcriptionBaseUrl,
             apiKey,
             vocabularyTermList: hasVocabulary ? whisperTermList : null,
             modelId: settingsStore.selectedWhisperModelId,
             language: settingsStore.getWhisperLanguageCode(),
           }),
-        { maxRetries: 2, signal: abortController?.signal ?? undefined },
+        { maxRetries: 2, signal: ctx.abortController.signal },
       );
       providerCircuitBreaker.recordSuccess();
     } catch (apiErr) {
       providerCircuitBreaker.recordFailure();
       throw apiErr;
     }
-    if (getState()._isAborted) return;
+    if (ctx.abortController.signal.aborted) return;
 
     // Store whisper rate limit from API response headers
     if (result.rateLimit) {
@@ -615,16 +884,6 @@ export async function handleStopRecording(): Promise<void> {
         status: "failed",
       });
       void saveTranscriptionRecord(failedRecord);
-
-      if (audioFilePath) {
-        setState({
-          _lastFailedTranscriptionId: transcriptionId,
-          _lastFailedAudioFilePath: audioFilePath,
-          _lastFailedRecordingDurationMs: recordingDurationMs,
-          _lastFailedPeakEnergyLevel: peakEnergyLevel,
-          _lastFailedRmsEnergyLevel: rmsEnergyLevel,
-        });
-      }
 
       failRecordingFlow(
         t("voiceFlow.noSpeechDetected"),
@@ -664,16 +923,6 @@ export async function handleStopRecording(): Promise<void> {
       });
       void saveTranscriptionRecord(failedRecord);
 
-      if (audioFilePath) {
-        setState({
-          _lastFailedTranscriptionId: transcriptionId,
-          _lastFailedAudioFilePath: audioFilePath,
-          _lastFailedRecordingDurationMs: recordingDurationMs,
-          _lastFailedPeakEnergyLevel: peakEnergyLevel,
-          _lastFailedRmsEnergyLevel: rmsEnergyLevel,
-        });
-      }
-
       failRecordingFlow(
         t("voiceFlow.noSpeechDetected"),
         `voiceFlowStore: hallucination intercepted (reason=${String(hallucinationResult.reason)})`,
@@ -704,21 +953,21 @@ export async function handleStopRecording(): Promise<void> {
         const enhancementTermList = await vocabularyStore.getTopTermListByWeight(50);
         const enhanceOptions = {
           systemPrompt: settingsStore.isContextAwareEnabled
-            ? settingsStore.getContextAwarePrompt(lastRecordingBundleId)
+            ? settingsStore.getContextAwarePrompt(ctx.bundleId)
             : settingsStore.getAiPrompt(),
           vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
-          surroundingText: lastSurroundingText ?? undefined,
+          surroundingText: ctx.surroundingText ?? undefined,
           modelId: settingsStore.selectedLlmModelId,
           chatApiUrl: llmProviderConfig.chatBaseUrl,
           extraHeaders: llmProviderConfig.extraHeaders,
-          signal: abortController?.signal,
+          signal: ctx.abortController.signal,
         };
 
         let enhanceResult = await retryWithBackoff(
           () => enhanceText(result.rawText, llmApiKey, enhanceOptions),
-          { maxRetries: 1, signal: abortController?.signal ?? undefined },
+          { maxRetries: 1, signal: ctx.abortController.signal },
         );
-        if (getState()._isAborted) return;
+        if (ctx.abortController.signal.aborted) return;
 
         // Enhancement anomaly detection (with retry)
         let retryCount = 0;
@@ -735,9 +984,9 @@ export async function handleStopRecording(): Promise<void> {
           );
           enhanceResult = await retryWithBackoff(
             () => enhanceText(result.rawText, llmApiKey, enhanceOptions),
-            { maxRetries: 1, signal: abortController?.signal ?? undefined },
+            { maxRetries: 1, signal: ctx.abortController.signal },
           );
-          if (getState()._isAborted) return;
+          if (ctx.abortController.signal.aborted) return;
         }
 
         const finalAnomaly = detectEnhancementAnomaly({
@@ -772,7 +1021,7 @@ export async function handleStopRecording(): Promise<void> {
 
         writeInfoLog(`AI enhanced: "${enhanceResult.text}"`);
 
-        await completePasteFlow({
+        await completePasteFlow(ctx, {
           text: enhanceResult.text,
           successMessage: getSuccessMessage(true),
           record,
@@ -783,7 +1032,7 @@ export async function handleStopRecording(): Promise<void> {
           `voiceFlowStore: pasted enhanced text, recordingDurationMs=${String(Math.round(recordingDurationMs))}, transcriptionDurationMs=${String(Math.round(result.transcriptionDurationMs))}, enhancementDurationMs=${String(Math.round(enhancementDurationMs))}${retryCount > 0 ? `, enhancementRetryCount=${String(retryCount)}` : ""}`,
         );
       } catch (enhanceError) {
-        if (getState()._isAborted) return;
+        if (ctx.abortController.signal.aborted) return;
         const fallbackEnhancementDurationMs = performance.now() - enhancementStartTime;
         const enhanceErrorDetail = getEnhancementErrorMessage(enhanceError);
         writeErrorLog(`voiceFlowStore: AI enhancement failed: ${enhanceErrorDetail}`);
@@ -804,7 +1053,7 @@ export async function handleStopRecording(): Promise<void> {
           status: "success",
         });
 
-        await completePasteFlow({
+        await completePasteFlow(ctx, {
           text: result.rawText,
           successMessage: getSuccessMessage(false),
           record: fallbackRecord,
@@ -825,7 +1074,7 @@ export async function handleStopRecording(): Promise<void> {
         status: "success",
       });
 
-      await completePasteFlow({
+      await completePasteFlow(ctx, {
         text: result.rawText,
         successMessage: getSuccessMessage(false),
         record,
@@ -837,7 +1086,7 @@ export async function handleStopRecording(): Promise<void> {
       );
     }
   } catch (error) {
-    if (getState()._isAborted) return;
+    if (ctx.abortController.signal.aborted) return;
     // AC2: API error -- still write failed record if we have audioFilePath
     if (audioFilePath) {
       const failedRecord = buildTranscriptionRecord({
@@ -852,13 +1101,6 @@ export async function handleStopRecording(): Promise<void> {
         status: "failed",
       });
       void saveTranscriptionRecord(failedRecord);
-
-      setState({
-        _lastFailedTranscriptionId: transcriptionId,
-        _lastFailedAudioFilePath: audioFilePath,
-        _lastFailedRecordingDurationMs: recordingDurationMs,
-        _lastFailedPeakEnergyLevel: peakEnergyLevel,
-      });
     }
 
     const userMessage = getTranscriptionErrorMessage(error);

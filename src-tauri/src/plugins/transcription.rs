@@ -2,8 +2,6 @@ use std::time::Instant;
 
 use tauri::{command, State};
 
-use super::audio_recorder::AudioRecorderState;
-
 // ========== Constants ==========
 
 const MAX_WHISPER_PROMPT_TERMS: usize = 50;
@@ -31,8 +29,6 @@ impl TranscriptionState {
 
 #[derive(Debug, thiserror::Error)]
 pub enum TranscriptionError {
-    #[error("No audio data available — call stop_recording first")]
-    NoAudioData,
     #[error("Audio data too small ({0} bytes), recording may have failed")]
     AudioTooSmall(usize),
     #[error("API key is missing")]
@@ -43,8 +39,6 @@ pub enum TranscriptionError {
     ApiError(u16, String),
     #[error("Failed to parse API response: {0}")]
     ParseError(String),
-    #[error("Lock poisoned")]
-    LockPoisoned,
 }
 
 impl serde::Serialize for TranscriptionError {
@@ -239,8 +233,8 @@ async fn send_transcription_request(
 
 #[command]
 pub async fn transcribe_audio(
-    state: State<'_, AudioRecorderState>,
     transcription_state: State<'_, TranscriptionState>,
+    wav_data: Vec<u8>,
     api_url: String,
     api_key: String,
     vocabulary_term_list: Option<Vec<String>>,
@@ -250,15 +244,6 @@ pub async fn transcribe_audio(
     if api_key.trim().is_empty() {
         return Err(TranscriptionError::ApiKeyMissing);
     }
-
-    // Take WAV data from shared state (consume it)
-    let wav_data = {
-        let mut guard = state
-            .wav_buffer
-            .lock()
-            .map_err(|_| TranscriptionError::LockPoisoned)?;
-        guard.take().ok_or(TranscriptionError::NoAudioData)?
-    };
 
     send_transcription_request(
         wav_data,

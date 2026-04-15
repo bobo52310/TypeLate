@@ -20,6 +20,7 @@ import { extractErrorMessage, getHotkeyErrorMessage } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
 import type { HudStatus } from "@/types";
 import type { PromptMode } from "@/types/settings";
+import type { QueuedRecording } from "@/types/transcription";
 import type {
   HotkeyEventPayload,
   HotkeyErrorPayload,
@@ -64,7 +65,7 @@ import {
   handleStopRecording,
   handleReEnhanceWithMode,
   restoreSystemAudio,
-  getAbortController,
+  getPrimaryAbortController,
   setVoiceFlowActions,
 } from "./voiceFlow/transcriptionPipeline";
 import {
@@ -78,6 +79,10 @@ import {
   type HistoryStoreAccessor,
   type VocabularyStoreAccessor,
 } from "./voiceFlow/storeAccessors";
+import {
+  getQueueAbortController,
+  abortAllQueueControllers,
+} from "./voiceFlow/queueAbortControllers";
 
 // ── Constants ──
 
@@ -122,6 +127,15 @@ export interface VoiceFlowState {
   lastSuccessWasEnhanced: boolean;
   lastSuccessPromptMode: PromptMode | null;
 
+  /**
+   * Queue of in-flight transcriptions from chained (non-blocking) recordings.
+   * Only populated when the user triggers a new recording before the previous
+   * one has finished transcribing/enhancing. Each item renders as a floating
+   * card below the notch. The most recent recording always occupies the notch
+   * (via the global `status` field) — the queue holds older, demoted items.
+   */
+  queue: QueuedRecording[];
+
   // Internal state (used by sub-modules, prefixed with _ to indicate internal)
   /** @internal */ _isAborted: boolean;
   /** @internal */ _isRetryAttempt: boolean;
@@ -141,6 +155,11 @@ export interface VoiceFlowState {
   handleReEnhance: (mode: PromptMode) => Promise<void>;
   pauseAutoHide: () => void;
   resumeAutoHide: () => void;
+
+  // Queue actions
+  enqueueRecording: (rec: QueuedRecording) => void;
+  updateQueueItem: (id: string, patch: Partial<QueuedRecording>) => void;
+  dismissQueueItem: (id: string) => void;
 }
 
 /**
@@ -306,7 +325,7 @@ function handleEscapeAbort(): void {
 
   writeInfoLog(`voiceFlowStore: ESC abort from ${currentStatus}`);
   useVoiceFlowStore.setState({ _isAborted: true, isRecording: false });
-  getAbortController()?.abort();
+  getPrimaryAbortController()?.abort();
 
   if (currentStatus === "recording") {
     void invoke("stop_recording").catch((err) => {
@@ -346,6 +365,9 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
   // Post-success action bar state
   lastSuccessWasEnhanced: false,
   lastSuccessPromptMode: null,
+
+  // Queue of demoted in-flight transcriptions
+  queue: [],
 
   // Internal state
   _isAborted: false,
@@ -453,10 +475,32 @@ export const useVoiceFlowStore = create<VoiceFlowState>((set, get) => ({
     cleanupCorrectionMonitorListener();
     resetHudWindowState();
 
+    // Abort any in-flight queue pipelines
+    abortAllQueueControllers();
+    set({ queue: [] });
+
     for (const unlisten of unlistenFunctions) {
       unlisten();
     }
     unlistenFunctions.length = 0;
+  },
+
+  enqueueRecording: (rec: QueuedRecording) => {
+    set((state) => ({ queue: [...state.queue, rec] }));
+  },
+
+  updateQueueItem: (id: string, patch: Partial<QueuedRecording>) => {
+    set((state) => ({
+      queue: state.queue.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    }));
+  },
+
+  dismissQueueItem: (id: string) => {
+    const controller = getQueueAbortController(id);
+    if (controller) {
+      controller.abort();
+    }
+    set((state) => ({ queue: state.queue.filter((item) => item.id !== id) }));
   },
 
   handleRetryTranscription: async () => {
