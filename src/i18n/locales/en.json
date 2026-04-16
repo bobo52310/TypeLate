@@ -441,6 +441,12 @@
       "emptyResult": "Transcription returned empty. The audio may be too quiet or unintelligible.",
       "transcriptionFailed": "Retry failed. Check your API key, network, or quota and try again."
     },
+    "retranscribe": {
+      "button": "Re-transcribe",
+      "confirm": "Re-transcribe with current settings?",
+      "processing": "Transcribing...",
+      "success": "Re-transcription complete"
+    },
     "edit": {
       "edit": "Edit",
       "save": "Save",

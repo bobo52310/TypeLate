@@ -441,6 +441,12 @@
       "emptyResult": "認識結果が空です。音量が小さすぎるか、内容を認識できませんでした。",
       "transcriptionFailed": "再認識に失敗しました。API キー・ネットワーク・利用量を確認してください。"
     },
+    "retranscribe": {
+      "button": "再認識",
+      "confirm": "現在の設定で再認識しますか？",
+      "processing": "認識中...",
+      "success": "再認識が完了しました"
+    },
     "edit": {
       "edit": "編集",
       "save": "保存",

@@ -1,13 +1,14 @@
 /**
- * Retry a failed transcription record from the History view.
+ * Re-transcribe a record from the History view.
  *
  * Unlike the HUD `handleRetryTranscription` flow (which pastes, runs quality
  * monitor, hallucination detection, etc.), this is a passive retry: it only
  * re-runs Whisper + optional LLM enhancement and updates the DB record. No
  * paste, no clipboard side-effects, no monitors.
  *
- * Used when the API key is fixed after a previous failure (expired token,
- * network outage, etc.) and the user wants to recover saved audio.
+ * Works for any record with a saved audio file — both failed records
+ * (recovering after API fix) and successful records (re-transcribing with
+ * updated model/vocabulary/prompt settings).
  */
 
 import { invoke } from "@tauri-apps/api/core";
@@ -22,21 +23,31 @@ import { captureError } from "@/lib/sentry";
 import type { TranscriptionResult } from "@/types/audio";
 import type { ChatUsageData, TranscriptionRecord } from "@/types/transcription";
 
-export type RetryFailedRecordErrorKind =
+export type RetranscribeErrorKind =
   | "noAudioFile"
   | "apiKeyMissing"
   | "emptyResult"
   | "transcriptionFailed";
 
-export interface RetryFailedRecordResult {
+/** @deprecated Use {@link RetranscribeErrorKind} */
+export type RetryFailedRecordErrorKind = RetranscribeErrorKind;
+
+export interface RetranscribeResult {
   ok: boolean;
-  error?: RetryFailedRecordErrorKind;
+  error?: RetranscribeErrorKind;
   errorMessage?: string;
 }
 
-export async function retryFailedRecord(
+/** @deprecated Use {@link RetranscribeResult} */
+export type RetryFailedRecordResult = RetranscribeResult;
+
+/**
+ * Re-transcribe any record that has a saved audio file.
+ * Works for both failed and successful records.
+ */
+export async function retranscribeRecord(
   record: TranscriptionRecord,
-): Promise<RetryFailedRecordResult> {
+): Promise<RetranscribeResult> {
   if (!record.audioFilePath) {
     return { ok: false, error: "noAudioFile" };
   }
@@ -135,6 +146,8 @@ export async function retryFailedRecord(
         enhancementDurationMs !== null ? Math.round(enhancementDurationMs) : null,
       wasEnhanced,
       charCount,
+      whisperModelId: settingsStore.selectedWhisperModelId,
+      llmModelId: wasEnhanced ? settingsStore.selectedLlmModelId : null,
     });
   } catch (err) {
     return {
@@ -148,6 +161,9 @@ export async function retryFailedRecord(
 
   return { ok: true };
 }
+
+/** @deprecated Use {@link retranscribeRecord} */
+export const retryFailedRecord = retranscribeRecord;
 
 export interface BulkRetryProgress {
   current: number;
@@ -176,7 +192,7 @@ export async function retryAllFailedRecords(
     if (!record) continue;
     onProgress?.({ current: i + 1, total: records.length, record });
 
-    const result = await retryFailedRecord(record);
+    const result = await retranscribeRecord(record);
     if (result.ok) {
       summary.succeeded += 1;
       continue;

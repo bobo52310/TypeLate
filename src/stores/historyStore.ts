@@ -183,8 +183,10 @@ const UPDATE_ON_RETRY_SUCCESS_SQL = `
       transcription_duration_ms = $3,
       enhancement_duration_ms = $4,
       was_enhanced = $5,
-      char_count = $6
-  WHERE id = $7
+      char_count = $6,
+      whisper_model_id = $7,
+      llm_model_id = $8
+  WHERE id = $9
 `;
 
 const DELETE_API_USAGE_BY_TRANSCRIPTION_SQL = `
@@ -275,6 +277,8 @@ interface HistoryState {
       enhancementDurationMs: number | null;
       wasEnhanced: boolean;
       charCount: number;
+      whisperModelId?: string | null;
+      llmModelId?: string | null;
     },
     options?: { skipEmit?: boolean },
   ) => Promise<void>;
@@ -561,6 +565,8 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         params.enhancementDurationMs,
         params.wasEnhanced ? 1 : 0,
         params.charCount,
+        params.whisperModelId ?? null,
+        params.llmModelId ?? null,
         params.id,
       ]);
     } catch (err) {

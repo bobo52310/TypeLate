@@ -441,6 +441,12 @@
       "emptyResult": "识别结果为空，可能音量过小或无法识别内容。",
       "transcriptionFailed": "重新识别失败，请检查 API Key、网络或配额后再试。"
     },
+    "retranscribe": {
+      "button": "重新识别",
+      "confirm": "将以当前设置重新识别，确定？",
+      "processing": "识别中...",
+      "success": "重新识别完成，已更新记录"
+    },
     "edit": {
       "edit": "编辑",
       "save": "保存",
