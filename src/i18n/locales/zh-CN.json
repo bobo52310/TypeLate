@@ -555,6 +555,16 @@
         "minutesAgo": "{count} 分钟前",
         "hoursAgo": "{count} 小时前",
         "daysAgo": "{count} 天前"
+      },
+      "conflict": {
+        "title": "两端都有词汇数据",
+        "description": "云端有 {remoteCount} 个词汇，本机有 {localCount} 个词汇。请选择同步方式：",
+        "keepLocal": "保留本机",
+        "keepLocalHint": "上传本机词汇到云端，覆盖云端数据",
+        "keepRemote": "保留云端",
+        "keepRemoteHint": "下载云端词汇到本机，覆盖本机数据",
+        "merge": "合并两者",
+        "mergeHint": "合并双方 — 新词加入、高权重优先"
       }
     },
     "googleDrive": {

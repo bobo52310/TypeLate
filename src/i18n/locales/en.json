@@ -555,6 +555,16 @@
         "minutesAgo": "{count}m ago",
         "hoursAgo": "{count}h ago",
         "daysAgo": "{count}d ago"
+      },
+      "conflict": {
+        "title": "Vocabulary Found on Both Sides",
+        "description": "Cloud has {remoteCount} terms, local has {localCount} terms. How would you like to sync?",
+        "keepLocal": "Keep Local",
+        "keepLocalHint": "Upload local vocabulary to cloud, overwrite remote",
+        "keepRemote": "Keep Remote",
+        "keepRemoteHint": "Download cloud vocabulary to local, overwrite local",
+        "merge": "Merge Both",
+        "mergeHint": "Combine both — new terms added, higher weight wins"
       }
     },
     "googleDrive": {

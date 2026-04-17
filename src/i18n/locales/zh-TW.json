@@ -555,6 +555,16 @@
         "minutesAgo": "{count} 分鐘前",
         "hoursAgo": "{count} 小時前",
         "daysAgo": "{count} 天前"
+      },
+      "conflict": {
+        "title": "兩端都有詞彙資料",
+        "description": "雲端有 {remoteCount} 個詞彙，本機有 {localCount} 個詞彙。請選擇同步方式：",
+        "keepLocal": "保留本機",
+        "keepLocalHint": "上傳本機詞彙到雲端，覆蓋雲端資料",
+        "keepRemote": "保留雲端",
+        "keepRemoteHint": "下載雲端詞彙到本機，覆蓋本機資料",
+        "merge": "合併兩者",
+        "mergeHint": "合併雙方 — 新詞加入、高權重優先"
       }
     },
     "googleDrive": {

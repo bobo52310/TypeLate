@@ -555,6 +555,16 @@
         "minutesAgo": "{count}분 전",
         "hoursAgo": "{count}시간 전",
         "daysAgo": "{count}일 전"
+      },
+      "conflict": {
+        "title": "양쪽 모두 어휘 데이터가 있습니다",
+        "description": "클라우드에 {remoteCount}개, 로컬에 {localCount}개의 용어가 있습니다. 동기화 방법을 선택하세요:",
+        "keepLocal": "로컬 유지",
+        "keepLocalHint": "로컬 어휘를 클라우드에 업로드하여 원격 데이터 덮어쓰기",
+        "keepRemote": "클라우드 유지",
+        "keepRemoteHint": "클라우드 어휘를 다운로드하여 로컬 데이터 덮어쓰기",
+        "merge": "양쪽 병합",
+        "mergeHint": "양쪽 병합 — 새 용어 추가, 높은 가중치 우선"
       }
     },
     "googleDrive": {

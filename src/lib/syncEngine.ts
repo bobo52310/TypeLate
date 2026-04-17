@@ -5,6 +5,7 @@ import {
 } from "@/lib/vocabularyFile";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
 import { logInfo, logError } from "@/lib/logger";
+import type { SyncStrategy } from "@/lib/googleDriveSync";
 
 export interface SyncDisplayInfo {
   label: string;
@@ -25,16 +26,19 @@ export interface SyncResult {
 }
 
 /**
- * Provider-agnostic bidirectional sync.
+ * Provider-agnostic sync with strategy support.
  *
- * 1. Read remote vocabulary JSON from the provider
- * 2. Parse and compute diff against local terms
- * 3. Apply imports (new terms + higher weights)
- * 4. Re-fetch local terms and upload the merged result
+ * Strategies:
+ * - "merge" (default): bidirectional merge, higher weight wins
+ * - "keep-local": ignore remote, upload local
+ * - "keep-remote": replace local with remote data, skip upload
  */
-export async function performSync(provider: SyncProvider): Promise<SyncResult> {
+export async function performSync(
+  provider: SyncProvider,
+  strategy: SyncStrategy = "merge",
+): Promise<SyncResult> {
   const tag = `sync:${provider.id}`;
-  logInfo(tag, "Starting vocabulary sync...");
+  logInfo(tag, `Starting vocabulary sync (strategy: ${strategy})...`);
 
   const vocabularyStore = useVocabularyStore.getState();
 
@@ -45,30 +49,46 @@ export async function performSync(provider: SyncProvider): Promise<SyncResult> {
   let added = 0;
   let updated = 0;
 
-  // 1. Download and merge remote → local
+  if (strategy === "keep-local") {
+    // Skip download, just upload local
+    const content = serializeVocabulary(localTerms);
+    await provider.write(content);
+    logInfo(tag, `Sync completed (keep-local): uploaded ${localTerms.length} terms`);
+    return { added: 0, updated: 0 };
+  }
+
+  // 1. Download remote
   const remoteContent = await provider.read();
 
   if (remoteContent) {
     const parseResult = parseVocabularyJson(remoteContent);
 
     if (parseResult.valid && parseResult.terms.length > 0) {
-      const diff = computeImportDiff(parseResult.terms, localTerms);
-
-      if (diff.toInsert.length > 0 || diff.toUpdate.length > 0) {
-        await vocabularyStore.syncImportBatch(diff.toInsert, diff.toUpdate);
-        added = diff.toInsert.length;
-        updated = diff.toUpdate.length;
+      if (strategy === "keep-remote") {
+        // Replace all local with remote
+        await vocabularyStore.replaceAllWithRemote(parseResult.terms);
+        added = parseResult.terms.length;
+      } else {
+        // Merge: compute diff
+        const diff = computeImportDiff(parseResult.terms, localTerms);
+        if (diff.toInsert.length > 0 || diff.toUpdate.length > 0) {
+          await vocabularyStore.syncImportBatch(diff.toInsert, diff.toUpdate);
+          added = diff.toInsert.length;
+          updated = diff.toUpdate.length;
+        }
       }
     } else if (parseResult.errors.length > 0) {
       logError(tag, `Remote file parse errors: ${parseResult.errors.join(", ")}`);
     }
   }
 
-  // 2. Re-fetch local (may have been updated by import) and upload merged result
-  await vocabularyStore.fetchTermList();
-  const mergedTerms = vocabularyStore.termList;
-  const content = serializeVocabulary(mergedTerms);
-  await provider.write(content);
+  // 2. Re-fetch local and upload merged result (skip for keep-remote)
+  if (strategy !== "keep-remote") {
+    await vocabularyStore.fetchTermList();
+    const mergedTerms = vocabularyStore.termList;
+    const content = serializeVocabulary(mergedTerms);
+    await provider.write(content);
+  }
 
   logInfo(tag, `Sync completed: ${added} added, ${updated} updated`);
   return { added, updated };

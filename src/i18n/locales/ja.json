@@ -555,6 +555,16 @@
         "minutesAgo": "{count} 分前",
         "hoursAgo": "{count} 時間前",
         "daysAgo": "{count} 日前"
+      },
+      "conflict": {
+        "title": "両方に辞書データがあります",
+        "description": "クラウドに {remoteCount} 件、ローカルに {localCount} 件の用語があります。同期方法を選択してください：",
+        "keepLocal": "ローカルを保持",
+        "keepLocalHint": "ローカルの辞書をクラウドにアップロードし、リモートを上書き",
+        "keepRemote": "クラウドを保持",
+        "keepRemoteHint": "クラウドの辞書をダウンロードし、ローカルを上書き",
+        "merge": "両方を統合",
+        "mergeHint": "両方を統合 — 新しい用語を追加、高い重みを優先"
       }
     },
     "googleDrive": {

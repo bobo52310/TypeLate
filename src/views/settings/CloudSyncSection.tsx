@@ -9,6 +9,9 @@ import {
   ChevronRight,
   ExternalLink,
   Loader2,
+  Monitor,
+  Download,
+  Merge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +29,8 @@ import {
 import { SettingsGroup, SettingsFeedback } from "@/components/settings-layout";
 import { useSyncStore } from "@/stores/syncStore";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
+import { captureError } from "@/lib/sentry";
+import type { SyncStrategy, SyncConflictInfo } from "@/lib/googleDriveSync";
 
 function formatSyncTime(isoString: string, locale: string): string {
   try {
@@ -66,10 +71,15 @@ export default function CloudSyncSection({ embedded = false }: { embedded?: bool
   const disconnect = useSyncStore((s) => s.disconnect);
   const syncNow = useSyncStore((s) => s.syncNow);
 
+  const checkConflict = useSyncStore((s) => s.checkConflict);
+
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [clientIdInput, setClientIdInput] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSavingClientId, setIsSavingClientId] = useState(false);
+  const [conflictInfo, setConflictInfo] = useState<SyncConflictInfo | null>(null);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [isCheckingConflict, setIsCheckingConflict] = useState(false);
 
   useEffect(() => {
     void loadSyncStatus();
@@ -103,8 +113,28 @@ export default function CloudSyncSection({ embedded = false }: { embedded?: bool
   }
 
   async function handleSync() {
+    // Check for conflict before syncing
     try {
-      const result = await syncNow();
+      setIsCheckingConflict(true);
+      const conflict = await checkConflict();
+      if (conflict) {
+        setConflictInfo(conflict);
+        setShowConflictDialog(true);
+        return;
+      }
+    } catch (err) {
+      captureError(err, { source: "sync", step: "check-conflict" });
+      // If conflict check fails, proceed with default merge
+    } finally {
+      setIsCheckingConflict(false);
+    }
+
+    await executeSyncWithStrategy("merge");
+  }
+
+  async function executeSyncWithStrategy(strategy: SyncStrategy) {
+    try {
+      const result = await syncNow(strategy);
       if (result.added === 0 && result.updated === 0) {
         feedback.show("success", t("dictionary.cloudSync.syncUpToDate"));
       } else {
@@ -121,6 +151,12 @@ export default function CloudSyncSection({ embedded = false }: { embedded?: bool
         feedback.show("error", message);
       }
     }
+  }
+
+  function handleConflictChoice(strategy: SyncStrategy) {
+    setShowConflictDialog(false);
+    setConflictInfo(null);
+    void executeSyncWithStrategy(strategy);
   }
 
   async function handleDisconnect() {
@@ -182,8 +218,8 @@ export default function CloudSyncSection({ embedded = false }: { embedded?: bool
             )}
 
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => void handleSync()} disabled={isSyncing}>
-                {isSyncing ? (
+              <Button size="sm" onClick={() => void handleSync()} disabled={isSyncing || isCheckingConflict}>
+                {isSyncing || isCheckingConflict ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
@@ -243,8 +279,8 @@ export default function CloudSyncSection({ embedded = false }: { embedded?: bool
             )}
 
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => void handleSync()} disabled={isSyncing}>
-                {isSyncing ? (
+              <Button size="sm" onClick={() => void handleSync()} disabled={isSyncing || isCheckingConflict}>
+                {isSyncing || isCheckingConflict ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
@@ -381,6 +417,65 @@ export default function CloudSyncSection({ embedded = false }: { embedded?: bool
 
         {syncError && <p className="text-sm text-destructive">{syncError}</p>}
       </div>
+
+      {/* Sync conflict dialog */}
+      <AlertDialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("dictionary.cloudSync.conflict.title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("dictionary.cloudSync.conflict.description", {
+                remoteCount: conflictInfo?.remoteCount ?? 0,
+                localCount: conflictInfo?.localCount ?? 0,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-2 py-2">
+            <Button
+              variant="outline"
+              className="justify-start gap-3 h-auto py-3"
+              onClick={() => handleConflictChoice("keep-local")}
+            >
+              <Monitor className="h-4 w-4 shrink-0" />
+              <div className="text-left">
+                <div className="font-medium">{t("dictionary.cloudSync.conflict.keepLocal")}</div>
+                <div className="text-xs text-muted-foreground font-normal">
+                  {t("dictionary.cloudSync.conflict.keepLocalHint")}
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start gap-3 h-auto py-3"
+              onClick={() => handleConflictChoice("keep-remote")}
+            >
+              <Download className="h-4 w-4 shrink-0" />
+              <div className="text-left">
+                <div className="font-medium">{t("dictionary.cloudSync.conflict.keepRemote")}</div>
+                <div className="text-xs text-muted-foreground font-normal">
+                  {t("dictionary.cloudSync.conflict.keepRemoteHint")}
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start gap-3 h-auto py-3"
+              onClick={() => handleConflictChoice("merge")}
+            >
+              <Merge className="h-4 w-4 shrink-0" />
+              <div className="text-left">
+                <div className="font-medium">{t("dictionary.cloudSync.conflict.merge")}</div>
+                <div className="text-xs text-muted-foreground font-normal">
+                  {t("dictionary.cloudSync.conflict.mergeHint")}
+                </div>
+              </div>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <SettingsFeedback message={feedback.message} type={feedback.type} />
     </>
