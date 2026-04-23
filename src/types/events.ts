@@ -20,7 +20,8 @@ export type TranscriptionCompletedPayload = Pick<
 
 export type SettingsKey =
   | "hotkey"
-  | "providerId"
+  | "transcriptionProviderId"
+  | "llmProviderId"
   | "apiKey"
   | "aiPrompt"
   | "enhancementThreshold"

@@ -28,7 +28,7 @@ export default function DashboardView() {
   const requestFailedFilter = useHistoryStore((s) => s.requestFailedFilter);
   const { navigate } = useHashRouter();
 
-  const apiKey = useSettingsStore((s) => s.apiKey);
+  const hasTranscriptionApiKey = useSettingsStore((s) => s.hasTranscriptionApiKey());
 
   const quotaInfo = useQuotaInfo();
 
@@ -74,7 +74,7 @@ export default function DashboardView() {
     void open(COMMUNITY_URL);
   }
 
-  const apiKeyMissing = !apiKey;
+  const apiKeyMissing = !hasTranscriptionApiKey;
 
   function navigateToSettings() {
     window.location.hash = "#/settings?tab=ai";

@@ -58,10 +58,13 @@ import {
   type WhisperModelId,
 } from "@/lib/modelRegistry";
 import {
-  type ProviderId,
-  DEFAULT_PROVIDER_ID,
+  type LlmProviderId,
+  type TranscriptionProviderId,
+  DEFAULT_LLM_PROVIDER_ID,
+  DEFAULT_TRANSCRIPTION_PROVIDER_ID,
   getProviderConfig,
-  isValidProviderId,
+  isValidLlmProviderId,
+  isValidTranscriptionProviderId,
 } from "@/lib/providerConfig";
 
 import { APP_VERSION } from "@/lib/version";
@@ -107,9 +110,9 @@ const PRESET_KEY_DISPLAY_NAMES: Record<string, string> = {
 interface SettingsState {
   // -- State --
   hotkeyConfig: HotkeyConfig | null;
-  selectedProviderId: ProviderId;
-  apiKeys: Record<ProviderId, string>;
-  apiKey: string; // derived: apiKeys[selectedProviderId] — kept for backward compat
+  selectedTranscriptionProviderId: TranscriptionProviderId;
+  selectedLlmProviderId: LlmProviderId;
+  apiKeys: Record<LlmProviderId, string>;
   aiPrompt: string;
   promptMode: PromptMode;
   showPromptUpgradeNotice: boolean;
@@ -138,7 +141,8 @@ interface SettingsState {
 
   // -- Derived getters --
   triggerMode: () => TriggerMode;
-  hasApiKey: () => boolean;
+  hasTranscriptionApiKey: () => boolean;
+  hasLlmApiKey: () => boolean;
 
   // -- Helper getters (proxied from lib/) --
   getPlatformKeycode: typeof getPlatformKeycode;
@@ -151,7 +155,8 @@ interface SettingsState {
   getHotkeyPresetHint: typeof getHotkeyPresetHint;
 
   // -- Actions --
-  getApiKey: () => string;
+  getTranscriptionApiKey: () => string;
+  getLlmApiKey: () => string;
   getAiPrompt: () => string;
   getContextAwarePrompt: (bundleId: string | null) => string;
   getEffectivePromptLocale: () => SupportedLocale;
@@ -163,10 +168,11 @@ interface SettingsState {
   saveCustomTriggerKey: (keycode: number, domCode: string, mode: TriggerMode) => Promise<void>;
   switchToPresetMode: (presetKey: TriggerKey, mode: TriggerMode) => Promise<void>;
   switchToCustomMode: (mode: TriggerMode) => Promise<void>;
-  saveProviderId: (id: ProviderId) => Promise<void>;
-  saveApiKey: (key: string) => Promise<void>;
-  refreshApiKey: () => Promise<void>;
-  deleteApiKey: () => Promise<void>;
+  saveTranscriptionProviderId: (id: TranscriptionProviderId) => Promise<void>;
+  saveLlmProviderId: (id: LlmProviderId) => Promise<void>;
+  saveApiKey: (providerId: LlmProviderId, key: string) => Promise<void>;
+  refreshApiKey: (providerId: LlmProviderId) => Promise<void>;
+  deleteApiKey: (providerId: LlmProviderId) => Promise<void>;
   savePromptMode: (mode: PromptMode) => Promise<void>;
   consumeUpgradeNotice: () => Promise<void>;
   saveAiPrompt: (prompt: string) => Promise<void>;
@@ -212,12 +218,20 @@ async function syncHotkeyConfigToRust(key: TriggerKey, mode: TriggerMode) {
   }
 }
 
+const EMPTY_API_KEYS: Record<LlmProviderId, string> = {
+  groq: "",
+  openai: "",
+  gemini: "",
+  openrouter: "",
+  nvidia: "",
+};
+
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
   // -- State --
   hotkeyConfig: null,
-  selectedProviderId: DEFAULT_PROVIDER_ID,
-  apiKeys: { groq: "", openai: "" },
-  apiKey: "", // derived: kept in sync with apiKeys[selectedProviderId]
+  selectedTranscriptionProviderId: DEFAULT_TRANSCRIPTION_PROVIDER_ID,
+  selectedLlmProviderId: DEFAULT_LLM_PROVIDER_ID,
+  apiKeys: { ...EMPTY_API_KEYS },
   aiPrompt: getMinimalPromptForLocale(FALLBACK_LOCALE),
   promptMode: DEFAULT_PROMPT_MODE,
   showPromptUpgradeNotice: false,
@@ -246,7 +260,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   // -- Derived getters --
   triggerMode: () => get().hotkeyConfig?.triggerMode ?? "toggle",
-  hasApiKey: () => get().apiKey !== "",
+  hasTranscriptionApiKey: () => {
+    const s = get();
+    return s.apiKeys[s.selectedTranscriptionProviderId] !== "";
+  },
+  hasLlmApiKey: () => {
+    const s = get();
+    return s.apiKeys[s.selectedLlmProviderId] !== "";
+  },
 
   // -- Proxied lib helpers --
   getPlatformKeycode,
@@ -264,7 +285,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     return selectedTranscriptionLocale === "auto" ? selectedLocale : selectedTranscriptionLocale;
   },
 
-  getApiKey: () => get().apiKey,
+  getTranscriptionApiKey: () => {
+    const s = get();
+    return s.apiKeys[s.selectedTranscriptionProviderId];
+  },
+  getLlmApiKey: () => {
+    const s = get();
+    return s.apiKeys[s.selectedLlmProviderId];
+  },
 
   getAiPrompt: () => {
     const { promptMode, aiPrompt, getEffectivePromptLocale: getLocale } = get();
@@ -310,25 +338,46 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const savedKey = await store.get<TriggerKey>("hotkeyTriggerKey");
       const savedMode = await store.get<TriggerMode>("hotkeyTriggerMode");
 
-      // Provider migration: if no savedProviderId, existing user → default to groq
-      const savedProviderId = await store.get<string>("selectedProviderId");
-      const resolvedProviderId: ProviderId =
-        savedProviderId && isValidProviderId(savedProviderId)
-          ? savedProviderId
-          : DEFAULT_PROVIDER_ID;
-      if (!savedProviderId) {
-        await store.set("selectedProviderId", resolvedProviderId);
+      // Provider migration:
+      //  1. New field: selectedTranscriptionProviderId / selectedLlmProviderId
+      //  2. Legacy field: selectedProviderId (controlled both) — copy forward
+      const savedTranscriptionProviderId = await store.get<string>(
+        "selectedTranscriptionProviderId",
+      );
+      const savedLlmProviderId = await store.get<string>("selectedLlmProviderId");
+      const legacyProviderId = await store.get<string>("selectedProviderId");
+
+      const resolvedTranscriptionProviderId: TranscriptionProviderId =
+        savedTranscriptionProviderId && isValidTranscriptionProviderId(savedTranscriptionProviderId)
+          ? savedTranscriptionProviderId
+          : legacyProviderId && isValidTranscriptionProviderId(legacyProviderId)
+            ? legacyProviderId
+            : DEFAULT_TRANSCRIPTION_PROVIDER_ID;
+
+      const resolvedLlmProviderId: LlmProviderId =
+        savedLlmProviderId && isValidLlmProviderId(savedLlmProviderId)
+          ? savedLlmProviderId
+          : legacyProviderId && isValidLlmProviderId(legacyProviderId)
+            ? legacyProviderId
+            : DEFAULT_LLM_PROVIDER_ID;
+
+      if (!savedTranscriptionProviderId) {
+        await store.set("selectedTranscriptionProviderId", resolvedTranscriptionProviderId);
+      }
+      if (!savedLlmProviderId) {
+        await store.set("selectedLlmProviderId", resolvedLlmProviderId);
+      }
+      if (!savedTranscriptionProviderId || !savedLlmProviderId) {
         await store.save();
       }
 
-      // Load per-provider API keys
-      const savedGroqApiKey = await store.get<string>("groqApiKey");
-      const savedOpenaiApiKey = await store.get<string>("openaiApiKey");
-      const resolvedApiKeys: Record<ProviderId, string> = {
-        groq: savedGroqApiKey?.trim() ?? "",
-        openai: savedOpenaiApiKey?.trim() ?? "",
-      };
-      const resolvedActiveApiKey = resolvedApiKeys[resolvedProviderId];
+      // Load per-provider API keys for every known LLM provider
+      const resolvedApiKeys: Record<LlmProviderId, string> = { ...EMPTY_API_KEYS };
+      for (const providerId of Object.keys(EMPTY_API_KEYS) as LlmProviderId[]) {
+        const config = getProviderConfig(providerId);
+        const saved = await store.get<string>(config.keyStoreKey);
+        resolvedApiKeys[providerId] = saved?.trim() ?? "";
+      }
 
       const key = savedKey ?? getDefaultTriggerKey();
       const mode = savedMode ?? "toggle";
@@ -458,9 +507,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
       set({
         hotkeyConfig: { triggerKey: key, triggerMode: mode },
-        selectedProviderId: resolvedProviderId,
+        selectedTranscriptionProviderId: resolvedTranscriptionProviderId,
+        selectedLlmProviderId: resolvedLlmProviderId,
         apiKeys: resolvedApiKeys,
-        apiKey: resolvedActiveApiKey,
         customTriggerKey: resolvedCustomKey,
         customTriggerKeyDomCode: resolvedCustomDomCode,
         selectedLocale: resolvedLocale,
@@ -581,46 +630,76 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     await get().saveHotkeyConfig(customTriggerKey, mode);
   },
 
-  saveProviderId: async (id: ProviderId) => {
+  saveTranscriptionProviderId: async (id: TranscriptionProviderId) => {
     try {
       const store = await load(STORE_NAME);
-      await store.set("selectedProviderId", id);
+      await store.set("selectedTranscriptionProviderId", id);
 
-      // Auto-reset models to provider defaults
+      // Auto-reset Whisper model to provider default
       const defaultWhisper = getDefaultWhisperModelForProvider(id);
-      const defaultLlm = getDefaultLlmModelForProvider(id);
       await store.set("whisperModelId", defaultWhisper);
-      await store.set("llmModelId", defaultLlm);
       await store.save();
 
-      const { apiKeys } = get();
       set({
-        selectedProviderId: id,
-        apiKey: apiKeys[id],
+        selectedTranscriptionProviderId: id,
         selectedWhisperModelId: defaultWhisper,
-        selectedLlmModelId: defaultLlm,
       });
 
-      const payload: SettingsUpdatedPayload = { key: "providerId", value: id };
+      const payload: SettingsUpdatedPayload = {
+        key: "transcriptionProviderId",
+        value: id,
+      };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      logInfo("settings", `Provider changed to: ${id}`);
+      logInfo("settings", `Transcription provider changed to: ${id}`);
     } catch (err) {
-      logError("settings", "[settingsStore] saveProviderId failed:", extractErrorMessage(err));
-      captureError(err, { source: "settings", step: "save-provider" });
+      logError(
+        "settings",
+        "[settingsStore] saveTranscriptionProviderId failed:",
+        extractErrorMessage(err),
+      );
+      captureError(err, { source: "settings", step: "save-transcription-provider" });
       throw err;
     }
   },
 
-  saveApiKey: async (key: string) => {
+  saveLlmProviderId: async (id: LlmProviderId) => {
+    try {
+      const store = await load(STORE_NAME);
+      await store.set("selectedLlmProviderId", id);
+
+      // Auto-reset LLM model to provider default
+      const defaultLlm = getDefaultLlmModelForProvider(id);
+      await store.set("llmModelId", defaultLlm);
+      await store.save();
+
+      set({
+        selectedLlmProviderId: id,
+        selectedLlmModelId: defaultLlm,
+      });
+
+      const payload: SettingsUpdatedPayload = {
+        key: "llmProviderId",
+        value: id,
+      };
+      await emitEvent(SETTINGS_UPDATED, payload);
+
+      logInfo("settings", `LLM provider changed to: ${id}`);
+    } catch (err) {
+      logError("settings", "[settingsStore] saveLlmProviderId failed:", extractErrorMessage(err));
+      captureError(err, { source: "settings", step: "save-llm-provider" });
+      throw err;
+    }
+  },
+
+  saveApiKey: async (providerId: LlmProviderId, key: string) => {
     const trimmedKey = key.trim();
     if (trimmedKey === "") {
       throw new Error(i18n.t("errors.apiKeyEmpty"));
     }
 
     // Provider-specific validation
-    const { selectedProviderId } = get();
-    const providerConfig = getProviderConfig(selectedProviderId);
+    const providerConfig = getProviderConfig(providerId);
     if (providerConfig.keyPrefix && !trimmedKey.startsWith(providerConfig.keyPrefix)) {
       throw new Error(
         i18n.t("errors.apiKeyInvalidFormat", {
@@ -635,16 +714,16 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       await store.set(providerConfig.keyStoreKey, trimmedKey);
       await store.save();
 
-      const newApiKeys = { ...get().apiKeys, [selectedProviderId]: trimmedKey };
-      set({ apiKeys: newApiKeys, apiKey: trimmedKey });
+      const newApiKeys = { ...get().apiKeys, [providerId]: trimmedKey };
+      set({ apiKeys: newApiKeys });
 
       const payload: SettingsUpdatedPayload = {
         key: "apiKey",
-        value: trimmedKey,
+        value: { providerId, value: trimmedKey },
       };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      logInfo("settings", `API Key saved for provider: ${selectedProviderId}`);
+      logInfo("settings", `API Key saved for provider: ${providerId}`);
     } catch (err) {
       logError("settings", "[settingsStore] saveApiKey failed:", extractErrorMessage(err));
       captureError(err, { source: "settings", step: "save-api-key" });
@@ -652,35 +731,36 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
-  refreshApiKey: async () => {
+  refreshApiKey: async (providerId: LlmProviderId) => {
     try {
       const store = await load(STORE_NAME);
-      const { selectedProviderId } = get();
-      const providerConfig = getProviderConfig(selectedProviderId);
+      const providerConfig = getProviderConfig(providerId);
       const savedApiKey = await store.get<string>(providerConfig.keyStoreKey);
       const trimmedKey = savedApiKey?.trim() ?? "";
-      const newApiKeys = { ...get().apiKeys, [selectedProviderId]: trimmedKey };
-      set({ apiKeys: newApiKeys, apiKey: trimmedKey });
+      const newApiKeys = { ...get().apiKeys, [providerId]: trimmedKey };
+      set({ apiKeys: newApiKeys });
     } catch (err) {
       logError("settings", "[settingsStore] refreshApiKey failed:", extractErrorMessage(err));
     }
   },
 
-  deleteApiKey: async () => {
+  deleteApiKey: async (providerId: LlmProviderId) => {
     try {
-      const { selectedProviderId } = get();
-      const providerConfig = getProviderConfig(selectedProviderId);
+      const providerConfig = getProviderConfig(providerId);
       const store = await load(STORE_NAME);
       await store.delete(providerConfig.keyStoreKey);
       await store.save();
 
-      const newApiKeys = { ...get().apiKeys, [selectedProviderId]: "" };
-      set({ apiKeys: newApiKeys, apiKey: "" });
+      const newApiKeys = { ...get().apiKeys, [providerId]: "" };
+      set({ apiKeys: newApiKeys });
 
-      const payload: SettingsUpdatedPayload = { key: "apiKey", value: "" };
+      const payload: SettingsUpdatedPayload = {
+        key: "apiKey",
+        value: { providerId, value: "" },
+      };
       await emitEvent(SETTINGS_UPDATED, payload);
 
-      logInfo("settings", `API Key deleted for provider: ${selectedProviderId}`);
+      logInfo("settings", `API Key deleted for provider: ${providerId}`);
     } catch (err) {
       logError("settings", "[settingsStore] deleteApiKey failed:", extractErrorMessage(err));
       throw err;
@@ -1229,18 +1309,31 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       const savedMode = await store.get<TriggerMode>("hotkeyTriggerMode");
       const savedCustomKey = await store.get<CustomTriggerKey>("customTriggerKey");
       const savedCustomDomCode = await store.get<string>("customTriggerKeyDomCode");
-      // Provider
-      const cwSavedProviderId = await store.get<string>("selectedProviderId");
-      const cwResolvedProviderId: ProviderId =
-        cwSavedProviderId && isValidProviderId(cwSavedProviderId)
-          ? cwSavedProviderId
-          : DEFAULT_PROVIDER_ID;
-      const cwGroqApiKey = await store.get<string>("groqApiKey");
-      const cwOpenaiApiKey = await store.get<string>("openaiApiKey");
-      const cwApiKeys: Record<ProviderId, string> = {
-        groq: cwGroqApiKey?.trim() ?? "",
-        openai: cwOpenaiApiKey?.trim() ?? "",
-      };
+      // Provider: read split fields (+ legacy fallback)
+      const cwSavedTranscriptionId = await store.get<string>("selectedTranscriptionProviderId");
+      const cwSavedLlmId = await store.get<string>("selectedLlmProviderId");
+      const cwLegacyProviderId = await store.get<string>("selectedProviderId");
+
+      const cwResolvedTranscriptionId: TranscriptionProviderId =
+        cwSavedTranscriptionId && isValidTranscriptionProviderId(cwSavedTranscriptionId)
+          ? cwSavedTranscriptionId
+          : cwLegacyProviderId && isValidTranscriptionProviderId(cwLegacyProviderId)
+            ? cwLegacyProviderId
+            : DEFAULT_TRANSCRIPTION_PROVIDER_ID;
+
+      const cwResolvedLlmId: LlmProviderId =
+        cwSavedLlmId && isValidLlmProviderId(cwSavedLlmId)
+          ? cwSavedLlmId
+          : cwLegacyProviderId && isValidLlmProviderId(cwLegacyProviderId)
+            ? cwLegacyProviderId
+            : DEFAULT_LLM_PROVIDER_ID;
+
+      const cwApiKeys: Record<LlmProviderId, string> = { ...EMPTY_API_KEYS };
+      for (const providerId of Object.keys(EMPTY_API_KEYS) as LlmProviderId[]) {
+        const config = getProviderConfig(providerId);
+        const saved = await store.get<string>(config.keyStoreKey);
+        cwApiKeys[providerId] = saved?.trim() ?? "";
+      }
 
       const savedPrompt = await store.get<string>("aiPrompt");
       const savedThresholdEnabled = await store.get<boolean>("enhancementThresholdEnabled");
@@ -1290,9 +1383,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
           triggerKey: savedKey ?? getDefaultTriggerKey(),
           triggerMode: savedMode ?? "toggle",
         },
-        selectedProviderId: cwResolvedProviderId,
+        selectedTranscriptionProviderId: cwResolvedTranscriptionId,
+        selectedLlmProviderId: cwResolvedLlmId,
         apiKeys: cwApiKeys,
-        apiKey: cwApiKeys[cwResolvedProviderId],
         customTriggerKey: resolvedCustomKey,
         customTriggerKeyDomCode: resolvedCustomDomCode,
         selectedLocale: resolvedLocale,

@@ -6,6 +6,8 @@ import {
   getEffectiveLlmModelId,
   getEffectiveWhisperModelId,
   getEffectiveVocabularyAnalysisModelId,
+  getDefaultLlmModelForProvider,
+  getLlmModelsForProvider,
   DEFAULT_LLM_MODEL_ID,
   DEFAULT_WHISPER_MODEL_ID,
   DEFAULT_VOCABULARY_ANALYSIS_MODEL_ID,
@@ -113,5 +115,38 @@ describe("model lists", () => {
       expect(model.id).toBeTruthy();
       expect(model.displayName).toBeTruthy();
     }
+  });
+});
+
+describe("multi-provider LLM catalog", () => {
+  it("each LLM provider has at least one curated model", () => {
+    for (const providerId of ["groq", "openai", "gemini", "openrouter", "nvidia"] as const) {
+      const models = getLlmModelsForProvider(providerId);
+      expect(models.length, `provider ${providerId}`).toBeGreaterThan(0);
+    }
+  });
+
+  it("each provider exposes a default model", () => {
+    for (const providerId of ["groq", "openai", "gemini", "openrouter", "nvidia"] as const) {
+      const models = getLlmModelsForProvider(providerId);
+      const defaults = models.filter((m) => m.isDefault);
+      expect(defaults.length, `provider ${providerId}`).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("getDefaultLlmModelForProvider returns Gemini 2.5 Flash for gemini", () => {
+    expect(getDefaultLlmModelForProvider("gemini")).toBe("gemini-2.5-flash");
+  });
+
+  it("LLM_MODEL_LIST contains all newly seeded model IDs", () => {
+    const ids = LLM_MODEL_LIST.map((m) => m.id);
+    expect(ids).toContain("gemini-2.5-flash");
+    expect(ids).toContain("gemini-2.5-pro");
+    expect(ids).toContain("gemini-2.0-flash-lite");
+    expect(ids).toContain("deepseek/deepseek-chat-v3.1");
+    expect(ids).toContain("meta-llama/llama-3.3-70b-instruct");
+    expect(ids).toContain("qwen/qwen-2.5-72b-instruct");
+    expect(ids).toContain("nvidia/llama-3.3-nemotron-super-49b-v1");
+    expect(ids).toContain("meta/llama-3.3-70b-instruct");
   });
 });

@@ -13,7 +13,8 @@ export interface SettingsStoreAccessor {
   promptMode: import("@/types/settings").PromptMode;
   aiPrompt: string;
   triggerMode: () => "hold" | "toggle" | "doubleTap";
-  selectedProviderId: import("@/lib/providerConfig").ProviderId;
+  selectedTranscriptionProviderId: import("@/lib/providerConfig").TranscriptionProviderId;
+  selectedLlmProviderId: import("@/lib/providerConfig").LlmProviderId;
   selectedAudioInputDeviceName: string;
   selectedWhisperModelId: string;
   selectedLlmModelId: string;
@@ -24,8 +25,9 @@ export interface SettingsStoreAccessor {
   isSmartDictionaryEnabled: boolean;
   isEnhancementThresholdEnabled: boolean;
   enhancementThresholdCharCount: number;
-  getApiKey: () => string;
-  refreshApiKey: () => Promise<void>;
+  getTranscriptionApiKey: () => string;
+  getLlmApiKey: () => string;
+  refreshApiKey: (providerId: import("@/lib/providerConfig").LlmProviderId) => Promise<void>;
   getAiPrompt: () => string;
   isContextAwareEnabled: boolean;
   getContextAwarePrompt: (bundleId: string | null) => string;

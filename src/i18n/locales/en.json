@@ -68,12 +68,23 @@
       }
     },
     "provider": {
-      "title": "AI Provider",
-      "description": "Choose which AI service to use for transcription and enhancement.",
+      "title": "AI Providers",
+      "description": "Pick a Transcription provider (Whisper) and an LLM provider. They can be different.",
+      "transcriptionLabel": "Transcription",
+      "llmLabel": "LLM enhancement",
       "updated": "AI Provider updated",
       "groqDescription": "Free tier with fast inference. Best for getting started.",
       "openaiDescription": "Industry standard. Reliable, paid usage.",
-      "groqFreeQuota": "28,800 audio seconds/day free"
+      "geminiDescription": "Google AI Studio. Generous free tier, multilingual strength.",
+      "openrouterDescription": "Access 300+ LLMs through one key. Pay as you go.",
+      "nvidiaDescription": "NVIDIA NIM models. Free developer credits available.",
+      "groqFreeQuota": "28,800 audio seconds/day free",
+      "geminiFreeQuota": "~1,500 requests/day free on 2.5 Flash",
+      "openrouterFreeQuota": "Paid usage. Some :free variants available.",
+      "nvidiaFreeQuota": "Developer credits on sign-up"
+    },
+    "apiKeys": {
+      "title": "API Keys"
     },
     "apiKey": {
       "title": "Groq API Key",

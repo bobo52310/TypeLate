@@ -11,7 +11,11 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { logError } from "@/lib/logger";
 import { useAudioWaveform } from "@/hooks/useAudioWaveform";
 import { getRandomSlogan } from "@/lib/slogans";
-import { PROVIDER_LIST, getProviderConfig, type ProviderId } from "@/lib/providerConfig";
+import {
+  getTranscriptionProviders,
+  getProviderConfig,
+  type TranscriptionProviderId,
+} from "@/lib/providerConfig";
 import logoTypeLate from "@/assets/logo-typelate.png";
 import {
   Mic,
@@ -40,7 +44,7 @@ interface OnboardingViewProps {
 export default function OnboardingView({ onComplete }: OnboardingViewProps) {
   const { t } = useTranslation();
   const [step, setStep] = useState<OnboardingStep>("welcome");
-  const [selectedProvider, setSelectedProvider] = useState<ProviderId>("groq");
+  const [selectedProvider, setSelectedProvider] = useState<TranscriptionProviderId>("groq");
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -49,21 +53,25 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
   const [slogan] = useState(() => getRandomSlogan());
 
   const saveApiKey = useSettingsStore((s) => s.saveApiKey);
-  const saveProviderId = useSettingsStore((s) => s.saveProviderId);
+  const saveTranscriptionProviderId = useSettingsStore((s) => s.saveTranscriptionProviderId);
+  const saveLlmProviderId = useSettingsStore((s) => s.saveLlmProviderId);
 
   const providerConfig = getProviderConfig(selectedProvider);
 
   const handleSelectProvider = useCallback(
-    async (id: ProviderId) => {
+    async (id: TranscriptionProviderId) => {
       setSelectedProvider(id);
       try {
-        await saveProviderId(id);
+        // Set both transcription and LLM providers to the same choice during
+        // onboarding; users can differentiate later in Settings.
+        await saveTranscriptionProviderId(id);
+        await saveLlmProviderId(id);
       } catch {
         // non-blocking
       }
       setStep("api-key-intro");
     },
-    [saveProviderId],
+    [saveTranscriptionProviderId, saveLlmProviderId],
   );
 
   const handleOpenConsole = useCallback(() => {
@@ -76,14 +84,14 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
     setIsSubmitting(true);
     setError("");
     try {
-      await saveApiKey(apiKeyInput.trim());
+      await saveApiKey(selectedProvider, apiKeyInput.trim());
       setStep("mic-test");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsSubmitting(false);
     }
-  }, [apiKeyInput, saveApiKey]);
+  }, [apiKeyInput, saveApiKey, selectedProvider]);
 
   const { waveformLevelList, startWaveformAnimation, stopWaveformAnimation } = useAudioWaveform();
   const isRecordingForTestRef = useRef(false);
@@ -260,11 +268,11 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                 </div>
 
                 <div className="space-y-3">
-                  {PROVIDER_LIST.map((provider) => (
+                  {getTranscriptionProviders().map((provider) => (
                     <button
                       key={provider.id}
                       type="button"
-                      onClick={() => void handleSelectProvider(provider.id)}
+                      onClick={() => void handleSelectProvider(provider.id as TranscriptionProviderId)}
                       className="flex w-full items-center gap-4 rounded-lg border border-border/50 p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
                     >
                       <div className="flex-1">

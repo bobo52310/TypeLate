@@ -69,11 +69,22 @@
     },
     "provider": {
       "title": "AI プロバイダー",
-      "description": "文字起こしとテキスト整理に使用する AI サービスを選択します。",
+      "description": "文字起こしと LLM 整理のプロバイダーを個別に選択できます。",
+      "transcriptionLabel": "文字起こし",
+      "llmLabel": "LLM 整理",
       "updated": "AI プロバイダーを更新しました",
       "groqDescription": "無料枠あり、高速推論。入門に最適です。",
       "openaiDescription": "業界標準。安定性が高く、従量課金制。",
-      "groqFreeQuota": "毎日 28,800 秒の音声が無料"
+      "geminiDescription": "Google AI Studio。無料枠が広く、多言語に強い。",
+      "openrouterDescription": "1 つの API キーで 300+ LLM を利用可能。従量課金。",
+      "nvidiaDescription": "NVIDIA NIM モデル。登録で開発者クレジットあり。",
+      "groqFreeQuota": "毎日 28,800 秒の音声が無料",
+      "geminiFreeQuota": "2.5 Flash は 1 日約 1,500 リクエスト無料",
+      "openrouterFreeQuota": "従量課金。一部モデルに :free バリアント",
+      "nvidiaFreeQuota": "登録時に開発者クレジット付与"
+    },
+    "apiKeys": {
+      "title": "API キー"
     },
     "apiKey": {
       "title": "Groq API Key",

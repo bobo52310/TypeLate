@@ -29,6 +29,7 @@ export interface EnhanceOptions {
   surroundingText?: string;
   modelId?: string;
   chatApiUrl?: string;
+  extraHeaders?: Record<string, string>;
   signal?: AbortSignal;
 }
 
@@ -184,6 +185,7 @@ export async function enhanceText(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        ...(options?.extraHeaders ?? {}),
       },
       body,
       signal: options?.signal,

@@ -8,7 +8,18 @@ export type LlmModelId =
   | "qwen/qwen3-32b"
   | "moonshotai/kimi-k2-instruct"
   | "gpt-4o-mini"
-  | "gpt-4o";
+  | "gpt-4o"
+  // ── Gemini (Google AI Studio) ──
+  | "gemini-2.5-flash"
+  | "gemini-2.5-pro"
+  | "gemini-2.0-flash-lite"
+  // ── OpenRouter ──
+  | "deepseek/deepseek-chat-v3.1"
+  | "meta-llama/llama-3.3-70b-instruct"
+  | "qwen/qwen-2.5-72b-instruct"
+  // ── NVIDIA NIM ──
+  | "nvidia/llama-3.3-nemotron-super-49b-v1"
+  | "meta/llama-3.3-70b-instruct";
 
 // ── 字典分析模型 ─────────────────────────────────────────
 
@@ -142,6 +153,105 @@ export const LLM_MODEL_LIST: LlmModelConfig[] = [
     inputCostPerMillion: 2.5,
     outputCostPerMillion: 10.0,
     freeQuotaRpd: 0,
+    freeQuotaTpd: 0,
+    isDefault: false,
+  },
+  // ── Gemini ──
+  {
+    id: "gemini-2.5-flash",
+    providerId: "gemini",
+    displayName: "Gemini 2.5 Flash",
+    badgeKey: "settings.modelBadge.fastCheap",
+    speedTps: 250,
+    inputCostPerMillion: 0.3,
+    outputCostPerMillion: 2.5,
+    freeQuotaRpd: 1_500,
+    freeQuotaTpd: 1_000_000,
+    isDefault: true,
+  },
+  {
+    id: "gemini-2.5-pro",
+    providerId: "gemini",
+    displayName: "Gemini 2.5 Pro",
+    badgeKey: "settings.modelBadge.smartestSlow",
+    speedTps: 120,
+    inputCostPerMillion: 1.25,
+    outputCostPerMillion: 10.0,
+    freeQuotaRpd: 50,
+    freeQuotaTpd: 250_000,
+    isDefault: false,
+  },
+  {
+    id: "gemini-2.0-flash-lite",
+    providerId: "gemini",
+    displayName: "Gemini 2.0 Flash Lite",
+    badgeKey: "settings.modelBadge.fastCheap",
+    speedTps: 300,
+    inputCostPerMillion: 0.075,
+    outputCostPerMillion: 0.3,
+    freeQuotaRpd: 1_500,
+    freeQuotaTpd: 1_000_000,
+    isDefault: false,
+  },
+  // ── OpenRouter ──
+  {
+    id: "deepseek/deepseek-chat-v3.1",
+    providerId: "openrouter",
+    displayName: "DeepSeek Chat V3.1",
+    badgeKey: "settings.modelBadge.balanced",
+    speedTps: 80,
+    inputCostPerMillion: 0.14,
+    outputCostPerMillion: 0.28,
+    freeQuotaRpd: 0,
+    freeQuotaTpd: 0,
+    isDefault: true,
+  },
+  {
+    id: "meta-llama/llama-3.3-70b-instruct",
+    providerId: "openrouter",
+    displayName: "Llama 3.3 70B Instruct",
+    badgeKey: "settings.modelBadge.stableCostly",
+    speedTps: 150,
+    inputCostPerMillion: 0.13,
+    outputCostPerMillion: 0.39,
+    freeQuotaRpd: 0,
+    freeQuotaTpd: 0,
+    isDefault: false,
+  },
+  {
+    id: "qwen/qwen-2.5-72b-instruct",
+    providerId: "openrouter",
+    displayName: "Qwen 2.5 72B Instruct",
+    badgeKey: "settings.modelBadge.fastCheap",
+    speedTps: 200,
+    inputCostPerMillion: 0.35,
+    outputCostPerMillion: 0.4,
+    freeQuotaRpd: 0,
+    freeQuotaTpd: 0,
+    isDefault: false,
+  },
+  // ── NVIDIA NIM ──
+  {
+    id: "nvidia/llama-3.3-nemotron-super-49b-v1",
+    providerId: "nvidia",
+    displayName: "Llama 3.3 Nemotron Super 49B",
+    badgeKey: "settings.modelBadge.balanced",
+    speedTps: 180,
+    inputCostPerMillion: 0,
+    outputCostPerMillion: 0,
+    freeQuotaRpd: 1_000,
+    freeQuotaTpd: 0,
+    isDefault: true,
+  },
+  {
+    id: "meta/llama-3.3-70b-instruct",
+    providerId: "nvidia",
+    displayName: "Llama 3.3 70B Instruct",
+    badgeKey: "settings.modelBadge.stableCostly",
+    speedTps: 150,
+    inputCostPerMillion: 0,
+    outputCostPerMillion: 0,
+    freeQuotaRpd: 1_000,
     freeQuotaTpd: 0,
     isDefault: false,
   },

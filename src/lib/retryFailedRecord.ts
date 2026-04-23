@@ -45,24 +45,26 @@ export async function retryFailedRecord(
   const historyStore = useHistoryStore.getState();
   const vocabularyStore = useVocabularyStore.getState();
 
-  let apiKey = settingsStore.getApiKey();
-  if (!apiKey) {
-    await settingsStore.refreshApiKey();
-    apiKey = useSettingsStore.getState().getApiKey();
+  let transcriptionApiKey = settingsStore.getTranscriptionApiKey();
+  if (!transcriptionApiKey) {
+    await settingsStore.refreshApiKey(settingsStore.selectedTranscriptionProviderId);
+    transcriptionApiKey = useSettingsStore.getState().getTranscriptionApiKey();
   }
-  if (!apiKey) {
+  if (!transcriptionApiKey) {
     return { ok: false, error: "apiKeyMissing" };
   }
 
-  const providerConfig = getProviderConfig(settingsStore.selectedProviderId);
+  const transcriptionProviderConfig = getProviderConfig(
+    settingsStore.selectedTranscriptionProviderId,
+  );
 
   let result: TranscriptionResult;
   try {
     const whisperTermList = await vocabularyStore.getTopTermListByWeight(50);
     result = await invoke<TranscriptionResult>("retranscribe_from_file", {
       filePath: record.audioFilePath,
-      apiUrl: providerConfig.transcriptionBaseUrl,
-      apiKey,
+      apiUrl: transcriptionProviderConfig.transcriptionBaseUrl,
+      apiKey: transcriptionApiKey,
       vocabularyTermList: whisperTermList.length > 0 ? whisperTermList : null,
       modelId: settingsStore.selectedWhisperModelId,
       language: settingsStore.getWhisperLanguageCode(),
@@ -92,13 +94,24 @@ export async function retryFailedRecord(
   if (shouldEnhance) {
     const startTime = performance.now();
     try {
+      let llmApiKey = settingsStore.getLlmApiKey();
+      if (!llmApiKey) {
+        await settingsStore.refreshApiKey(settingsStore.selectedLlmProviderId);
+        llmApiKey = useSettingsStore.getState().getLlmApiKey();
+      }
+      if (!llmApiKey) {
+        throw new Error("LLM API key not configured");
+      }
+
+      const llmProviderConfig = getProviderConfig(settingsStore.selectedLlmProviderId);
       const enhancementTermList = await vocabularyStore.getTopTermListByWeight(50);
-      const enhanceResult = await enhanceText(result.rawText, apiKey, {
+      const enhanceResult = await enhanceText(result.rawText, llmApiKey, {
         systemPrompt: settingsStore.getAiPrompt(),
         vocabularyTermList:
           enhancementTermList.length > 0 ? enhancementTermList : undefined,
         modelId: settingsStore.selectedLlmModelId,
-        chatApiUrl: providerConfig.chatBaseUrl,
+        chatApiUrl: llmProviderConfig.chatBaseUrl,
+        extraHeaders: llmProviderConfig.extraHeaders,
       });
       processedText = enhanceResult.text;
       wasEnhanced = true;

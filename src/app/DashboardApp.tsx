@@ -342,7 +342,7 @@ export function DashboardApp() {
           const { load } = await import("@tauri-apps/plugin-store");
           const store = await load("settings.json");
           const completed = await store.get<boolean>("onboardingCompleted");
-          if (!completed && !settingsActions.hasApiKey()) {
+          if (!completed && !settingsActions.hasTranscriptionApiKey()) {
             setShowOnboarding(true);
           }
           // Permissions onboarding: first-time review of OS permissions.

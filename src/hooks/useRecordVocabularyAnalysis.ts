@@ -29,8 +29,9 @@ export function useRecordVocabularyAnalysis(): UseRecordVocabularyAnalysis {
   const [selectedTerms, setSelectedTerms] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
-  const apiKey = useSettingsStore((s) => s.apiKey);
-  const selectedProviderId = useSettingsStore((s) => s.selectedProviderId);
+  // Vocabulary analysis uses Groq-only models, so always hit the Groq chat endpoint
+  // with the Groq API key regardless of the user's selected LLM provider.
+  const groqApiKey = useSettingsStore((s) => s.apiKeys.groq);
   const selectedVocabularyAnalysisModelId = useSettingsStore(
     (s) => s.selectedVocabularyAnalysisModelId,
   );
@@ -45,7 +46,7 @@ export function useRecordVocabularyAnalysis(): UseRecordVocabularyAnalysis {
 
   const analyzeRecord = useCallback(
     async (text: string) => {
-      if (!apiKey) {
+      if (!groqApiKey) {
         setError("apiKeyRequired");
         return;
       }
@@ -56,8 +57,8 @@ export function useRecordVocabularyAnalysis(): UseRecordVocabularyAnalysis {
       setSelectedTerms(new Set());
 
       try {
-        const providerConfig = getProviderConfig(selectedProviderId);
-        const result = await extractVocabularyFromText(text, apiKey, {
+        const providerConfig = getProviderConfig("groq");
+        const result = await extractVocabularyFromText(text, groqApiKey, {
           modelId: selectedVocabularyAnalysisModelId,
           chatApiUrl: providerConfig.chatBaseUrl,
         });
@@ -80,7 +81,7 @@ export function useRecordVocabularyAnalysis(): UseRecordVocabularyAnalysis {
         setIsAnalyzing(false);
       }
     },
-    [apiKey, selectedProviderId, selectedVocabularyAnalysisModelId, isDuplicateTerm],
+    [groqApiKey, selectedVocabularyAnalysisModelId, isDuplicateTerm],
   );
 
   const toggleTerm = useCallback((term: string) => {

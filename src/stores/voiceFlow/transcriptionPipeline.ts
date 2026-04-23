@@ -542,7 +542,9 @@ export async function handleStopRecording(): Promise<void> {
     const settingsStore = getSettingsStore();
 
     // Circuit breaker: skip API call if recent failures indicate service is down
-    const providerCircuitBreaker = getCircuitBreaker(settingsStore.selectedProviderId);
+    const providerCircuitBreaker = getCircuitBreaker(
+      settingsStore.selectedTranscriptionProviderId,
+    );
     if (!providerCircuitBreaker.canExecute()) {
       const cooldownSec = Math.ceil(providerCircuitBreaker.getRemainingCooldownMs() / 1000);
       failRecordingFlow(
@@ -553,11 +555,11 @@ export async function handleStopRecording(): Promise<void> {
     }
 
     transitionTo("transcribing", t("voiceFlow.transcribing"));
-    let apiKey = settingsStore.getApiKey();
+    let apiKey = settingsStore.getTranscriptionApiKey();
 
     if (!apiKey) {
-      await settingsStore.refreshApiKey();
-      apiKey = settingsStore.getApiKey();
+      await settingsStore.refreshApiKey(settingsStore.selectedTranscriptionProviderId);
+      apiKey = settingsStore.getTranscriptionApiKey();
     }
 
     if (!apiKey) {
@@ -571,7 +573,7 @@ export async function handleStopRecording(): Promise<void> {
     const vocabularyStore = getVocabularyStore();
     const whisperTermList = await vocabularyStore.getTopTermListByWeight(50);
     const hasVocabulary = whisperTermList.length > 0;
-    const providerConfig = getProviderConfig(settingsStore.selectedProviderId);
+    const providerConfig = getProviderConfig(settingsStore.selectedTranscriptionProviderId);
 
     let result: TranscriptionResult;
     try {
@@ -689,6 +691,16 @@ export async function handleStopRecording(): Promise<void> {
       const enhancementStartTime = performance.now();
 
       try {
+        const llmProviderConfig = getProviderConfig(settingsStore.selectedLlmProviderId);
+        let llmApiKey = settingsStore.getLlmApiKey();
+        if (!llmApiKey) {
+          await settingsStore.refreshApiKey(settingsStore.selectedLlmProviderId);
+          llmApiKey = settingsStore.getLlmApiKey();
+        }
+        if (!llmApiKey) {
+          throw new Error(t("errors.apiKeyMissing"));
+        }
+
         const enhancementTermList = await vocabularyStore.getTopTermListByWeight(50);
         const enhanceOptions = {
           systemPrompt: settingsStore.isContextAwareEnabled
@@ -697,12 +709,13 @@ export async function handleStopRecording(): Promise<void> {
           vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
           surroundingText: lastSurroundingText ?? undefined,
           modelId: settingsStore.selectedLlmModelId,
-          chatApiUrl: providerConfig.chatBaseUrl,
+          chatApiUrl: llmProviderConfig.chatBaseUrl,
+          extraHeaders: llmProviderConfig.extraHeaders,
           signal: abortController?.signal,
         };
 
         let enhanceResult = await retryWithBackoff(
-          () => enhanceText(result.rawText, apiKey, enhanceOptions),
+          () => enhanceText(result.rawText, llmApiKey, enhanceOptions),
           { maxRetries: 1, signal: abortController?.signal ?? undefined },
         );
         if (getState()._isAborted) return;
@@ -721,7 +734,7 @@ export async function handleStopRecording(): Promise<void> {
             `voiceFlowStore: enhancement anomaly detected (attempt ${String(retryCount)}/${String(MAX_ENHANCEMENT_RETRY_COUNT)}), retrying`,
           );
           enhanceResult = await retryWithBackoff(
-            () => enhanceText(result.rawText, apiKey, enhanceOptions),
+            () => enhanceText(result.rawText, llmApiKey, enhanceOptions),
             { maxRetries: 1, signal: abortController?.signal ?? undefined },
           );
           if (getState()._isAborted) return;
@@ -870,11 +883,11 @@ export async function handleReEnhanceWithMode(targetMode: PromptMode): Promise<v
 
   try {
     const settingsStore = getSettingsStore();
-    let apiKey = settingsStore.getApiKey();
+    let apiKey = settingsStore.getLlmApiKey();
 
     if (!apiKey) {
-      await settingsStore.refreshApiKey();
-      apiKey = settingsStore.getApiKey();
+      await settingsStore.refreshApiKey(settingsStore.selectedLlmProviderId);
+      apiKey = settingsStore.getLlmApiKey();
     }
 
     if (!apiKey) {
@@ -885,7 +898,7 @@ export async function handleReEnhanceWithMode(targetMode: PromptMode): Promise<v
       return;
     }
 
-    const providerConfig = getProviderConfig(settingsStore.selectedProviderId);
+    const providerConfig = getProviderConfig(settingsStore.selectedLlmProviderId);
     const vocabularyStore = getVocabularyStore();
     const enhancementTermList = await vocabularyStore.getTopTermListByWeight(50);
 
@@ -905,6 +918,7 @@ export async function handleReEnhanceWithMode(targetMode: PromptMode): Promise<v
       vocabularyTermList: enhancementTermList.length > 0 ? enhancementTermList : undefined,
       modelId: settingsStore.selectedLlmModelId,
       chatApiUrl: providerConfig.chatBaseUrl,
+      extraHeaders: providerConfig.extraHeaders,
     });
 
     // Paste new result

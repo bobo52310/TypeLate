@@ -191,11 +191,11 @@ export async function handleRetryTranscription(): Promise<void> {
 
   try {
     const settingsStore = getSettingsStore();
-    let apiKey = settingsStore.getApiKey();
+    let apiKey = settingsStore.getTranscriptionApiKey();
 
     if (!apiKey) {
-      await settingsStore.refreshApiKey();
-      apiKey = settingsStore.getApiKey();
+      await settingsStore.refreshApiKey(settingsStore.selectedTranscriptionProviderId);
+      apiKey = settingsStore.getTranscriptionApiKey();
     }
 
     if (!apiKey) {
@@ -211,7 +211,7 @@ export async function handleRetryTranscription(): Promise<void> {
     const vocabularyStore = getVocabularyStore();
     const whisperTermList = await vocabularyStore.getTopTermListByWeight(50);
     const hasVocabulary = whisperTermList.length > 0;
-    const providerConfig = getProviderConfig(settingsStore.selectedProviderId);
+    const providerConfig = getProviderConfig(settingsStore.selectedTranscriptionProviderId);
 
     const result = await invoke<TranscriptionResult>("retranscribe_from_file", {
       filePath,

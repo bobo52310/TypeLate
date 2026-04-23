@@ -24,19 +24,22 @@ export default function ModelSection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
-  const selectedProviderId = useSettingsStore((s) => s.selectedProviderId);
+  const selectedTranscriptionProviderId = useSettingsStore(
+    (s) => s.selectedTranscriptionProviderId,
+  );
+  const selectedLlmProviderId = useSettingsStore((s) => s.selectedLlmProviderId);
   const selectedWhisperModelId = useSettingsStore((s) => s.selectedWhisperModelId);
   const selectedLlmModelId = useSettingsStore((s) => s.selectedLlmModelId);
   const saveWhisperModel = useSettingsStore((s) => s.saveWhisperModel);
   const saveLlmModel = useSettingsStore((s) => s.saveLlmModel);
 
   const whisperModels = useMemo(
-    () => getWhisperModelsForProvider(selectedProviderId),
-    [selectedProviderId],
+    () => getWhisperModelsForProvider(selectedTranscriptionProviderId),
+    [selectedTranscriptionProviderId],
   );
   const llmModels = useMemo(
-    () => getLlmModelsForProvider(selectedProviderId),
-    [selectedProviderId],
+    () => getLlmModelsForProvider(selectedLlmProviderId),
+    [selectedLlmProviderId],
   );
 
   const whisperModelDescription = useMemo(() => {

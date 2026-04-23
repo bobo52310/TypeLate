@@ -69,11 +69,22 @@
     },
     "provider": {
       "title": "AI 供應商",
-      "description": "選擇用於語音轉錄和文字整理的 AI 服務。",
+      "description": "分別選擇「語音轉錄」與「LLM 文字整理」的供應商，可以不相同。",
+      "transcriptionLabel": "語音轉錄",
+      "llmLabel": "LLM 整理",
       "updated": "AI 供應商已更新",
       "groqDescription": "免費方案，推理速度快。適合入門使用。",
       "openaiDescription": "業界標準，穩定可靠，按量付費。",
-      "groqFreeQuota": "每日 28,800 秒免費音訊額度"
+      "geminiDescription": "Google AI Studio，免費額度豐富、多語言表現佳。",
+      "openrouterDescription": "一把金鑰接入 300+ 個 LLM，按用量計費。",
+      "nvidiaDescription": "NVIDIA NIM 模型，註冊可取得開發者免費額度。",
+      "groqFreeQuota": "每日 28,800 秒免費音訊額度",
+      "geminiFreeQuota": "2.5 Flash 每日約 1,500 次免費",
+      "openrouterFreeQuota": "付費使用，部分模型提供 :free 版本",
+      "nvidiaFreeQuota": "註冊即送開發者 credits"
+    },
+    "apiKeys": {
+      "title": "API 金鑰"
     },
     "apiKey": {
       "title": "Groq API Key",

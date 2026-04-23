@@ -31,8 +31,8 @@ export default function TextAnalyzerSection() {
   const { t } = useTranslation();
   const feedback = useFeedbackMessage();
 
-  const selectedProviderId = useSettingsStore((s) => s.selectedProviderId);
-  const getApiKey = useSettingsStore((s) => s.getApiKey);
+  // Vocabulary analysis uses Groq-only models.
+  const groqApiKey = useSettingsStore((s) => s.apiKeys.groq);
   const selectedVocabularyAnalysisModelId = useSettingsStore(
     (s) => s.selectedVocabularyAnalysisModelId,
   );
@@ -65,17 +65,16 @@ export default function TextAnalyzerSection() {
       return;
     }
 
-    const apiKey = getApiKey();
-    if (!apiKey) {
+    if (!groqApiKey) {
       feedback.show("error", t("dictionary.textAnalyzer.apiKeyRequired"));
       return;
     }
 
-    const providerConfig = getProviderConfig(selectedProviderId);
+    const providerConfig = getProviderConfig("groq");
 
     setStep("loading");
     try {
-      const result = await extractVocabularyFromText(text, apiKey, {
+      const result = await extractVocabularyFromText(text, groqApiKey, {
         modelId: selectedVocabularyAnalysisModelId,
         chatApiUrl: providerConfig.chatBaseUrl,
       });
