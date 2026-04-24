@@ -441,6 +441,12 @@
       "emptyResult": "识别结果为空，可能音量过小或无法识别内容。",
       "transcriptionFailed": "重新识别失败，请检查 API Key、网络或配额后再试。"
     },
+    "retranscribe": {
+      "button": "重新识别",
+      "confirm": "将以当前设置重新识别，确定？",
+      "processing": "识别中...",
+      "success": "重新识别完成，已更新记录"
+    },
     "edit": {
       "edit": "编辑",
       "save": "保存",
@@ -549,6 +555,16 @@
         "minutesAgo": "{count} 分钟前",
         "hoursAgo": "{count} 小时前",
         "daysAgo": "{count} 天前"
+      },
+      "conflict": {
+        "title": "两端都有词汇数据",
+        "description": "云端有 {remoteCount} 个词汇，本机有 {localCount} 个词汇。请选择同步方式：",
+        "keepLocal": "保留本机",
+        "keepLocalHint": "上传本机词汇到云端，覆盖云端数据",
+        "keepRemote": "保留云端",
+        "keepRemoteHint": "下载云端词汇到本机，覆盖本机数据",
+        "merge": "合并两者",
+        "mergeHint": "合并双方 — 新词加入、高权重优先"
       }
     },
     "googleDrive": {

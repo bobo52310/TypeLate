@@ -127,6 +127,13 @@ async function updateVocabularyFile(
   }
 }
 
+export type SyncStrategy = "merge" | "keep-local" | "keep-remote";
+
+export interface SyncConflictInfo {
+  localCount: number;
+  remoteCount: number;
+}
+
 export interface SyncResult {
   added: number;
   updated: number;
@@ -134,12 +141,34 @@ export interface SyncResult {
 }
 
 /**
- * Perform bidirectional sync between local vocabulary and Google Drive.
+ * Check whether both local and remote have vocabulary data (potential conflict).
+ * Returns null if no conflict (remote empty or doesn't exist).
+ */
+export async function checkGoogleDriveConflict(
+  clientId: string,
+  localCount: number,
+): Promise<SyncConflictInfo | null> {
+  if (localCount === 0) return null;
+
+  const accessToken = await getValidAccessToken(clientId);
+  const fileId = await findVocabularyFile(accessToken);
+  if (!fileId) return null;
+
+  const remoteContent = await downloadVocabularyFile(accessToken, fileId);
+  const parseResult = parseVocabularyJson(remoteContent);
+
+  if (!parseResult.valid || parseResult.terms.length === 0) return null;
+
+  return { localCount, remoteCount: parseResult.terms.length };
+}
+
+/**
+ * Perform sync between local vocabulary and Google Drive.
  *
- * Strategy:
- * 1. Download remote vocabulary (if exists)
- * 2. Merge: remote → local (new terms added, higher weights win)
- * 3. Merge: local → remote (upload combined result)
+ * Strategies:
+ * - "merge" (default): bidirectional merge, higher weight wins
+ * - "keep-local": ignore remote, upload local
+ * - "keep-remote": replace local with remote data
  *
  * Returns the operations performed.
  */
@@ -150,10 +179,19 @@ export async function syncVocabulary(
     toInsert: Array<{ term: string; source: "manual" | "ai"; weight: number; createdAt: string }>,
     toUpdate: Array<{ id: string; weight: number }>,
   ) => Promise<void>,
+  replaceLocalWithRemote?: (
+    remoteTerms: Array<{ term: string; source: "manual" | "ai"; weight: number; createdAt: string }>,
+  ) => Promise<void>,
+  strategy: SyncStrategy = "merge",
 ): Promise<SyncResult> {
-  logInfo("googleDriveSync", "Starting vocabulary sync...");
+  logInfo("googleDriveSync", `Starting vocabulary sync (strategy: ${strategy})...`);
 
   const accessToken = await getValidAccessToken(clientId);
+
+  // keep-local: skip download, just signal caller to upload
+  if (strategy === "keep-local") {
+    return { added: 0, updated: 0, uploaded: false };
+  }
 
   // 1. Find existing file on Drive
   const fileId = await findVocabularyFile(accessToken);
@@ -167,28 +205,25 @@ export async function syncVocabulary(
     const parseResult = parseVocabularyJson(remoteContent);
 
     if (parseResult.valid && parseResult.terms.length > 0) {
-      // 3. Compute what remote has that local doesn't (or has higher weight)
-      const diff = computeImportDiff(parseResult.terms, localTermList);
+      if (strategy === "keep-remote" && replaceLocalWithRemote) {
+        // Replace all local with remote
+        await replaceLocalWithRemote(parseResult.terms);
+        added = parseResult.terms.length;
+      } else {
+        // Merge: compute what remote has that local doesn't (or has higher weight)
+        const diff = computeImportDiff(parseResult.terms, localTermList);
 
-      if (diff.toInsert.length > 0 || diff.toUpdate.length > 0) {
-        await applyImport(diff.toInsert, diff.toUpdate);
-        added = diff.toInsert.length;
-        updated = diff.toUpdate.length;
+        if (diff.toInsert.length > 0 || diff.toUpdate.length > 0) {
+          await applyImport(diff.toInsert, diff.toUpdate);
+          added = diff.toInsert.length;
+          updated = diff.toUpdate.length;
+        }
       }
     } else if (parseResult.errors.length > 0) {
       logError("googleDriveSync", `Remote file parse errors: ${parseResult.errors.join(", ")}`);
     }
   }
 
-  // 4. Re-read local terms (may have been updated by import) and upload
-  // The caller should provide the updated list, but we serialize current state
-  // For simplicity, we serialize the merged local state
-  // Note: We need the caller to re-fetch after applyImport
-  // So we accept a callback pattern instead
-
-  // 5. Upload merged vocabulary to Drive
-  // We need the updated local list — the store should have been refreshed by applyImport
-  // The caller will pass the latest after applying imports
   return { added, updated, uploaded: false };
 }
 

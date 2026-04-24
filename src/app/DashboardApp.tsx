@@ -142,15 +142,7 @@ export function DashboardApp() {
   const versionClickRef = useRef(0);
   const easterEggTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleVersionClick = useCallback(() => {
-    versionClickRef.current += 1;
-    if (versionClickRef.current >= 7) {
-      versionClickRef.current = 0;
-      setEasterEggSlogan(getRandomSlogan());
-      if (easterEggTimerRef.current) clearTimeout(easterEggTimerRef.current);
-      easterEggTimerRef.current = setTimeout(() => setEasterEggSlogan(null), 4000);
-    }
-  }, []);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -266,6 +258,44 @@ export function DashboardApp() {
   useEffect(() => {
     updateStateRef.current = updateState;
   }, [updateState]);
+
+  const handleVersionClick = useCallback(() => {
+    // Easter egg: 7 clicks
+    versionClickRef.current += 1;
+    if (versionClickRef.current >= 7) {
+      versionClickRef.current = 0;
+      setEasterEggSlogan(getRandomSlogan());
+      if (easterEggTimerRef.current) clearTimeout(easterEggTimerRef.current);
+      easterEggTimerRef.current = setTimeout(() => setEasterEggSlogan(null), 4000);
+      return;
+    }
+
+    // Trigger update check on single click
+    if (isCheckingUpdate || updateStateRef.current !== "idle") return;
+    setIsCheckingUpdate(true);
+    void (async () => {
+      try {
+        const { checkForAppUpdate } = await import("@/lib/autoUpdater");
+        const result = await checkForAppUpdate();
+
+        if (result.status === "update-available" && result.version) {
+          const skipped = useSettingsStore.getState().skippedUpdateVersion;
+          if (result.version !== skipped) {
+            setAvailableVersion(result.version);
+            setReleaseBody(result.body ?? "");
+            setUpdateState("update-available");
+            setShowUpdateAvailableDialog(true);
+            return;
+          }
+        }
+        updateFeedback.show("success", t("mainApp.update.upToDate"));
+      } catch {
+        updateFeedback.show("error", t("mainApp.update.checkFailed"));
+      } finally {
+        setIsCheckingUpdate(false);
+      }
+    })();
+  }, [isCheckingUpdate, t, updateFeedback]);
 
   const handleInstallUpdate = useCallback(async () => {
     setIsUpdateDownloading(true);
@@ -546,9 +576,13 @@ export function DashboardApp() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleVersionClick}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors select-none"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors select-none"
+                    disabled={isCheckingUpdate}
                   >
                     v{APP_VERSION}
+                    {isCheckingUpdate && (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    )}
                   </button>
                   {todayCount > 0 && (
                     <span className="text-[10px] text-muted-foreground/70">

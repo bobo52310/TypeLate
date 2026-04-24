@@ -441,6 +441,12 @@
       "emptyResult": "認識結果が空です。音量が小さすぎるか、内容を認識できませんでした。",
       "transcriptionFailed": "再認識に失敗しました。API キー・ネットワーク・利用量を確認してください。"
     },
+    "retranscribe": {
+      "button": "再認識",
+      "confirm": "現在の設定で再認識しますか？",
+      "processing": "認識中...",
+      "success": "再認識が完了しました"
+    },
     "edit": {
       "edit": "編集",
       "save": "保存",
@@ -549,6 +555,16 @@
         "minutesAgo": "{count} 分前",
         "hoursAgo": "{count} 時間前",
         "daysAgo": "{count} 日前"
+      },
+      "conflict": {
+        "title": "両方に辞書データがあります",
+        "description": "クラウドに {remoteCount} 件、ローカルに {localCount} 件の用語があります。同期方法を選択してください：",
+        "keepLocal": "ローカルを保持",
+        "keepLocalHint": "ローカルの辞書をクラウドにアップロードし、リモートを上書き",
+        "keepRemote": "クラウドを保持",
+        "keepRemoteHint": "クラウドの辞書をダウンロードし、ローカルを上書き",
+        "merge": "両方を統合",
+        "mergeHint": "両方を統合 — 新しい用語を追加、高い重みを優先"
       }
     },
     "googleDrive": {

@@ -10,7 +10,12 @@ import {
   revokeTokens,
   getValidAccessToken,
 } from "@/lib/googleAuth";
-import { syncVocabulary, uploadVocabulary } from "@/lib/googleDriveSync";
+import {
+  syncVocabulary,
+  uploadVocabulary,
+  checkGoogleDriveConflict,
+} from "@/lib/googleDriveSync";
+import type { SyncStrategy, SyncConflictInfo } from "@/lib/googleDriveSync";
 import { useVocabularyStore } from "@/stores/vocabularyStore";
 import { extractErrorMessage } from "@/lib/errorUtils";
 import { logInfo, logError } from "@/lib/logger";
@@ -48,7 +53,8 @@ interface SyncState {
   saveClientId: (clientId: string) => Promise<void>;
   setupGoogleDrive: () => Promise<void>;
   disconnect: () => Promise<void>;
-  syncNow: () => Promise<SyncResult>;
+  checkConflict: () => Promise<SyncConflictInfo | null>;
+  syncNow: (strategy?: SyncStrategy) => Promise<SyncResult>;
   initAutoSync: () => () => void;
 }
 
@@ -245,7 +251,42 @@ export const useSyncStore = create<SyncState>()((set, get) => ({
     }
   },
 
-  syncNow: async () => {
+  checkConflict: async () => {
+    const { providerType, clientId } = get();
+
+    if (providerType === "google-drive" && clientId) {
+      const vocabularyStore = useVocabularyStore.getState();
+      await vocabularyStore.fetchTermList();
+      const localCount = vocabularyStore.termList.length;
+
+      return await checkGoogleDriveConflict(clientId, localCount);
+    }
+
+    // File sync: check if remote file has data and local has data
+    if (providerType === "file") {
+      const { syncFolderPath } = get();
+      if (!syncFolderPath) return null;
+
+      const vocabularyStore = useVocabularyStore.getState();
+      await vocabularyStore.fetchTermList();
+      const localCount = vocabularyStore.termList.length;
+      if (localCount === 0) return null;
+
+      const provider = createFileSyncProvider(syncFolderPath);
+      const remoteContent = await provider.read();
+      if (!remoteContent) return null;
+
+      const { parseVocabularyJson } = await import("@/lib/vocabularyFile");
+      const parseResult = parseVocabularyJson(remoteContent);
+      if (!parseResult.valid || parseResult.terms.length === 0) return null;
+
+      return { localCount, remoteCount: parseResult.terms.length };
+    }
+
+    return null;
+  },
+
+  syncNow: async (strategy: SyncStrategy = "merge") => {
     const { providerType, syncFolderPath, clientId } = get();
     if (!providerType) throw new Error("No sync provider configured");
 
@@ -256,7 +297,7 @@ export const useSyncStore = create<SyncState>()((set, get) => ({
 
       if (providerType === "file" && syncFolderPath) {
         const provider = createFileSyncProvider(syncFolderPath);
-        result = await performSync(provider);
+        result = await performSync(provider, strategy);
       } else if (providerType === "google-drive" && clientId) {
         // Use the existing Google Drive sync flow (which has its own read/merge logic)
         await getValidAccessToken(clientId);
@@ -271,11 +312,17 @@ export const useSyncStore = create<SyncState>()((set, get) => ({
           async (toInsert, toUpdate) => {
             await vocabularyStore.syncImportBatch(toInsert, toUpdate);
           },
+          async (remoteTerms) => {
+            await vocabularyStore.replaceAllWithRemote(remoteTerms);
+          },
+          strategy,
         );
 
-        // Re-fetch and upload merged result
+        // Re-fetch and upload merged result (skip upload for keep-remote)
         await vocabularyStore.fetchTermList();
-        await uploadVocabulary(clientId, vocabularyStore.termList);
+        if (strategy !== "keep-remote") {
+          await uploadVocabulary(clientId, vocabularyStore.termList);
+        }
 
         result = { added: syncResult.added, updated: syncResult.updated };
       } else {

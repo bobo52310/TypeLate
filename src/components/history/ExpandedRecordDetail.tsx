@@ -22,7 +22,7 @@ import { useHistoryStore } from "@/stores/historyStore";
 import { useRecordVocabularyAnalysis } from "@/hooks/useRecordVocabularyAnalysis";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import { getDisplayText, formatDurationMs } from "@/lib/formatUtils";
-import { retryFailedRecord } from "@/lib/retryFailedRecord";
+import { retranscribeRecord } from "@/lib/retryFailedRecord";
 import { useHashRouter } from "@/app/router";
 import type { TranscriptionRecord } from "@/types/transcription";
 import type { PromptMode } from "@/types/settings";
@@ -66,7 +66,7 @@ export default function ExpandedRecordDetail({
   const vocabAnalysis = useRecordVocabularyAnalysis();
   const [showResults, setShowResults] = useState(false);
 
-  // ── Retry failed record state ──
+  // ── Retry / re-transcribe state ──
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryError, setRetryError] = useState<{
     category: "provider" | "config" | "local";
@@ -75,10 +75,16 @@ export default function ExpandedRecordDetail({
   const retryFeedback = useFeedbackMessage();
   const { navigate } = useHashRouter();
 
+  // ── Re-transcribe double-click confirmation ──
+  const [retranscribeConfirm, setRetranscribeConfirm] = useState(false);
+  const retranscribeConfirmRef = useRef(false);
+  const retranscribeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     return () => {
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
       if (copiedRawTimerRef.current) clearTimeout(copiedRawTimerRef.current);
+      if (retranscribeTimerRef.current) clearTimeout(retranscribeTimerRef.current);
     };
   }, []);
 
@@ -144,36 +150,82 @@ export default function ExpandedRecordDetail({
     void vocabAnalysis.analyzeRecord(text);
   }
 
+  function handleRetranscribeError(result: { error?: string; errorMessage?: string }) {
+    const kind = result.error ?? "transcriptionFailed";
+    if (kind === "transcriptionFailed") {
+      setRetryError({
+        category: "provider",
+        message: result.errorMessage ?? t("history.retryFailed.transcriptionFailed"),
+      });
+    } else if (kind === "apiKeyMissing") {
+      setRetryError({
+        category: "config",
+        message: t("history.retryFailed.apiKeyMissing"),
+      });
+    } else {
+      setRetryError({
+        category: "local",
+        message: t(`history.retryFailed.${kind}`),
+      });
+    }
+  }
+
   async function handleRetryFailed() {
     if (isRetrying) return;
     setIsRetrying(true);
     setRetryError(null);
     try {
-      const result = await retryFailedRecord(record);
+      const result = await retranscribeRecord(record);
       if (result.ok) {
         retryFeedback.show("success", t("history.retry.success"));
         onRetrySuccess?.(record.id);
         return;
       }
-      const kind = result.error ?? "transcriptionFailed";
-      if (kind === "transcriptionFailed") {
-        setRetryError({
-          category: "provider",
-          message: result.errorMessage ?? t("history.retryFailed.transcriptionFailed"),
-        });
-      } else if (kind === "apiKeyMissing") {
-        setRetryError({
-          category: "config",
-          message: t("history.retryFailed.apiKeyMissing"),
-        });
-      } else {
-        setRetryError({
-          category: "local",
-          message: t(`history.retryFailed.${kind}`),
-        });
-      }
+      handleRetranscribeError(result);
     } catch (err) {
       captureError(err, { source: "history", action: "retry-failed" });
+      setRetryError({
+        category: "provider",
+        message: t("history.retryFailed.transcriptionFailed"),
+      });
+    } finally {
+      setIsRetrying(false);
+    }
+  }
+
+  function requestRetranscribe() {
+    if (isRetrying) return;
+    if (retranscribeConfirmRef.current) {
+      // Second click — confirmed, run re-transcription
+      if (retranscribeTimerRef.current) clearTimeout(retranscribeTimerRef.current);
+      retranscribeConfirmRef.current = false;
+      setRetranscribeConfirm(false);
+      void executeRetranscribe();
+    } else {
+      // First click — enter confirm state, auto-revert after 3s
+      retranscribeConfirmRef.current = true;
+      setRetranscribeConfirm(true);
+      if (retranscribeTimerRef.current) clearTimeout(retranscribeTimerRef.current);
+      retranscribeTimerRef.current = setTimeout(() => {
+        retranscribeConfirmRef.current = false;
+        setRetranscribeConfirm(false);
+      }, 3000);
+    }
+  }
+
+  async function executeRetranscribe() {
+    setIsRetrying(true);
+    setRetryError(null);
+    try {
+      const result = await retranscribeRecord(record);
+      if (result.ok) {
+        retryFeedback.show("success", t("history.retranscribe.success"));
+        onRetrySuccess?.(record.id);
+        return;
+      }
+      handleRetranscribeError(result);
+    } catch (err) {
+      captureError(err, { source: "history", action: "retranscribe" });
       setRetryError({
         category: "provider",
         message: t("history.retryFailed.transcriptionFailed"),
@@ -186,6 +238,7 @@ export default function ExpandedRecordDetail({
   const displayText = getDisplayText(record);
   const canAnalyze = displayText.trim().length > 0;
   const canRetry = record.status === "failed" && !!record.audioFilePath;
+  const canRetranscribe = record.status !== "failed" && !!record.audioFilePath;
 
   return (
     <div className="border-t border-border px-3 py-3 space-y-3">
@@ -408,6 +461,33 @@ export default function ExpandedRecordDetail({
               {isRetrying
                 ? t("history.retry.retrying")
                 : t("history.retry.button")}
+            </Button>
+          )}
+
+          {/* Re-transcribe (success records with audio) */}
+          {canRetranscribe && (
+            <Button
+              variant={retranscribeConfirm ? "outline" : "ghost"}
+              size="sm"
+              className={cn(
+                "h-6 gap-1 px-2 text-[11px]",
+                retranscribeConfirm
+                  ? "border-primary text-primary"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              disabled={isRetrying}
+              onClick={() => requestRetranscribe()}
+            >
+              {isRetrying ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+              {isRetrying
+                ? t("history.retranscribe.processing")
+                : retranscribeConfirm
+                  ? t("history.retranscribe.confirm")
+                  : t("history.retranscribe.button")}
             </Button>
           )}
 

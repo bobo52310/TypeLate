@@ -17,7 +17,7 @@
         "label": "main",
         "title": "TypeLate",
         "width": 400,
-        "height": 100,
+        "height": 520,
         "x": null,
         "y": 0,
         "center": true,
@@ -27,7 +27,7 @@
         "skipTaskbar": true,
         "visible": false,
         "focus": false,
-        "resizable": false,
+        "resizable": true,
         "shadow": false
       },
       {

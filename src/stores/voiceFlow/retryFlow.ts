@@ -23,7 +23,7 @@ import { clearAutoHideTimer } from "./timers";
 import {
   buildTranscriptionRecord,
   saveApiUsageRecordList,
-  setAbortController,
+  registerRetryAbortController,
 } from "./transcriptionPipeline";
 import { startCorrectionDetectionFlow } from "./correctionDetection";
 
@@ -181,7 +181,7 @@ export async function handleRetryTranscription(): Promise<void> {
     _isRetryAttempt: true,
   });
   const newAbortController = new AbortController();
-  setAbortController(newAbortController);
+  registerRetryAbortController(newAbortController);
   clearAutoHideTimer();
   transitionTo("transcribing", t("voiceFlow.transcribing"));
 
