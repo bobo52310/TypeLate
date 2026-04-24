@@ -10,12 +10,14 @@ import { initSentryForHud } from "@/lib/sentry";
 import { SETTINGS_UPDATED, VOCABULARY_CHANGED, TRAY_CYCLE_PROMPT_MODE } from "@/hooks/useTauriEvent";
 import { logInfo, logError } from "@/lib/logger";
 import { NotchHud } from "@/components/NotchHud";
+import { TranscriptionQueueList } from "@/components/TranscriptionQueueList";
 import type { PromptMode } from "@/types/settings";
 import "@/i18n";
 
 export function HudApp() {
   const status = useVoiceFlowStore((s) => s.status);
   const message = useVoiceFlowStore((s) => s.message);
+  const queueLength = useVoiceFlowStore((s) => s.queue.length);
   const recordingElapsedSeconds = useVoiceFlowStore((s) => s.recordingElapsedSeconds);
   const canRetry = useVoiceFlowStore((s) => s.canRetry);
   const handleRetryTranscription = useVoiceFlowStore((s) => s.handleRetryTranscription);
@@ -52,6 +54,13 @@ export function HudApp() {
   const onResumeAutoHide = useCallback(() => {
     resumeAutoHide();
   }, [resumeAutoHide]);
+
+  // The HUD window is fixed at 400x520 (transparent below the notch, so empty
+  // space is invisible). Just toggle cursor-events so queue cards can receive
+  // clicks while click-through behaviour is preserved when no cards are visible.
+  useEffect(() => {
+    void getCurrentWindow().setIgnoreCursorEvents(queueLength === 0);
+  }, [queueLength]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -149,6 +158,7 @@ export function HudApp() {
         onPauseAutoHide={onPauseAutoHide}
         onResumeAutoHide={onResumeAutoHide}
       />
+      <TranscriptionQueueList />
     </div>
   );
 }

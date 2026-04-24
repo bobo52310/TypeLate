@@ -61,6 +61,14 @@ interface VocabularyState {
   getTopTermListByWeight: (limit: number) => Promise<string[]>;
   batchAddTerms: (terms: string[]) => Promise<{ added: number; skipped: number }>;
   pruneStaleTerms: () => Promise<number>;
+  replaceAllWithRemote: (
+    remoteTerms: Array<{
+      term: string;
+      source: VocabularySource;
+      weight: number;
+      createdAt: string;
+    }>,
+  ) => Promise<void>;
 }
 
 export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
@@ -356,6 +364,29 @@ export const useVocabularyStore = create<VocabularyState>()((set, get) => ({
       logError("vocabulary", `pruneStaleTerms failed: ${extractErrorMessage(error)}`);
       captureError(error, { source: "vocabulary", step: "prune" });
       return 0;
+    }
+  },
+
+  replaceAllWithRemote: async (remoteTerms) => {
+    try {
+      const db = getDatabase();
+      await db.execute("DELETE FROM vocabulary");
+      for (const entry of remoteTerms) {
+        const id = crypto.randomUUID();
+        await db.execute(
+          "INSERT INTO vocabulary (id, term, source, weight, created_at) VALUES ($1, $2, $3, $4, $5)",
+          [id, entry.term.trim(), entry.source, entry.weight, entry.createdAt],
+        );
+      }
+      await get().fetchTermList();
+      void emitEvent(VOCABULARY_CHANGED, {
+        action: "added",
+        term: `${remoteTerms.length} terms replaced from remote`,
+      } satisfies VocabularyChangedPayload);
+    } catch (error) {
+      logError("vocabulary", `replaceAllWithRemote failed: ${extractErrorMessage(error)}`);
+      captureError(error, { source: "vocabulary", step: "replace-all" });
+      throw error;
     }
   },
 }));

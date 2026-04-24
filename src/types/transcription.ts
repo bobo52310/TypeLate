@@ -87,3 +87,24 @@ export interface DailyUsageTrend {
   count: number;
   totalChars: number;
 }
+
+// ── Queued (non-blocking) transcription ──
+
+export type QueuedRecordingStatus = "transcribing" | "enhancing" | "success" | "error";
+
+export interface QueuedRecording {
+  id: string;
+  status: QueuedRecordingStatus;
+  message: string;
+  rawText: string | null;
+  processedText: string | null;
+  errorMessage: string | null;
+  audioFilePath: string | null;
+  recordingDurationMs: number;
+  transcriptionDurationMs: number;
+  enhancementDurationMs: number | null;
+  peakEnergyLevel: number;
+  rmsEnergyLevel: number;
+  startedAt: number;
+  canRetry: boolean;
+}

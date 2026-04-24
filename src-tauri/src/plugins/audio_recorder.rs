@@ -51,6 +51,7 @@ pub struct StopRecordingResult {
     recording_duration_ms: f64,
     peak_energy_level: f32,
     rms_energy_level: f32,
+    wav_data: Vec<u8>,
 }
 
 // ========== State ==========
@@ -69,14 +70,12 @@ struct RecordingHandle {
 
 pub struct AudioRecorderState {
     recording: Mutex<Option<RecordingHandle>>,
-    pub(crate) wav_buffer: Mutex<Option<Vec<u8>>>,
 }
 
 impl AudioRecorderState {
     pub fn new() -> Self {
         Self {
             recording: Mutex::new(None),
-            wav_buffer: Mutex::new(None),
         }
     }
 
@@ -255,17 +254,11 @@ pub fn stop_recording(
         rms_energy_level,
     );
 
-    // Store WAV buffer for transcription to consume
-    let mut wav_guard = state
-        .wav_buffer
-        .lock()
-        .map_err(|_| AudioRecorderError::LockPoisoned)?;
-    *wav_guard = Some(wav_data);
-
     Ok(StopRecordingResult {
         recording_duration_ms,
         peak_energy_level,
         rms_energy_level,
+        wav_data,
     })
 }
 
@@ -668,15 +661,12 @@ pub fn open_recordings_folder(app: AppHandle) -> Result<(), String> {
 #[command]
 pub fn save_recording_file(
     id: String,
+    wav_data: Vec<u8>,
     app: AppHandle,
-    state: State<'_, AudioRecorderState>,
 ) -> Result<String, String> {
-    let wav_data = state
-        .wav_buffer
-        .lock()
-        .map_err(|e| format!("Failed to lock wav_buffer: {}", e))?
-        .clone()
-        .ok_or_else(|| "No WAV data available".to_string())?;
+    if wav_data.is_empty() {
+        return Err("No WAV data provided".to_string());
+    }
 
     let app_data_dir = app
         .path()
@@ -854,6 +844,5 @@ mod tests {
     fn test_audio_recorder_state_new() {
         let state = AudioRecorderState::new();
         assert!(state.recording.lock().unwrap().is_none());
-        assert!(state.wav_buffer.lock().unwrap().is_none());
     }
 }
