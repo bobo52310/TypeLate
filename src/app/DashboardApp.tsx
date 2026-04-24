@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const OnboardingView = lazy(() => import("@/views/OnboardingView"));
-import { BookOpen, Cloud, CloudOff, Download, History, LayoutDashboard, Loader2, Megaphone, Settings, Smartphone, Sparkles, type LucideIcon } from "lucide-react";
+import { Cloud, CloudOff, Download, Loader2, Megaphone, Mic, Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -19,22 +19,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { MobileAppDialog } from "@/components/MobileAppDialog";
 import { UpdateAvailableDialog } from "@/components/UpdateAvailableDialog";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
 import { useFeedbackMessage } from "@/hooks/useFeedbackMessage";
 import { useDebouncedTauriEvent, useTauriEvent, VOCABULARY_CHANGED, MENU_NAVIGATE, MENU_CHECK_UPDATE } from "@/hooks/useTauriEvent";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -50,44 +34,31 @@ import { useSyncStore } from "@/stores/syncStore";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
 import { getRandomSlogan } from "@/lib/slogans";
 
-import logoTypeLate from "@/assets/logo-typelate.png";
-
 import { APP_VERSION } from "@/lib/version";
 
-// ── Navigation items ──
+// ── Navigation items (V1 Classic+) ──
+// Wireframe uses sketchy glyph icons. We keep them as single characters
+// to stay pixel-faithful to the design.
 
-interface NavItem {
+interface V1NavItem {
   path: RoutePath;
   labelKey: string;
-  icon: LucideIcon;
+  glyph: string;
+  badgeKey?: "today" | "history";
 }
 
-const NAV_GROUPS: NavItem[][] = [
-  // Overview
-  [
-    { path: "/dashboard", labelKey: "mainApp.nav.dashboard", icon: LayoutDashboard },
-    { path: "/history", labelKey: "mainApp.nav.history", icon: History },
-    { path: "/dictionary", labelKey: "mainApp.nav.dictionary", icon: BookOpen },
-  ],
-  // Tuning
-  [
-    { path: "/ai", labelKey: "mainApp.nav.ai", icon: Sparkles },
-  ],
-  // System — Settings parent navigates to /settings/general
-  [
-    { path: "/settings/general", labelKey: "mainApp.nav.settings", icon: Settings },
-  ],
+const NAV_GROUP_PRIMARY: V1NavItem[] = [
+  { path: "/dashboard", labelKey: "mainApp.nav.dashboard", glyph: "◱" },
+  { path: "/history", labelKey: "mainApp.nav.history", glyph: "≡", badgeKey: "history" },
+  { path: "/ai", labelKey: "mainApp.nav.ai", glyph: "✦" },
+  { path: "/dictionary", labelKey: "mainApp.nav.dictionary", glyph: "⊞" },
 ];
 
-const ALL_NAV_ITEMS = NAV_GROUPS.flat();
-
-// Settings sub-navigation items shown under "Settings" in sidebar
-const SETTINGS_SUB_ITEMS: { path: RoutePath; labelKey: string }[] = [
-  { path: "/settings/general", labelKey: "settings.group.general" },
-  { path: "/settings/voice", labelKey: "settings.group.voice" },
-  { path: "/settings/permissions", labelKey: "settings.group.permissions" },
-  { path: "/settings/about", labelKey: "settings.group.about" },
+const NAV_GROUP_SYSTEM: V1NavItem[] = [
+  { path: "/settings/general", labelKey: "mainApp.nav.settings", glyph: "✲" },
 ];
+
+const ALL_NAV_ITEMS = [...NAV_GROUP_PRIMARY, ...NAV_GROUP_SYSTEM];
 
 // ── Update UI types ──
 
@@ -457,15 +428,19 @@ export function DashboardApp() {
         Skip to content
       </a>
 
-      {/* macOS custom title bar: fixed overlay for window dragging */}
+      {/* macOS custom title bar: fixed overlay for window dragging — V1 paper style */}
       <div
         data-tauri-drag-region
-        className="fixed top-0 left-0 right-0 z-20 flex h-9 items-center justify-center gap-1.5 border-b border-border bg-background"
+        className="fixed top-0 left-0 right-0 z-20 flex h-9 items-center justify-center select-none"
+        style={{
+          background: "var(--v1-paper-2)",
+          borderBottom: "1.5px solid var(--v1-line)",
+        }}
       >
-        <img src={logoTypeLate} alt="" className="h-4 w-4 rounded pointer-events-none select-none" data-tauri-drag-region />
         <span
           data-tauri-drag-region
-          className="text-xs font-medium text-muted-foreground select-none"
+          className="text-xs font-medium select-none"
+          style={{ color: "var(--v1-ink-2)" }}
         >
           TypeLate
         </span>
@@ -474,168 +449,326 @@ export function DashboardApp() {
       {showOnboarding ? (
         <OnboardingView onComplete={() => setShowOnboarding(false)} />
       ) : (
-        <SidebarProvider className="h-screen !min-h-0 pt-9">
-          <Sidebar collapsible="offcanvas">
-            <SidebarHeader
-              className="flex-row h-12 items-center gap-3 border-b border-sidebar-border px-4 cursor-default"
+        <div className="flex h-screen min-h-0 pt-9">
+          {/* ── V1 Sidebar ── */}
+          <aside
+            className="flex shrink-0 flex-col"
+            style={{
+              width: 210,
+              background: "var(--v1-paper-2)",
+              borderRight: "1.5px solid var(--v1-line)",
+            }}
+          >
+            {/* Logo + tagline */}
+            <div
+              className="flex items-center gap-2.5 px-3.5 pt-3.5 pb-2.5 cursor-default"
               title={sidebarSlogan}
             >
-              <img src={logoTypeLate} alt="TypeLate" className="h-7 w-7 rounded" />
-              <span
-                className="text-base font-semibold text-sidebar-foreground tracking-wide"
-                style={{ fontFamily: "'SF Pro Display', 'Inter', system-ui, sans-serif" }}
+              <div
+                className="grid place-items-center font-bold leading-none shrink-0"
+                style={{
+                  width: 26,
+                  height: 26,
+                  background: "var(--v1-ink)",
+                  borderRadius: 7,
+                  color: "var(--v1-accent)",
+                  fontFamily: "'Kalam', sans-serif",
+                  fontSize: 14.3,
+                  boxShadow: "2px 2px 0 rgba(0,0,0,0.08)",
+                }}
+                aria-hidden
               >
-                TypeLate
-              </span>
-            </SidebarHeader>
-
-            <SidebarContent>
-              {NAV_GROUPS.map((group, groupIndex) => (
-                <SidebarGroup key={groupIndex}>
-                  <SidebarGroupContent>
-                    <SidebarMenu role="navigation" aria-label="Main navigation">
-                      {group.map((item) => {
-                        const globalIndex = ALL_NAV_ITEMS.indexOf(item);
-                        const isSettingsParent = item.path === "/settings/general";
-                        const isActive = isSettingsParent
-                          ? currentPath.startsWith("/settings")
-                          : currentPath === item.path;
-                        return (
-                          <SidebarMenuItem key={item.path}>
-                            <SidebarMenuButton
-                              isActive={isActive}
-                              onClick={() => navigate(item.path)}
-                              onKeyDown={(e) => {
-                                if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                                  e.preventDefault();
-                                  const next =
-                                    e.key === "ArrowDown"
-                                      ? (globalIndex + 1) % ALL_NAV_ITEMS.length
-                                      : (globalIndex - 1 + ALL_NAV_ITEMS.length) %
-                                        ALL_NAV_ITEMS.length;
-                                  const allButtons = document.querySelectorAll(
-                                    "[role=navigation] button",
-                                  );
-                                  (allButtons?.[next] as HTMLElement | undefined)?.focus();
-                                }
-                              }}
-                            >
-                              <item.icon />
-                              <span>{t(item.labelKey)}</span>
-                            </SidebarMenuButton>
-                            {isSettingsParent && currentPath.startsWith("/settings") && (
-                              <SidebarMenuSub>
-                                {SETTINGS_SUB_ITEMS.map((sub) => (
-                                  <SidebarMenuSubItem key={sub.path}>
-                                    <SidebarMenuSubButton
-                                      isActive={currentPath === sub.path}
-                                      onClick={() => navigate(sub.path)}
-                                    >
-                                      <span>{t(sub.labelKey)}</span>
-                                    </SidebarMenuSubButton>
-                                  </SidebarMenuSubItem>
-                                ))}
-                              </SidebarMenuSub>
-                            )}
-                          </SidebarMenuItem>
-                        );
-                      })}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              ))}
-            </SidebarContent>
-
-            <SidebarFooter className="border-t border-sidebar-border px-4 py-2">
-              {easterEggSlogan && (
-                <div className="mb-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-center">
-                  <p className="text-xs italic text-primary">&ldquo;{easterEggSlogan}&rdquo;</p>
+                T
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>TypeLate</div>
+                <div className="font-hand" style={{ fontSize: 11, color: "var(--v1-ink-3)" }}>
+                  Too late to type.
                 </div>
-              )}
-              <div className="flex items-center gap-3 mb-1">
+              </div>
+            </div>
+
+            {/* Quick capture — always visible */}
+            <div className="px-2.5 pt-1 pb-2.5">
+              <div
+                className="v1-rough flex items-center gap-2"
+                style={{
+                  background: "var(--v1-ink)",
+                  color: "var(--v1-paper)",
+                  padding: "10px 12px",
+                }}
+                role="note"
+              >
+                <div
+                  className="grid place-items-center shrink-0"
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    background: "var(--v1-accent)",
+                    color: "var(--v1-ink)",
+                  }}
+                >
+                  <Mic className="h-3.5 w-3.5" strokeWidth={2.5} />
+                </div>
+                <div style={{ flex: 1, fontSize: 11, lineHeight: 1.3 }}>
+                  <div style={{ fontWeight: 600 }}>
+                    {t("mainApp.sidebar.quickCaptureTitle")}
+                  </div>
+                  <div style={{ fontSize: 10, opacity: 0.7 }}>
+                    {t("mainApp.sidebar.quickCaptureHint")}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Primary nav */}
+            <div
+              className="font-hand"
+              style={{
+                fontSize: 10,
+                letterSpacing: 0.8,
+                textTransform: "uppercase",
+                color: "var(--v1-ink-3)",
+                padding: "12px 12px 4px",
+              }}
+            >
+              {t("mainApp.sidebar.groupPrimary")}
+            </div>
+            <nav className="px-2" aria-label="Main navigation">
+              {NAV_GROUP_PRIMARY.map((item, idx) => {
+                const globalIndex = ALL_NAV_ITEMS.indexOf(item);
+                const isActive = currentPath === item.path;
+                const badge =
+                  item.badgeKey === "history" && todayCount > 0 ? String(todayCount) : undefined;
+                return (
+                  <button
+                    key={item.path}
+                    type="button"
+                    className={"v1-nav-item" + (isActive ? " active" : "")}
+                    onClick={() => navigate(item.path)}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                        e.preventDefault();
+                        const next =
+                          e.key === "ArrowDown"
+                            ? (globalIndex + 1) % ALL_NAV_ITEMS.length
+                            : (globalIndex - 1 + ALL_NAV_ITEMS.length) % ALL_NAV_ITEMS.length;
+                        const allButtons = document.querySelectorAll("nav button.v1-nav-item");
+                        (allButtons?.[next] as HTMLElement | undefined)?.focus();
+                      }
+                    }}
+                  >
+                    <span style={{ width: 14, textAlign: "center", fontSize: 13 }} aria-hidden>
+                      {item.glyph}
+                    </span>
+                    <span
+                      style={{ flex: 1, fontWeight: isActive ? 600 : 400 }}
+                    >
+                      {t(item.labelKey)}
+                    </span>
+                    {badge && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          padding: "1px 6px",
+                          borderRadius: 999,
+                          background: isActive ? "var(--v1-accent)" : "var(--v1-ink)",
+                          color: isActive ? "var(--v1-ink)" : "var(--v1-paper)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {badge}
+                      </span>
+                    )}
+                    {idx === 0 && !isActive && <span className="v1-nav-dot" aria-hidden />}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* System nav */}
+            <div
+              className="font-hand"
+              style={{
+                fontSize: 10,
+                letterSpacing: 0.8,
+                textTransform: "uppercase",
+                color: "var(--v1-ink-3)",
+                padding: "12px 12px 4px",
+              }}
+            >
+              {t("mainApp.sidebar.groupSystem")}
+            </div>
+            <nav className="px-2" aria-label="System navigation">
+              {NAV_GROUP_SYSTEM.map((item) => {
+                const isActive = currentPath.startsWith("/settings");
+                return (
+                  <button
+                    key={item.path}
+                    type="button"
+                    className={"v1-nav-item" + (isActive ? " active" : "")}
+                    onClick={() => navigate(item.path)}
+                  >
+                    <span style={{ width: 14, textAlign: "center", fontSize: 13 }} aria-hidden>
+                      {item.glyph}
+                    </span>
+                    <span style={{ flex: 1, fontWeight: isActive ? 600 : 400 }}>
+                      {t(item.labelKey)}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div style={{ flex: 1 }} />
+
+            {/* Easter egg slogan (overlay above footer) */}
+            {easterEggSlogan && (
+              <div
+                className="mx-3 mb-2 px-2.5 py-1.5 text-center"
+                style={{
+                  border: "1.5px solid var(--v1-accent)",
+                  borderRadius: 6,
+                  background: "rgba(245,179,1,0.12)",
+                }}
+              >
+                <p
+                  className="font-hand text-xs italic"
+                  style={{ color: "var(--v1-ink-2)" }}
+                >
+                  &ldquo;{easterEggSlogan}&rdquo;
+                </p>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div
+              className="flex flex-col gap-1.5"
+              style={{
+                borderTop: "1.5px dashed var(--v1-ink-4)",
+                padding: "10px 14px",
+                fontSize: 11,
+                color: "var(--v1-ink-3)",
+              }}
+            >
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
                     void import("@tauri-apps/plugin-shell").then((m) =>
                       m.open("https://github.com/bobo52310/TypeLate/releases"),
                     );
                   }}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                  className="inline-flex items-center gap-1 transition-colors hover:opacity-80"
+                  style={{ color: "var(--v1-ink-3)", fontSize: 11 }}
                 >
                   <Megaphone className="h-3 w-3" />
                   <span>{t("mainApp.footer.whatsNew")}</span>
                 </button>
                 <button
                   onClick={() => setShowMobileAppDialog(true)}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                  className="inline-flex items-center gap-1 transition-colors hover:opacity-80"
+                  style={{ color: "var(--v1-ink-3)", fontSize: 11 }}
                 >
                   <Smartphone className="h-3 w-3" />
                   <span>{t("mainApp.footer.mobileApp")}</span>
                 </button>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleVersionClick}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors select-none"
-                    disabled={isCheckingUpdate}
-                  >
-                    v{APP_VERSION}
-                    {isCheckingUpdate && (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    )}
-                  </button>
-                  {todayCount > 0 && (
-                    <span className="text-[10px] text-muted-foreground/70">
-                      {t("home.statsBar.todayCount")} {todayCount}
-                    </span>
-                  )}
-                  {syncIsConnected && (
-                    syncIsSyncing ? (
-                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                    ) : syncError ? (
-                      <CloudOff className="h-3 w-3 text-destructive" />
-                    ) : (
-                      <Cloud className="h-3 w-3 text-primary" />
-                    )
-                  )}
-                </div>
-                {(updateState === "update-available" || updateState === "ready-to-install") && (
-                  <Button
-                    size="sm"
-                    className="h-6 gap-1 px-2 text-xs"
-                    onClick={handleSidebarInstall}
-                  >
-                    <Download className="h-3 w-3" />
-                    {t("mainApp.update.installNow")}
-                  </Button>
-                )}
+
+              <div className="flex items-center gap-1.5">
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    background: syncError
+                      ? "var(--v1-accent-2)"
+                      : "var(--v1-accent-4)",
+                    flexShrink: 0,
+                  }}
+                />
+                <span>
+                  {t("mainApp.sidebar.connected")} · Groq
+                </span>
+                {syncIsConnected &&
+                  (syncIsSyncing ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : syncError ? (
+                    <CloudOff className="h-3 w-3" style={{ color: "var(--v1-accent-2)" }} />
+                  ) : (
+                    <Cloud className="h-3 w-3" style={{ color: "var(--v1-accent-3)" }} />
+                  ))}
               </div>
+
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={handleVersionClick}
+                  className="inline-flex items-center gap-1 transition-colors hover:opacity-80 select-none"
+                  style={{ color: "var(--v1-ink-3)", fontSize: 11 }}
+                  disabled={isCheckingUpdate}
+                >
+                  v{APP_VERSION}
+                  {isCheckingUpdate && <Loader2 className="h-3 w-3 animate-spin" />}
+                </button>
+                <span className="font-hand" style={{ color: "var(--v1-ink-2)", fontSize: 11 }}>
+                  {t("mainApp.sidebar.todayCount", { count: todayCount })}
+                </span>
+              </div>
+
+              {(updateState === "update-available" || updateState === "ready-to-install") && (
+                <Button
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-xs"
+                  style={{
+                    background: "var(--v1-accent)",
+                    color: "var(--v1-ink)",
+                    border: "1.5px solid var(--v1-line)",
+                    borderRadius: 6,
+                  }}
+                  onClick={handleSidebarInstall}
+                >
+                  <Download className="h-3 w-3" />
+                  {t("mainApp.update.installNow")}
+                </Button>
+              )}
 
               {updateFeedback.message && (
                 <p
-                  className={`mt-1 text-xs ${
-                    updateFeedback.type === "success" ? "text-primary" : "text-destructive"
-                  }`}
+                  className="text-xs"
+                  style={{
+                    color:
+                      updateFeedback.type === "success"
+                        ? "var(--v1-accent-4)"
+                        : "var(--v1-accent-2)",
+                  }}
                 >
                   {updateFeedback.message}
                 </p>
               )}
-            </SidebarFooter>
-          </Sidebar>
+            </div>
+          </aside>
 
-          <SidebarInset className="overflow-hidden">
+          {/* ── Main content ── */}
+          <main className="v1-paper flex flex-1 flex-col overflow-hidden">
             {databaseError && (
-              <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <div
+                className="px-4 py-3 text-sm"
+                style={{
+                  borderBottom: "1.5px solid var(--v1-accent-2)",
+                  background: "rgba(233,78,27,0.08)",
+                  color: "var(--v1-accent-2)",
+                }}
+              >
                 <p className="font-medium">{t("errors.databaseInitFailed")}</p>
-                <p className="mt-1 text-xs text-destructive/80">{databaseError}</p>
+                <p className="mt-1 text-xs opacity-80">{databaseError}</p>
               </div>
             )}
 
             <div id="main-content" className="flex-1 overflow-y-auto">
               <RouterOutlet />
             </div>
-          </SidebarInset>
-        </SidebarProvider>
+          </main>
+        </div>
       )}
 
       {/* macOS Accessibility permission guide */}

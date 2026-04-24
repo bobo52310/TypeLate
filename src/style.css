@@ -146,3 +146,174 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* ── V1 Classic+ theme — dashboard window ── */
+:root.v1-theme {
+  --v1-ink: #1b1b1c;
+  --v1-ink-2: #3a3a3d;
+  --v1-ink-3: #6b6b70;
+  --v1-ink-4: #a9a9ae;
+  --v1-paper: #fbf9f3;
+  --v1-paper-2: #f3efe3;
+  --v1-line: #1b1b1c;
+  --v1-accent: #f5b301;
+  --v1-accent-2: #e94e1b;
+  --v1-accent-3: #3a6df0;
+  --v1-accent-4: #2bb673;
+
+  /* Remap shadcn tokens onto the V1 palette so Cards/Buttons/etc. inherit */
+  --background: #fbf9f3;
+  --foreground: #1b1b1c;
+  --card: #ffffff;
+  --card-foreground: #1b1b1c;
+  --popover: #ffffff;
+  --popover-foreground: #1b1b1c;
+  --primary: #1b1b1c;
+  --primary-foreground: #fbf9f3;
+  --secondary: #f3efe3;
+  --secondary-foreground: #1b1b1c;
+  --muted: #f3efe3;
+  --muted-foreground: #6b6b70;
+  --accent: #f5b301;
+  --accent-foreground: #1b1b1c;
+  --destructive: #e94e1b;
+  --warning: #e94e1b;
+  --border: #1b1b1c;
+  --input: #1b1b1c;
+  --ring: #f5b301;
+  --sidebar: #f3efe3;
+  --sidebar-foreground: #1b1b1c;
+  --sidebar-primary: #1b1b1c;
+  --sidebar-primary-foreground: #f5b301;
+  --sidebar-accent: #1b1b1c;
+  --sidebar-accent-foreground: #fbf9f3;
+  --sidebar-border: #1b1b1c;
+  --sidebar-ring: #f5b301;
+}
+
+.v1-theme body {
+  background: #e9e4d4;
+  font-family: "Noto Sans TC", "Inter", system-ui, sans-serif;
+  color: var(--v1-ink);
+}
+
+/* Sketch-feel utilities */
+.font-hand { font-family: "Kalam", "Noto Sans TC", sans-serif; }
+.font-scribble { font-family: "Caveat", "Noto Sans TC", cursive; }
+.font-mono-code { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+/* Rough borders */
+.v1-rough {
+  border: 1.5px solid var(--v1-line);
+  border-radius: 6px;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.04);
+}
+.v1-rough-2 {
+  border: 2px solid var(--v1-line);
+  border-radius: 10px;
+}
+.v1-rough-dash {
+  border: 1.5px dashed var(--v1-ink-3);
+  border-radius: 6px;
+}
+
+/* Paper texture */
+.v1-paper {
+  background-color: var(--v1-paper);
+  background-image:
+    radial-gradient(rgba(27, 27, 28, 0.035) 1px, transparent 1px),
+    radial-gradient(rgba(27, 27, 28, 0.02) 1px, transparent 1px);
+  background-size: 18px 18px, 7px 7px;
+  background-position: 0 0, 9px 9px;
+}
+
+.v1-paper-2 {
+  background-color: var(--v1-paper-2);
+}
+
+/* Highlighter markers */
+.v1-marker-y {
+  background: linear-gradient(transparent 55%, rgba(245, 179, 1, 0.55) 55%);
+  padding: 0 2px;
+}
+.v1-marker-p {
+  background: linear-gradient(transparent 55%, rgba(233, 78, 27, 0.35) 55%);
+  padding: 0 2px;
+}
+
+/* Keyboard key chip */
+.v1-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1.5px solid var(--v1-line);
+  border-radius: 5px;
+  background: #fff;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 2px 0 var(--v1-line);
+  color: var(--v1-ink);
+}
+
+/* Waveform bar */
+.v1-wf-bar {
+  width: 3px;
+  background: var(--v1-line);
+  border-radius: 2px;
+}
+
+/* Hatch textures for placeholder areas */
+.v1-hatch {
+  background-image: repeating-linear-gradient(135deg, rgba(27, 27, 28, 0.08) 0 1px, transparent 1px 6px);
+}
+.v1-hatch-soft {
+  background-image: repeating-linear-gradient(135deg, rgba(27, 27, 28, 0.05) 0 1px, transparent 1px 8px);
+}
+
+/* Sidebar nav item */
+.v1-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--v1-ink);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  text-align: left;
+}
+.v1-nav-item:hover {
+  background: rgba(27, 27, 28, 0.06);
+}
+.v1-nav-item.active {
+  background: var(--v1-ink);
+  color: var(--v1-paper);
+}
+.v1-nav-item.active .v1-nav-dot {
+  background: var(--v1-accent);
+}
+.v1-nav-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--v1-ink-3);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Sticky annotation */
+.v1-sticky {
+  font-family: "Kalam", "Noto Sans TC", sans-serif;
+  border: 1.5px solid var(--v1-line);
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.12);
+  max-width: 220px;
+}
