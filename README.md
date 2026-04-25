@@ -15,6 +15,8 @@
 
   **100% free & open source. Fork it, make it yours, and show me what you build!**
 
+  **Website:** [typelate.app](https://typelate.app) · **Source:** [TypeLate-website](https://github.com/bobo52310/TypeLate-website)
+
   <img src="screenshots/desktop-viewport.png" width="700" alt="TypeLate Dashboard" />
 </div>
 
