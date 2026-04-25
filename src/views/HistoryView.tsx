@@ -261,36 +261,15 @@ export default function HistoryView() {
     }
   }
 
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const confirmDeleteIdRef = useRef<string | null>(null);
-  const confirmDeleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function requestDeleteRecord(record: TranscriptionRecord) {
-    if (confirmDeleteIdRef.current === record.id) {
-      // Second click — confirmed
-      if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
-      confirmDeleteIdRef.current = null;
-      setConfirmDeleteId(null);
-      void executeDeleteRecord(record);
-    } else {
-      // First click — enter confirm state, auto-revert after 3s
-      confirmDeleteIdRef.current = record.id;
-      setConfirmDeleteId(record.id);
-      if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
-      confirmDeleteTimerRef.current = setTimeout(() => {
-        confirmDeleteIdRef.current = null;
-        setConfirmDeleteId(null);
-      }, 3000);
-    }
-  }
-
-  async function executeDeleteRecord(record: TranscriptionRecord) {
+  async function handleDeleteRecord(record: TranscriptionRecord) {
     try {
       await deleteTranscription(record.id);
       if (expandedRecordId === record.id) setExpandedRecordId(null);
       void refreshDashboard();
     } catch (err) {
       captureError(err, { source: "history", action: "delete-record" });
+      const message = err instanceof Error ? err.message : String(err);
+      bulkFeedback.show("error", t("history.deleteFailed", { message }));
     }
   }
 
@@ -375,7 +354,6 @@ export default function HistoryView() {
       cleanupAudio();
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-      if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
     };
   }, [resetAndFetch, refreshDashboard, consumePendingFailedFilter, setStatusFilter]);
 
@@ -681,8 +659,7 @@ export default function HistoryView() {
                     {expanded && (
                       <ExpandedRecordDetail
                         record={record}
-                        confirmDeleteId={confirmDeleteId}
-                        onRequestDelete={requestDeleteRecord}
+                        onDelete={handleDeleteRecord}
                         onRetrySuccess={setPendingScrollId}
                       />
                     )}
