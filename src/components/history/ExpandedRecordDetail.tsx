@@ -1,6 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Copy,
@@ -37,15 +48,13 @@ const PROMPT_MODE_LABEL_KEYS: Record<PromptMode, string> = {
 
 interface ExpandedRecordDetailProps {
   record: TranscriptionRecord;
-  confirmDeleteId: string | null;
-  onRequestDelete: (record: TranscriptionRecord) => void;
+  onDelete: (record: TranscriptionRecord) => void;
   onRetrySuccess?: (recordId: string) => void;
 }
 
 export default function ExpandedRecordDetail({
   record,
-  confirmDeleteId,
-  onRequestDelete,
+  onDelete,
   onRetrySuccess,
 }: ExpandedRecordDetailProps) {
   const { t } = useTranslation();
@@ -519,25 +528,36 @@ export default function ExpandedRecordDetail({
           )}
 
           {/* Delete */}
-          <Button
-            variant={confirmDeleteId === record.id ? "destructive" : "ghost"}
-            size="sm"
-            className={cn(
-              "h-6 gap-1 px-2 text-[11px]",
-              confirmDeleteId === record.id
-                ? "animate-pulse"
-                : "text-destructive hover:text-destructive",
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              onRequestDelete(record);
-            }}
-          >
-            <Trash2 className="h-3 w-3" />
-            {confirmDeleteId === record.id
-              ? t("settings.apiKey.confirmDelete")
-              : t("history.delete")}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1 px-2 text-[11px] text-destructive hover:text-destructive"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Trash2 className="h-3 w-3" />
+                {t("history.delete")}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t("history.deleteConfirmTitle")}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t("history.deleteConfirmDescription")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() => onDelete(record)}
+                >
+                  {t("common.delete")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
