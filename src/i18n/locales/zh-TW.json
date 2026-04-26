@@ -410,6 +410,7 @@
     "delete": "刪除",
     "deleteConfirmTitle": "確認刪除這筆紀錄？",
     "deleteConfirmDescription": "此操作將永久刪除這筆轉錄紀錄與相關用量資料，無法復原。",
+    "deleteSuccess": "已刪除紀錄",
     "deleteFailed": "刪除失敗：{message}",
     "loadingMore": "載入更多...",
     "playRecording": "播放錄音",

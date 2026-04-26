@@ -266,6 +266,7 @@ export default function HistoryView() {
       await deleteTranscription(record.id);
       if (expandedRecordId === record.id) setExpandedRecordId(null);
       void refreshDashboard();
+      bulkFeedback.show("success", t("history.deleteSuccess"));
     } catch (err) {
       captureError(err, { source: "history", action: "delete-record" });
       const message = err instanceof Error ? err.message : String(err);

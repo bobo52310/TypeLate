@@ -410,6 +410,7 @@
     "delete": "삭제",
     "deleteConfirmTitle": "이 기록을 삭제하시겠습니까?",
     "deleteConfirmDescription": "이 작업은 전사 기록과 관련 사용 데이터를 영구적으로 삭제하며, 되돌릴 수 없습니다.",
+    "deleteSuccess": "기록을 삭제했습니다",
     "deleteFailed": "삭제 실패: {message}",
     "loadingMore": "더 불러오는 중...",
     "playRecording": "녹음 재생",

@@ -81,6 +81,11 @@ async function doInitializeDatabase(): Promise<Database> {
       await connection.execute("ALTER TABLE api_usage_new RENAME TO api_usage;");
       logInfo("database", "Recovery: renamed api_usage_new → api_usage");
     } else {
+      // NOTE: no FK to transcriptions(id). v9's RENAME caused SQLite to
+      // rewrite the FK target to transcriptions_old, breaking DML on api_usage
+      // once that table was dropped. The relation is enforced in app code
+      // (deleteTranscription deletes from api_usage first). v12 migration
+      // also rebuilds api_usage without the FK for users hit by this bug.
       await connection.execute(`
         CREATE TABLE api_usage (
           id TEXT PRIMARY KEY,
@@ -95,8 +100,7 @@ async function doInitializeDatabase(): Promise<Database> {
           total_time_ms REAL,
           audio_duration_ms INTEGER,
           estimated_cost_ceiling REAL,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          FOREIGN KEY (transcription_id) REFERENCES transcriptions(id)
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
       `);
       await connection.execute(`
