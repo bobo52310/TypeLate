@@ -410,6 +410,7 @@
     "delete": "Delete",
     "deleteConfirmTitle": "Delete this record?",
     "deleteConfirmDescription": "This will permanently remove the transcription and its usage data. This action cannot be undone.",
+    "deleteSuccess": "Record deleted",
     "deleteFailed": "Delete failed: {message}",
     "loadingMore": "Loading more...",
     "playRecording": "Play recording",

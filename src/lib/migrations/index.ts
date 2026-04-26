@@ -11,6 +11,7 @@ import { v8ModelTracking } from "./v8-model-tracking";
 import { v9TriggerModeDoubleTap } from "./v9-trigger-mode-doubletap";
 import { v10VocabularyPrune } from "./v10-vocabulary-prune";
 import { v11PromptMode } from "./v11-prompt-mode";
+import { v12FixApiUsageFk } from "./v12-fix-api-usage-fk";
 
 export interface Migration {
   version: number;
@@ -30,6 +31,7 @@ const migrations: Migration[] = [
   v9TriggerModeDoubleTap,
   v10VocabularyPrune,
   v11PromptMode,
+  v12FixApiUsageFk,
 ];
 
 async function ensureSchemaVersionTable(db: Database): Promise<void> {

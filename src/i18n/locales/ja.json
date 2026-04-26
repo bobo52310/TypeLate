@@ -410,6 +410,7 @@
     "delete": "削除",
     "deleteConfirmTitle": "この記録を削除しますか？",
     "deleteConfirmDescription": "この操作は文字起こしと関連する使用状況データを完全に削除します。元に戻すことはできません。",
+    "deleteSuccess": "記録を削除しました",
     "deleteFailed": "削除に失敗しました：{message}",
     "loadingMore": "さらに読み込み中...",
     "playRecording": "録音を再生",
