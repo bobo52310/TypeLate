@@ -10,7 +10,11 @@ const MAX_WHISPER_PROMPT_TERMS: usize = 50;
 // (an 880-codepoint prompt with mixed CJK + ASCII still got rejected at
 // "1020 characters"), so we bound by byte length — the strictest unit that
 // is ≥ both Unicode code points and UTF-16 code units.
-const MAX_WHISPER_PROMPT_BYTES: usize = 880;
+const GROQ_PROMPT_BUDGET_BYTES: usize = 880;
+// OpenAI Whisper's prompt is bounded by Whisper's 224-token encoder context
+// (silently truncated on overflow, not rejected). With CJK BPE one char can
+// expand to ~2 tokens, so cap at 200 chars to keep headroom across languages.
+const OPENAI_PROMPT_BUDGET_CHARS: usize = 200;
 const MINIMUM_AUDIO_SIZE: usize = 1000;
 const DEFAULT_WHISPER_MODEL_ID: &str = "whisper-large-v3";
 const REQUEST_TIMEOUT_SECS: u64 = 30;
@@ -118,26 +122,65 @@ fn extract_rate_limit_headers(response: &reqwest::Response) -> Option<RateLimitI
     }
 }
 
-fn format_whisper_prompt(term_list: &[String]) -> String {
+#[derive(Clone, Copy)]
+struct PromptBudget {
+    max_bytes: usize,
+    max_chars: usize,
+}
+
+/// Pick the prompt-length budget for a given transcription endpoint.
+/// Different providers measure "prompt length" differently:
+/// - Groq: UTF-8 bytes against a 896-byte ceiling (hard 400 on overflow)
+/// - OpenAI: Whisper encoder context = 224 tokens (silent truncation)
+/// Unknown providers get the strictest combination.
+fn prompt_budget_for_url(api_url: &str) -> PromptBudget {
+    if api_url.contains("openai.com") {
+        PromptBudget {
+            max_bytes: usize::MAX,
+            max_chars: OPENAI_PROMPT_BUDGET_CHARS,
+        }
+    } else if api_url.contains("groq.com") {
+        PromptBudget {
+            max_bytes: GROQ_PROMPT_BUDGET_BYTES,
+            max_chars: usize::MAX,
+        }
+    } else {
+        // Unknown / future provider: apply both caps for safety.
+        PromptBudget {
+            max_bytes: GROQ_PROMPT_BUDGET_BYTES,
+            max_chars: OPENAI_PROMPT_BUDGET_CHARS,
+        }
+    }
+}
+
+fn format_whisper_prompt(term_list: &[String], api_url: &str) -> String {
     const PREFIX: &str = "Important Vocabulary: ";
     const SEPARATOR: &str = ", ";
     let separator_bytes = SEPARATOR.len();
+    let separator_chars = SEPARATOR.chars().count();
+    let budget = prompt_budget_for_url(api_url);
 
     let mut out = String::from(PREFIX);
     let mut current_bytes = PREFIX.len();
+    let mut current_chars = PREFIX.chars().count();
     let mut first = true;
 
     for term in term_list.iter().take(MAX_WHISPER_PROMPT_TERMS) {
         let term_bytes = term.len();
-        let needed = if first { term_bytes } else { separator_bytes + term_bytes };
-        if current_bytes + needed > MAX_WHISPER_PROMPT_BYTES {
+        let term_chars = term.chars().count();
+        let needed_bytes = if first { term_bytes } else { separator_bytes + term_bytes };
+        let needed_chars = if first { term_chars } else { separator_chars + term_chars };
+        if current_bytes + needed_bytes > budget.max_bytes
+            || current_chars + needed_chars > budget.max_chars
+        {
             break;
         }
         if !first {
             out.push_str(SEPARATOR);
         }
         out.push_str(term);
-        current_bytes += needed;
+        current_bytes += needed_bytes;
+        current_chars += needed_chars;
         first = false;
     }
 
@@ -188,7 +231,7 @@ async fn send_transcription_request(
 
     if let Some(ref terms) = vocabulary_term_list {
         if !terms.is_empty() {
-            let prompt = format_whisper_prompt(terms);
+            let prompt = format_whisper_prompt(terms, &api_url);
             println!(
                 "[transcription] Whisper prompt: chars={}, bytes={}, term_count={}",
                 prompt.chars().count(),
@@ -330,47 +373,49 @@ pub async fn retranscribe_from_file(
 mod tests {
     use super::*;
 
+    const GROQ_URL: &str = "https://api.groq.com/openai/v1/audio/transcriptions";
+    const OPENAI_URL: &str = "https://api.openai.com/v1/audio/transcriptions";
+
     #[test]
     fn test_format_whisper_prompt_basic() {
         let terms = vec!["Tauri".to_string(), "Rust".to_string(), "Vue".to_string()];
-        let result = format_whisper_prompt(&terms);
+        let result = format_whisper_prompt(&terms, GROQ_URL);
         assert_eq!(result, "Important Vocabulary: Tauri, Rust, Vue");
     }
 
     #[test]
     fn test_format_whisper_prompt_empty() {
         let terms: Vec<String> = vec![];
-        let result = format_whisper_prompt(&terms);
+        let result = format_whisper_prompt(&terms, GROQ_URL);
         assert_eq!(result, "Important Vocabulary: ");
     }
 
     #[test]
-    fn test_format_whisper_prompt_exceeds_max() {
+    fn test_format_whisper_prompt_groq_term_count_cap() {
         let terms: Vec<String> = (0..100).map(|i| format!("term{}", i)).collect();
-        let result = format_whisper_prompt(&terms);
+        let result = format_whisper_prompt(&terms, GROQ_URL);
         let parts: Vec<&str> = result
             .strip_prefix("Important Vocabulary: ")
             .unwrap()
             .split(", ")
             .collect();
-        // Short ascii terms fit comfortably under the char budget, so the
-        // term-count cap is what kicks in.
+        // Short ascii terms fit under both byte/char budgets, so the
+        // term-count cap (50) is what kicks in for Groq.
         assert_eq!(parts.len(), MAX_WHISPER_PROMPT_TERMS);
         assert_eq!(parts[0], "term0");
         assert_eq!(parts[MAX_WHISPER_PROMPT_TERMS - 1], "term49");
     }
 
     #[test]
-    fn test_format_whisper_prompt_truncates_at_byte_budget_ascii() {
+    fn test_format_whisper_prompt_groq_byte_budget_ascii() {
         // 50 terms × 30 ascii chars + 49 separators (2 bytes) + prefix (22 bytes)
-        // = 1500 + 98 + 22 = 1620 bytes, well above MAX_WHISPER_PROMPT_BYTES (880).
-        // Greedy packing should stop before overflowing.
+        // = 1620 bytes, well above GROQ_PROMPT_BUDGET_BYTES (880).
         let terms: Vec<String> = (0..50).map(|i| format!("{:0>30}", i)).collect();
-        let result = format_whisper_prompt(&terms);
+        let result = format_whisper_prompt(&terms, GROQ_URL);
         assert!(
-            result.len() <= MAX_WHISPER_PROMPT_BYTES,
+            result.len() <= GROQ_PROMPT_BUDGET_BYTES,
             "expected ≤{} bytes, got {}",
-            MAX_WHISPER_PROMPT_BYTES,
+            GROQ_PROMPT_BUDGET_BYTES,
             result.len()
         );
         // At least the first term must always fit (otherwise vocabulary is unusable).
@@ -378,20 +423,57 @@ mod tests {
     }
 
     #[test]
-    fn test_format_whisper_prompt_truncates_at_byte_budget_cjk() {
-        // 4-char CJK terms = 12 bytes each + 2-byte separator. With 50 terms
-        // we'd hit 12*50 + 2*49 + 22 = 720 bytes (under budget). Use longer
-        // terms (10 CJK chars = 30 bytes) to force truncation.
+    fn test_format_whisper_prompt_groq_byte_budget_cjk() {
+        // 10 CJK chars per term = 30 bytes each + 2-byte separator. With 50
+        // terms we'd hit 30*50 + 2*49 + 22 = 1620 bytes, way over budget.
         let terms: Vec<String> = (0..MAX_WHISPER_PROMPT_TERMS)
             .map(|_| "詞彙術語語詞語詞語詞".to_string())
             .collect();
-        let result = format_whisper_prompt(&terms);
+        let result = format_whisper_prompt(&terms, GROQ_URL);
         assert!(
-            result.len() <= MAX_WHISPER_PROMPT_BYTES,
+            result.len() <= GROQ_PROMPT_BUDGET_BYTES,
             "expected ≤{} bytes, got {}",
-            MAX_WHISPER_PROMPT_BYTES,
+            GROQ_PROMPT_BUDGET_BYTES,
             result.len()
         );
+    }
+
+    #[test]
+    fn test_format_whisper_prompt_openai_char_budget_cjk() {
+        // OpenAI Whisper caps at 224 tokens. We use char count as proxy
+        // (≤200 chars). 50 × 10 CJK chars = 500 chars, well over the limit.
+        let terms: Vec<String> = (0..MAX_WHISPER_PROMPT_TERMS)
+            .map(|_| "詞彙術語語詞語詞語詞".to_string())
+            .collect();
+        let result = format_whisper_prompt(&terms, OPENAI_URL);
+        assert!(
+            result.chars().count() <= OPENAI_PROMPT_BUDGET_CHARS,
+            "expected ≤{} chars, got {}",
+            OPENAI_PROMPT_BUDGET_CHARS,
+            result.chars().count()
+        );
+    }
+
+    #[test]
+    fn test_format_whisper_prompt_openai_keeps_high_weight_first() {
+        // Greedy packing must preserve weight order (term_list is already
+        // weight-sorted at the call site). First term must always survive.
+        let terms: Vec<String> = (0..50).map(|i| format!("term-{:03}", i)).collect();
+        let result = format_whisper_prompt(&terms, OPENAI_URL);
+        assert!(result.starts_with("Important Vocabulary: term-000, "));
+        assert!(result.chars().count() <= OPENAI_PROMPT_BUDGET_CHARS);
+    }
+
+    #[test]
+    fn test_format_whisper_prompt_unknown_provider_applies_both_caps() {
+        // Defensive: an unknown URL should clamp by *both* budgets so we
+        // never accidentally over-send to a future provider.
+        let terms: Vec<String> = (0..50)
+            .map(|_| "詞彙術語語詞語詞語詞".to_string())
+            .collect();
+        let result = format_whisper_prompt(&terms, "https://example.com/transcribe");
+        assert!(result.len() <= GROQ_PROMPT_BUDGET_BYTES);
+        assert!(result.chars().count() <= OPENAI_PROMPT_BUDGET_CHARS);
     }
 
     #[test]
