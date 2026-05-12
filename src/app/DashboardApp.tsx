@@ -180,7 +180,6 @@ export function DashboardApp() {
 
   // AlertDialog visibility
   const [showManualUpdateDialog, setShowManualUpdateDialog] = useState(false);
-  const [showUpgradeNoticeDialog, setShowUpgradeNoticeDialog] = useState(false);
 
   // Refs for cleanup
   const autoCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -188,7 +187,6 @@ export function DashboardApp() {
   const initGuardRef = useRef(false);
 
   // Store subscriptions
-  const showPromptUpgradeNotice = useSettingsStore((s) => s.showPromptUpgradeNotice);
   const recordingRetentionPolicy = useSettingsStore((s) => s.recordingRetentionPolicy);
 
   // Sync state for sidebar indicator
@@ -210,14 +208,6 @@ export function DashboardApp() {
     // Navigate to about section and trigger update check
     navigate("/settings/about");
   });
-
-  // ── Watch for upgrade notice ──
-  useEffect(() => {
-    if (showPromptUpgradeNotice) {
-      setShowUpgradeNoticeDialog(true);
-      useSettingsStore.setState({ showPromptUpgradeNotice: false });
-    }
-  }, [showPromptUpgradeNotice]);
 
   // ── Auto-update flow ──
 
@@ -362,7 +352,6 @@ export function DashboardApp() {
       // Settings
       const settingsActions = useSettingsStore.getState();
       await settingsActions.loadSettings();
-      await settingsActions.consumeUpgradeNotice();
       await settingsActions.loadAutoStartStatus();
 
       // Onboarding check
@@ -677,31 +666,6 @@ export function DashboardApp() {
         onRemindLater={handleRemindLater}
         onInstallUpdate={handleInstallUpdate}
       />
-
-      {/* Upgrade notice AlertDialog */}
-      <AlertDialog open={showUpgradeNoticeDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("mainApp.upgradeNotice.title")}</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div>
-                <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
-                  <li>{t("mainApp.upgradeNotice.item1")}</li>
-                  <li>{t("mainApp.upgradeNotice.item2")}</li>
-                  <li>{t("mainApp.upgradeNotice.item3")}</li>
-                  <li>{t("mainApp.upgradeNotice.item4")}</li>
-                  <li>{t("mainApp.upgradeNotice.item5")}</li>
-                </ul>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowUpgradeNoticeDialog(false)}>
-              {t("mainApp.upgradeNotice.dismiss")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Manual update AlertDialog: new version found, ask to start */}
       <AlertDialog open={showManualUpdateDialog}>

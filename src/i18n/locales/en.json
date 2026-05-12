@@ -763,15 +763,6 @@
       "installUpdate": "Install Update",
       "defaultChangelogItem": "Bug fixes and performance improvements",
       "learnMore": "Learn more"
-    },
-    "upgradeNotice": {
-      "title": "TypeLate Update Summary",
-      "item1": "1. Security fix: microphone stays active after stopping recording on macOS when a specific device is selected — now fixed",
-      "item2": "2. Microphone selection: choose your input device in settings",
-      "item3": "3. Improved soft speech detection: peak energy escape hatch reduces false positives",
-      "item4": "4. More stable AI enhancement: lower randomness, auto-retry on anomalous results",
-      "item5": "5. AI enhancement preserves tone: questions are no longer rewritten as statements",
-      "dismiss": "Got it"
     }
   }
 }
