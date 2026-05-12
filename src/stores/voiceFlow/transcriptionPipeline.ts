@@ -328,6 +328,7 @@ export function buildTranscriptionRecord(params: {
   wasEnhanced: boolean;
   audioFilePath: string | null;
   status: "success" | "failed";
+  errorMessage?: string | null;
 }): TranscriptionRecord {
   const settingsStore = getSettingsStore();
   return {
@@ -349,6 +350,7 @@ export function buildTranscriptionRecord(params: {
     status: params.status,
     whisperModelId: settingsStore.selectedWhisperModelId,
     llmModelId: params.wasEnhanced ? settingsStore.selectedLlmModelId : null,
+    errorMessage: params.errorMessage ?? null,
   };
 }
 
@@ -1087,6 +1089,7 @@ async function runTranscriptionFor(ctx: PipelineContext): Promise<void> {
     }
   } catch (error) {
     if (ctx.abortController.signal.aborted) return;
+    const technicalMessage = extractErrorMessage(error);
     // AC2: API error -- still write failed record if we have audioFilePath
     if (audioFilePath) {
       const failedRecord = buildTranscriptionRecord({
@@ -1099,12 +1102,12 @@ async function runTranscriptionFor(ctx: PipelineContext): Promise<void> {
         wasEnhanced: false,
         audioFilePath,
         status: "failed",
+        errorMessage: technicalMessage,
       });
       void saveTranscriptionRecord(failedRecord);
     }
 
     const userMessage = getTranscriptionErrorMessage(error);
-    const technicalMessage = extractErrorMessage(error);
     failRecordingFlow(
       userMessage,
       `voiceFlowStore: stop recording failed: ${technicalMessage}`,
