@@ -67,7 +67,6 @@ import {
   isValidTranscriptionProviderId,
 } from "@/lib/providerConfig";
 
-import { APP_VERSION } from "@/lib/version";
 import { IS_MAC } from "@/lib/platform";
 import { type AppCategory, resolveAppCategory } from "@/lib/appContextMap";
 import { composeContextAwarePrompt, getSurroundingTextInstruction } from "@/lib/contextPrompts";
@@ -115,7 +114,6 @@ interface SettingsState {
   apiKeys: Record<LlmProviderId, string>;
   aiPrompt: string;
   promptMode: PromptMode;
-  showPromptUpgradeNotice: boolean;
   isAutoStartEnabled: boolean;
   isEnhancementThresholdEnabled: boolean;
   enhancementThresholdCharCount: number;
@@ -174,7 +172,6 @@ interface SettingsState {
   refreshApiKey: (providerId: LlmProviderId) => Promise<void>;
   deleteApiKey: (providerId: LlmProviderId) => Promise<void>;
   savePromptMode: (mode: PromptMode) => Promise<void>;
-  consumeUpgradeNotice: () => Promise<void>;
   saveAiPrompt: (prompt: string) => Promise<void>;
   resetAiPrompt: () => Promise<void>;
   saveEnhancementThreshold: (enabled: boolean, charCount: number) => Promise<void>;
@@ -234,7 +231,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   apiKeys: { ...EMPTY_API_KEYS },
   aiPrompt: getMinimalPromptForLocale(FALLBACK_LOCALE),
   promptMode: DEFAULT_PROMPT_MODE,
-  showPromptUpgradeNotice: false,
   isAutoStartEnabled: false,
   isEnhancementThresholdEnabled: DEFAULT_ENHANCEMENT_THRESHOLD_ENABLED,
   enhancementThresholdCharCount: DEFAULT_ENHANCEMENT_THRESHOLD_CHAR_COUNT,
@@ -787,35 +783,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       logError("settings", "[settingsStore] savePromptMode failed:", extractErrorMessage(err));
       captureError(err, { source: "settings", step: "save-prompt-mode" });
       throw err;
-    }
-  },
-
-  consumeUpgradeNotice: async () => {
-    try {
-      const store = await load(STORE_NAME);
-      const lastSeenVersion = await store.get<string>("lastSeenVersion");
-
-      if (lastSeenVersion === null || lastSeenVersion === undefined) {
-        const existingApiKey = await store.get<string>("groqApiKey");
-        if (existingApiKey) {
-          set({ showPromptUpgradeNotice: true });
-        }
-        await store.set("lastSeenVersion", APP_VERSION);
-        await store.save();
-        return;
-      }
-
-      if (lastSeenVersion !== APP_VERSION) {
-        set({ showPromptUpgradeNotice: true });
-        await store.set("lastSeenVersion", APP_VERSION);
-        await store.save();
-      }
-    } catch (err) {
-      logError(
-        "settings",
-        "[settingsStore] consumeUpgradeNotice failed:",
-        extractErrorMessage(err),
-      );
     }
   },
 
