@@ -37,6 +37,7 @@ interface RawTranscriptionRow {
   status: string;
   whisper_model_id: string | null;
   llm_model_id: string | null;
+  error_message: string | null;
 }
 
 function parsePromptMode(value: string | null): PromptMode | null {
@@ -63,6 +64,7 @@ function mapRowToRecord(row: RawTranscriptionRow): TranscriptionRecord {
     status: row.status as TranscriptionRecord["status"],
     whisperModelId: row.whisper_model_id,
     llmModelId: row.llm_model_id,
+    errorMessage: row.error_message,
   };
 }
 
@@ -71,15 +73,15 @@ const INSERT_SQL = `
     id, timestamp, raw_text, processed_text,
     recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
     char_count, trigger_mode, prompt_mode, was_enhanced, was_modified,
-    audio_file_path, status, whisper_model_id, llm_model_id
-  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+    audio_file_path, status, whisper_model_id, llm_model_id, error_message
+  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 `;
 
 const SELECT_ALL_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status, whisper_model_id, llm_model_id
+         audio_file_path, status, whisper_model_id, llm_model_id, error_message
   FROM transcriptions
   ORDER BY timestamp DESC
 `;
@@ -88,7 +90,7 @@ const SELECT_PAGED_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status, whisper_model_id, llm_model_id
+         audio_file_path, status, whisper_model_id, llm_model_id, error_message
   FROM transcriptions
   ORDER BY timestamp DESC
   LIMIT $1 OFFSET $2
@@ -98,7 +100,7 @@ const SEARCH_PAGED_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status, whisper_model_id, llm_model_id
+         audio_file_path, status, whisper_model_id, llm_model_id, error_message
   FROM transcriptions
   WHERE raw_text LIKE $1 ESCAPE '\\' OR processed_text LIKE $1 ESCAPE '\\'
   ORDER BY timestamp DESC
@@ -109,7 +111,7 @@ const SELECT_FAILED_PAGED_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status, whisper_model_id, llm_model_id
+         audio_file_path, status, whisper_model_id, llm_model_id, error_message
   FROM transcriptions
   WHERE status = 'failed' AND audio_file_path IS NOT NULL
   ORDER BY timestamp DESC
@@ -120,7 +122,7 @@ const SEARCH_FAILED_PAGED_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status, whisper_model_id, llm_model_id
+         audio_file_path, status, whisper_model_id, llm_model_id, error_message
   FROM transcriptions
   WHERE status = 'failed' AND audio_file_path IS NOT NULL
     AND (raw_text LIKE $1 ESCAPE '\\' OR processed_text LIKE $1 ESCAPE '\\')
@@ -185,7 +187,8 @@ const UPDATE_ON_RETRY_SUCCESS_SQL = `
       was_enhanced = $5,
       char_count = $6,
       whisper_model_id = $7,
-      llm_model_id = $8
+      llm_model_id = $8,
+      error_message = NULL
   WHERE id = $9
 `;
 
@@ -207,7 +210,7 @@ const SELECT_RECENT_SQL = `
   SELECT id, timestamp, raw_text, processed_text,
          recording_duration_ms, transcription_duration_ms, enhancement_duration_ms,
          char_count, trigger_mode, prompt_mode, was_enhanced, was_modified, created_at,
-         audio_file_path, status, whisper_model_id, llm_model_id
+         audio_file_path, status, whisper_model_id, llm_model_id, error_message
   FROM transcriptions
   ORDER BY timestamp DESC
   LIMIT $1
@@ -528,6 +531,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         record.status,
         record.whisperModelId,
         record.llmModelId,
+        record.errorMessage,
       ]);
     } catch (err) {
       logError("history", `addTranscription failed: ${extractErrorMessage(err)}`);

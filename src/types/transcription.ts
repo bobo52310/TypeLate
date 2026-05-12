@@ -21,6 +21,7 @@ export interface TranscriptionRecord {
   status: TranscriptionStatus;
   whisperModelId: string | null;
   llmModelId: string | null;
+  errorMessage: string | null;
 }
 
 export interface DailyQuotaUsage {
