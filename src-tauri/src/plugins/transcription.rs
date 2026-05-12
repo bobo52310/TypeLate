@@ -5,6 +5,12 @@ use tauri::{command, State};
 // ========== Constants ==========
 
 const MAX_WHISPER_PROMPT_TERMS: usize = 50;
+// Groq Whisper rejects prompts whose length exceeds 896 "characters" with
+// HTTP 400 invalid_request_error. Empirically Groq counts UTF-8 bytes
+// (an 880-codepoint prompt with mixed CJK + ASCII still got rejected at
+// "1020 characters"), so we bound by byte length — the strictest unit that
+// is ≥ both Unicode code points and UTF-16 code units.
+const MAX_WHISPER_PROMPT_BYTES: usize = 880;
 const MINIMUM_AUDIO_SIZE: usize = 1000;
 const DEFAULT_WHISPER_MODEL_ID: &str = "whisper-large-v3";
 const REQUEST_TIMEOUT_SECS: u64 = 30;
@@ -113,12 +119,29 @@ fn extract_rate_limit_headers(response: &reqwest::Response) -> Option<RateLimitI
 }
 
 fn format_whisper_prompt(term_list: &[String]) -> String {
-    let terms: Vec<&str> = term_list
-        .iter()
-        .take(MAX_WHISPER_PROMPT_TERMS)
-        .map(|s| s.as_str())
-        .collect();
-    format!("Important Vocabulary: {}", terms.join(", "))
+    const PREFIX: &str = "Important Vocabulary: ";
+    const SEPARATOR: &str = ", ";
+    let separator_bytes = SEPARATOR.len();
+
+    let mut out = String::from(PREFIX);
+    let mut current_bytes = PREFIX.len();
+    let mut first = true;
+
+    for term in term_list.iter().take(MAX_WHISPER_PROMPT_TERMS) {
+        let term_bytes = term.len();
+        let needed = if first { term_bytes } else { separator_bytes + term_bytes };
+        if current_bytes + needed > MAX_WHISPER_PROMPT_BYTES {
+            break;
+        }
+        if !first {
+            out.push_str(SEPARATOR);
+        }
+        out.push_str(term);
+        current_bytes += needed;
+        first = false;
+    }
+
+    out
 }
 
 // ========== Shared Transcription Logic ==========
@@ -166,6 +189,12 @@ async fn send_transcription_request(
     if let Some(ref terms) = vocabulary_term_list {
         if !terms.is_empty() {
             let prompt = format_whisper_prompt(terms);
+            println!(
+                "[transcription] Whisper prompt: chars={}, bytes={}, term_count={}",
+                prompt.chars().count(),
+                prompt.len(),
+                terms.len()
+            );
             form = form.text("prompt", prompt);
         }
     }
@@ -319,15 +348,50 @@ mod tests {
     fn test_format_whisper_prompt_exceeds_max() {
         let terms: Vec<String> = (0..100).map(|i| format!("term{}", i)).collect();
         let result = format_whisper_prompt(&terms);
-        // Should only include first 30 terms
         let parts: Vec<&str> = result
             .strip_prefix("Important Vocabulary: ")
             .unwrap()
             .split(", ")
             .collect();
+        // Short ascii terms fit comfortably under the char budget, so the
+        // term-count cap is what kicks in.
         assert_eq!(parts.len(), MAX_WHISPER_PROMPT_TERMS);
         assert_eq!(parts[0], "term0");
-        assert_eq!(parts[29], "term29");
+        assert_eq!(parts[MAX_WHISPER_PROMPT_TERMS - 1], "term49");
+    }
+
+    #[test]
+    fn test_format_whisper_prompt_truncates_at_byte_budget_ascii() {
+        // 50 terms × 30 ascii chars + 49 separators (2 bytes) + prefix (22 bytes)
+        // = 1500 + 98 + 22 = 1620 bytes, well above MAX_WHISPER_PROMPT_BYTES (880).
+        // Greedy packing should stop before overflowing.
+        let terms: Vec<String> = (0..50).map(|i| format!("{:0>30}", i)).collect();
+        let result = format_whisper_prompt(&terms);
+        assert!(
+            result.len() <= MAX_WHISPER_PROMPT_BYTES,
+            "expected ≤{} bytes, got {}",
+            MAX_WHISPER_PROMPT_BYTES,
+            result.len()
+        );
+        // At least the first term must always fit (otherwise vocabulary is unusable).
+        assert!(result.contains(&terms[0]));
+    }
+
+    #[test]
+    fn test_format_whisper_prompt_truncates_at_byte_budget_cjk() {
+        // 4-char CJK terms = 12 bytes each + 2-byte separator. With 50 terms
+        // we'd hit 12*50 + 2*49 + 22 = 720 bytes (under budget). Use longer
+        // terms (10 CJK chars = 30 bytes) to force truncation.
+        let terms: Vec<String> = (0..MAX_WHISPER_PROMPT_TERMS)
+            .map(|_| "詞彙術語語詞語詞語詞".to_string())
+            .collect();
+        let result = format_whisper_prompt(&terms);
+        assert!(
+            result.len() <= MAX_WHISPER_PROMPT_BYTES,
+            "expected ≤{} bytes, got {}",
+            MAX_WHISPER_PROMPT_BYTES,
+            result.len()
+        );
     }
 
     #[test]
