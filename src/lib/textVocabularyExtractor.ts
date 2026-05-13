@@ -15,6 +15,13 @@ const SYSTEM_PROMPT = `你是詞彙擷取助手。從使用者提供的文本中
 ❌ 單一中文字（至少 2 字）
 ❌ 純數字
 ❌ 標點符號
+❌ 完整句子或描述性短語（含主謂結構、疑問句、祈使句；通常超過 8 個中文字的敘述）
+
+【句子型反例 — 只回傳裡面的專有名詞，沒有就回 []】
+"如何最高效率刷 leetcode" → [{ "term": "leetcode", ... }]
+"參考這一個網址" → []
+"給我一些此產品名稱的建議" → []
+"整體重新設計一下設定" → []
 
 【回傳格式】
 JSON array，每個元素：
@@ -26,7 +33,7 @@ relevance 判斷：
 - medium: 出現數次且為專業用語
 - low: 出現少數次但值得收錄
 
-擷取 5 到 50 個詞彙。只要 JSON array，不要解釋。`;
+擷取最多 50 個詞彙；若文本沒有任何專有名詞，回傳 []。只要 JSON array，不要解釋。`;
 
 export interface ExtractedTerm {
   term: string;
@@ -99,7 +106,7 @@ function normalizeRelevance(value: unknown): "high" | "medium" | "low" {
 function parseExtractedTerms(content: string): ExtractedTerm[] {
   const tryParse = (json: string): ExtractedTerm[] => {
     const parsed = JSON.parse(json);
-    const arr = Array.isArray(parsed) ? parsed : parsed?.terms ?? parsed?.keywords;
+    const arr = Array.isArray(parsed) ? parsed : (parsed?.terms ?? parsed?.keywords);
     if (!Array.isArray(arr)) return [];
     return arr.filter(isValidExtractedTerm).map((item) => ({
       term: item.term.trim(),

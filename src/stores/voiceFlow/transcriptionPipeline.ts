@@ -27,11 +27,7 @@ import { calculateWhisperCostCeiling, calculateChatCostCeiling } from "@/lib/api
 import { retryWithBackoff } from "@/lib/retryWithBackoff";
 import { getPromptForModeAndLocale } from "@/i18n/prompts";
 import type { StopRecordingResult, TranscriptionResult, FrontmostAppInfo } from "@/types/audio";
-import type {
-  TranscriptionRecord,
-  ChatUsageData,
-  QueuedRecording,
-} from "@/types/transcription";
+import type { TranscriptionRecord, ChatUsageData, QueuedRecording } from "@/types/transcription";
 import type { TranscriptionCompletedPayload } from "@/types/events";
 import type { HudStatus } from "@/types";
 import type { PromptMode } from "@/types/settings";
@@ -39,10 +35,7 @@ import { emitToWindow, TRANSCRIPTION_COMPLETED } from "@/hooks/useTauriEvent";
 import { getSettingsStore, getHistoryStore, getVocabularyStore } from "./storeAccessors";
 import { useRateLimitStore } from "@/stores/rateLimitStore";
 import { enqueuePaste } from "@/lib/pasteQueue";
-import {
-  setQueueAbortController,
-  deleteQueueAbortController,
-} from "./queueAbortControllers";
+import { setQueueAbortController, deleteQueueAbortController } from "./queueAbortControllers";
 import {
   startElapsedTimer,
   stopElapsedTimer,
@@ -238,8 +231,7 @@ function demoteCurrentPrimaryIfActive(): void {
   const gState = actions().getState();
   const mapped = mapHudStatusToQueueStatus(gState.status);
   const status = mapped ?? "transcribing";
-  const message =
-    mapped && gState.message ? gState.message : t("voiceFlow.transcribing");
+  const message = mapped && gState.message ? gState.message : t("voiceFlow.transcribing");
 
   const snapshot: QueuedRecording = {
     id: prev.id,
@@ -396,9 +388,7 @@ export async function saveApiUsageRecordList(
       ),
     });
   } catch (err) {
-    writeErrorLog(
-      `voiceFlowStore: addApiUsage(whisper) failed: ${extractErrorMessage(err)}`,
-    );
+    writeErrorLog(`voiceFlowStore: addApiUsage(whisper) failed: ${extractErrorMessage(err)}`);
   }
 
   if (chatUsage) {
@@ -421,9 +411,7 @@ export async function saveApiUsageRecordList(
         ),
       });
     } catch (err) {
-      writeErrorLog(
-        `voiceFlowStore: addApiUsage(chat) failed: ${extractErrorMessage(err)}`,
-      );
+      writeErrorLog(`voiceFlowStore: addApiUsage(chat) failed: ${extractErrorMessage(err)}`);
     }
   }
 }
@@ -554,7 +542,6 @@ async function completePasteFlow(
       startCorrectionDetectionFlow(
         params.text,
         params.record.id,
-        "",
         () => actions().getState().status,
         () => actions().getState().lastWasModified,
       );
@@ -570,17 +557,17 @@ async function completePasteFlow(
       );
       currentPrimaryContext = null;
     } else {
-      actions().getState().updateQueueItem(ctx.id, {
-        status: "error",
-        message: t("voiceFlow.pasteFailed"),
-        errorMessage: t("voiceFlow.pasteFailed"),
-        canRetry: true,
-      });
+      actions()
+        .getState()
+        .updateQueueItem(ctx.id, {
+          status: "error",
+          message: t("voiceFlow.pasteFailed"),
+          errorMessage: t("voiceFlow.pasteFailed"),
+          canRetry: true,
+        });
       actions().playSoundIfEnabled("error");
       captureError(pasteError, { source: "voice-flow", step: "queue-paste" });
-      writeErrorLog(
-        `voiceFlowStore: queue paste_text failed: ${extractErrorMessage(pasteError)}`,
-      );
+      writeErrorLog(`voiceFlowStore: queue paste_text failed: ${extractErrorMessage(pasteError)}`);
     }
     deleteQueueAbortController(ctx.id);
   }
@@ -812,9 +799,7 @@ async function runTranscriptionFor(ctx: PipelineContext): Promise<void> {
     const settingsStore = getSettingsStore();
 
     // Circuit breaker: skip API call if recent failures indicate service is down
-    const providerCircuitBreaker = getCircuitBreaker(
-      settingsStore.selectedTranscriptionProviderId,
-    );
+    const providerCircuitBreaker = getCircuitBreaker(settingsStore.selectedTranscriptionProviderId);
     if (!providerCircuitBreaker.canExecute()) {
       const cooldownSec = Math.ceil(providerCircuitBreaker.getRemainingCooldownMs() / 1000);
       failRecordingFlow(
@@ -1214,9 +1199,7 @@ export async function handleReEnhanceWithMode(targetMode: PromptMode): Promise<v
         };
         await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, payload);
       } catch (dbErr) {
-        writeErrorLog(
-          `voiceFlowStore: re-enhance DB update failed: ${extractErrorMessage(dbErr)}`,
-        );
+        writeErrorLog(`voiceFlowStore: re-enhance DB update failed: ${extractErrorMessage(dbErr)}`);
       }
     })();
   } catch (error) {

@@ -154,7 +154,6 @@ async function completePasteFlowForRetry(params: {
     startCorrectionDetectionFlow(
       params.text,
       params.record.id,
-      "",
       () => getState().status,
       () => getState().lastWasModified,
     );
@@ -317,7 +316,11 @@ export async function handleRetryTranscription(): Promise<void> {
               { skipEmit: true },
             );
             await saveApiUsageRecordList(record, enhanceResult.usage);
-            await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, buildCompletedPayload(record));
+            await emitToWindow(
+              "main-window",
+              TRANSCRIPTION_COMPLETED,
+              buildCompletedPayload(record),
+            );
           } catch (err) {
             writeErrorLog(
               `voiceFlowStore: updateTranscriptionOnRetrySuccess failed: ${extractErrorMessage(err)}`,
@@ -370,7 +373,11 @@ export async function handleRetryTranscription(): Promise<void> {
               { skipEmit: true },
             );
             await saveApiUsageRecordList(fallbackRecord, null);
-            await emitToWindow("main-window", TRANSCRIPTION_COMPLETED, buildCompletedPayload(fallbackRecord));
+            await emitToWindow(
+              "main-window",
+              TRANSCRIPTION_COMPLETED,
+              buildCompletedPayload(fallbackRecord),
+            );
           } catch (err) {
             writeErrorLog(
               `voiceFlowStore: updateTranscriptionOnRetrySuccess failed: ${extractErrorMessage(err)}`,
