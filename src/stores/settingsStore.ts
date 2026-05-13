@@ -73,7 +73,7 @@ import { composeContextAwarePrompt, getSurroundingTextInstruction } from "@/lib/
 
 const STORE_NAME = "settings.json";
 
-export const DEFAULT_ENHANCEMENT_THRESHOLD_ENABLED = false;
+export const DEFAULT_ENHANCEMENT_THRESHOLD_ENABLED = true;
 export const DEFAULT_ENHANCEMENT_THRESHOLD_CHAR_COUNT = 10;
 export const DEFAULT_MUTE_ON_RECORDING = true;
 const DEFAULT_SMART_DICTIONARY_ENABLED = IS_MAC;
