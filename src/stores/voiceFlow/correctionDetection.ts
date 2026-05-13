@@ -18,6 +18,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, emit, type UnlistenFn } from "@tauri-apps/api/event";
 import { extractErrorMessage } from "@/lib/errorUtils";
 import { captureError } from "@/lib/sentry";
+import { getProviderConfig } from "@/lib/providerConfig";
+import { extractVocabularyFromText } from "@/lib/textVocabularyExtractor";
+import { classifyClipboardTerm } from "@/lib/vocabularyTermValidator";
 import {
   CORRECTION_MONITOR_RESULT,
   CORRECTION_PROMPT,
@@ -70,7 +73,6 @@ export function cleanupCorrectionMonitorListener(): void {
 export function startCorrectionDetectionFlow(
   pastedText: string,
   _transcriptionId: string,
-  _apiKey: string,
   getVoiceFlowStatus: () => string,
   getWasModified: () => boolean | null,
 ): void {
@@ -168,22 +170,107 @@ export function startCorrectionDetectionFlow(
                     writeInfoLog(`[correction] clipboard captured: "${trimmed}"`);
                     stopClipboardPolling();
 
+                    // Filter clipboard content — reject obvious sentences,
+                    // accept short proper-noun-shaped snippets, and route
+                    // mid-length phrases through LLM refinement.
+                    const classification = classifyClipboardTerm(trimmed);
+                    if (classification.kind === "reject") {
+                      writeInfoLog(
+                        `[correction] rejected by rules (${classification.reason}): "${trimmed}"`,
+                      );
+                      if (getVoiceFlowStatus() === "idle") {
+                        hideHud().catch((err: unknown) =>
+                          writeErrorLog(
+                            `correctionDetection: rejected hideHud failed: ${extractErrorMessage(err)}`,
+                          ),
+                        );
+                      }
+                      return;
+                    }
+
+                    let termsToAdd: string[] = [];
+                    if (classification.kind === "accept") {
+                      termsToAdd = [trimmed];
+                    } else {
+                      // needs-llm: refine via Groq vocabulary extractor.
+                      const groqApiKey = settingsStore.apiKeys.groq;
+                      if (!groqApiKey) {
+                        writeInfoLog(
+                          `[correction] needs-llm but no Groq API key — skipping: "${trimmed}"`,
+                        );
+                        if (getVoiceFlowStatus() === "idle") {
+                          hideHud().catch((err: unknown) =>
+                            writeErrorLog(
+                              `correctionDetection: needs-llm hideHud failed: ${extractErrorMessage(err)}`,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                      try {
+                        const providerConfig = getProviderConfig("groq");
+                        const result = await extractVocabularyFromText(trimmed, groqApiKey, {
+                          modelId: settingsStore.selectedVocabularyAnalysisModelId,
+                          chatApiUrl: providerConfig.chatBaseUrl,
+                        });
+                        termsToAdd = result.terms
+                          .map((t) => t.term.trim())
+                          .filter((t) => t.length > 0);
+                        writeInfoLog(
+                          `[correction] LLM refined "${trimmed}" → ${termsToAdd.length} terms: ${JSON.stringify(termsToAdd)}`,
+                        );
+                      } catch (llmErr) {
+                        writeErrorLog(
+                          `correctionDetection: LLM refinement failed: ${extractErrorMessage(llmErr)}`,
+                        );
+                        captureError(llmErr, {
+                          source: "voice-flow",
+                          step: "correction-llm-refine",
+                        });
+                        if (getVoiceFlowStatus() === "idle") {
+                          hideHud().catch((err: unknown) =>
+                            writeErrorLog(
+                              `correctionDetection: LLM-error hideHud failed: ${extractErrorMessage(err)}`,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                      if (termsToAdd.length === 0) {
+                        writeInfoLog(
+                          `[correction] LLM returned no terms for "${trimmed}" — dismissing`,
+                        );
+                        if (getVoiceFlowStatus() === "idle") {
+                          hideHud().catch((err: unknown) =>
+                            writeErrorLog(
+                              `correctionDetection: empty-llm hideHud failed: ${extractErrorMessage(err)}`,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                    }
+
                     // Add to vocabulary
                     const vocabularyStore = getVocabularyStore();
                     const newTermList: string[] = [];
 
-                    if (vocabularyStore.isDuplicateTerm(trimmed)) {
-                      const existingEntry = vocabularyStore.termList.find(
-                        (e) => e.term.trim().toLowerCase() === trimmed.toLowerCase(),
-                      );
-                      if (existingEntry) {
-                        await vocabularyStore.batchIncrementWeights([existingEntry.id]);
-                        writeInfoLog(`[correction] incremented weight for existing term: "${trimmed}"`);
+                    for (const candidate of termsToAdd) {
+                      if (vocabularyStore.isDuplicateTerm(candidate)) {
+                        const existingEntry = vocabularyStore.termList.find(
+                          (e) => e.term.trim().toLowerCase() === candidate.toLowerCase(),
+                        );
+                        if (existingEntry) {
+                          await vocabularyStore.batchIncrementWeights([existingEntry.id]);
+                          writeInfoLog(
+                            `[correction] incremented weight for existing term: "${candidate}"`,
+                          );
+                        }
+                      } else {
+                        await vocabularyStore.addAiSuggestedTerm(candidate);
+                        newTermList.push(candidate);
+                        writeInfoLog(`[correction] added new term: "${candidate}"`);
                       }
-                    } else {
-                      await vocabularyStore.addAiSuggestedTerm(trimmed);
-                      newTermList.push(trimmed);
-                      writeInfoLog(`[correction] added new term: "${trimmed}"`);
                     }
 
                     // Show learned notification

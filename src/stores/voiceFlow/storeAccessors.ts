@@ -15,6 +15,7 @@ export interface SettingsStoreAccessor {
   triggerMode: () => "hold" | "toggle" | "doubleTap";
   selectedTranscriptionProviderId: import("@/lib/providerConfig").TranscriptionProviderId;
   selectedLlmProviderId: import("@/lib/providerConfig").LlmProviderId;
+  apiKeys: Record<import("@/lib/providerConfig").LlmProviderId, string>;
   selectedAudioInputDeviceName: string;
   selectedWhisperModelId: string;
   selectedLlmModelId: string;
