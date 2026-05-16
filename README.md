@@ -17,7 +17,7 @@
 
   **Website:** [typelate.netlify.app](https://typelate.netlify.app) · **Source:** [TypeLate-website](https://github.com/bobo52310/TypeLate-website)
 
-  <video src="https://github.com/bobo52310/TypeLate/raw/main/docs/promo-intro.mp4" width="700" controls muted playsinline>
+  <video src="https://github.com/user-attachments/assets/bbdf9621-eb03-4099-b2de-ab4d58f39162" width="700" controls muted playsinline>
     <a href="docs/promo-intro.mp4">Watch the 30-second intro →</a>
   </video>
 
