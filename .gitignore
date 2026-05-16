@@ -16,3 +16,8 @@ vite.config.js
 .env.*.local
 CLAUDE.md
 .claude/
+
+# Promo composition source + render artifacts stay local — only the
+# final MP4s at docs/promo-*.mp4 are tracked.
+docs/design/promo-*/
+docs/design/promo-review.html

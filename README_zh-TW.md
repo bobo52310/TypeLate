@@ -15,6 +15,10 @@
 
   **100% 免費開源。歡迎 Fork 改成你喜歡的樣子，也跟我分享你的作品！**
 
+  <video src="https://github.com/bobo52310/TypeLate/raw/main/docs/promo-intro-zh-tw.mp4" width="700" controls muted playsinline>
+    <a href="docs/promo-intro-zh-tw.mp4">看 30 秒產品介紹 →</a>
+  </video>
+
   <img src="screenshots/desktop-viewport.png" width="700" alt="TypeLate 首頁" />
 </div>
 
