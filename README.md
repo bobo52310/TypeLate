@@ -17,9 +17,9 @@
 
   **Website:** [typelate.netlify.app](https://typelate.netlify.app) · **Source:** [TypeLate-website](https://github.com/bobo52310/TypeLate-website)
 
-  <a href="docs/promo-intro.mp4" title="Watch the 30-second intro">
-    <img src="docs/promo-intro-poster.jpg" width="700" alt="▶ Watch the 30-second TypeLate intro" />
-  </a>
+  <video src="https://github.com/user-attachments/assets/bbdf9621-eb03-4099-b2de-ab4d58f39162" width="700" controls muted playsinline>
+    <a href="docs/promo-intro.mp4">Watch the 30-second intro →</a>
+  </video>
 
   <img src="screenshots/desktop-viewport.png" width="700" alt="TypeLate Dashboard" />
 </div>
