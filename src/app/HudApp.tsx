@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { getCurrentWindow, Window } from "@tauri-apps/api/window";
+import { LogicalSize } from "@tauri-apps/api/dpi";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useVoiceFlowStore } from "@/stores/voiceFlowStore";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -55,11 +56,15 @@ export function HudApp() {
     resumeAutoHide();
   }, [resumeAutoHide]);
 
-  // The HUD window is fixed at 400x520 (transparent below the notch, so empty
-  // space is invisible). Just toggle cursor-events so queue cards can receive
-  // clicks while click-through behaviour is preserved when no cards are visible.
+  // HUD 視窗在沒有 queue card 時收縮到 notch 高度，避免 success / action-bar
+  // 階段 setIgnoreCursorEvents(false) 把整片 400×520 透明區也擋住，造成放開
+  // hotkey 後幾秒內無法點擊或聚焦其他 app（鍵盤也跟著打不到目標欄位）。
+  // 有 queue card 時再放大到 520 讓卡片完整顯示。
   useEffect(() => {
-    void getCurrentWindow().setIgnoreCursorEvents(queueLength === 0);
+    const window = getCurrentWindow();
+    const hasQueue = queueLength > 0;
+    void window.setSize(new LogicalSize(400, hasQueue ? 520 : 120));
+    void window.setIgnoreCursorEvents(!hasQueue);
   }, [queueLength]);
 
   useEffect(() => {
