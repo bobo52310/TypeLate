@@ -347,6 +347,15 @@
       "whatsNew": "What's new",
       "dismiss": "Dismiss"
     },
+    "permissionsMissing": {
+      "titleBoth": "2 permissions need attention",
+      "titleMic": "Microphone permission required",
+      "titleAccessibility": "Accessibility permission required",
+      "descriptionBoth": "TypeLate needs Microphone and Accessibility access to record and listen for hotkeys.",
+      "descriptionMic": "TypeLate needs Microphone access to record audio.",
+      "descriptionAccessibility": "TypeLate needs Accessibility access to listen for global hotkeys.",
+      "action": "Open permissions"
+    },
     "heroPrefix": "Speaking is",
     "heroMultiplier": "{value}x Faster",
     "heroSuffix": "than Typing",

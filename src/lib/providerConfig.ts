@@ -71,7 +71,7 @@ export const PROVIDER_LIST: ProviderConfig[] = [
     transcriptionBaseUrl: null,
     chatBaseUrl: "https://openrouter.ai/api/v1/chat/completions",
     extraHeaders: {
-      "HTTP-Referer": "https://typelate.app",
+      "HTTP-Referer": "https://typelate.bobochen.dev",
       "X-Title": "TypeLate",
     },
     freeQuotaDescriptionKey: "settings.provider.openrouterFreeQuota",

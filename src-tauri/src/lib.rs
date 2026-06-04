@@ -395,12 +395,75 @@ fn show_main_window(app: &AppHandle) {
     }
 }
 
-/// 動態 tray menu 項目，由前端透過 `update_tray_label` command 更新文字
+/// 動態 tray menu 項目，由前端透過 `update_tray_label` 與
+/// `update_tray_permission_state` command 更新內容；後者會重建整份 menu，
+/// 因此需要保留所有靜態項目的引用。
 struct TrayMenuItems {
+    home_item: MenuItem<tauri::Wry>,
     mic_item: MenuItem<tauri::Wry>,
     language_item: MenuItem<tauri::Wry>,
     hotkey_item: MenuItem<tauri::Wry>,
     prompt_mode_item: MenuItem<tauri::Wry>,
+    version_item: MenuItem<tauri::Wry>,
+    update_item: MenuItem<tauri::Wry>,
+    quit_item: MenuItem<tauri::Wry>,
+    permission_header: MenuItem<tauri::Wry>,
+    permission_mic: MenuItem<tauri::Wry>,
+    permission_accessibility: MenuItem<tauri::Wry>,
+}
+
+const TRAY_ICON_ID: &str = "main-tray";
+
+/// 依目前的權限狀態重建 tray menu。state 接受：
+/// "none"（全部就緒）、"mic"、"accessibility"、"both"。
+fn build_tray_menu(
+    app: &AppHandle,
+    items: &TrayMenuItems,
+    perm_state: &str,
+) -> tauri::Result<Menu<tauri::Wry>> {
+    let sep_after_home = PredefinedMenuItem::separator(app)?;
+    let sep_after_perm = PredefinedMenuItem::separator(app)?;
+    let sep_before_version = PredefinedMenuItem::separator(app)?;
+    let sep_before_quit = PredefinedMenuItem::separator(app)?;
+
+    let show_mic = matches!(perm_state, "mic" | "both");
+    let show_acc = matches!(perm_state, "accessibility" | "both");
+
+    let mut entries: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = Vec::with_capacity(16);
+    entries.push(&items.home_item);
+    entries.push(&sep_after_home);
+
+    if show_mic || show_acc {
+        entries.push(&items.permission_header);
+        if show_mic {
+            entries.push(&items.permission_mic);
+        }
+        if show_acc {
+            entries.push(&items.permission_accessibility);
+        }
+        entries.push(&sep_after_perm);
+    }
+
+    entries.push(&items.mic_item);
+    entries.push(&items.language_item);
+    entries.push(&items.hotkey_item);
+    entries.push(&items.prompt_mode_item);
+    entries.push(&sep_before_version);
+    entries.push(&items.version_item);
+    entries.push(&items.update_item);
+    entries.push(&sep_before_quit);
+    entries.push(&items.quit_item);
+
+    Menu::with_items(app, &entries)
+}
+
+fn permission_header_text(perm_state: &str) -> &'static str {
+    match perm_state {
+        "both" => "⚠️  有 2 項權限未授權",
+        "mic" => "⚠️  麥克風未授權",
+        "accessibility" => "⚠️  輔助使用未授權",
+        _ => "⚠️  權限未授權",
+    }
 }
 
 #[command]
@@ -417,6 +480,26 @@ fn update_tray_label(
         "prompt_mode" => state.prompt_mode_item.set_text(value).map_err(|e| e.to_string()),
         _ => Err(format!("unknown tray field: {field}")),
     }
+}
+
+/// 由前端在 `usePermissions` 偵測到權限變化時呼叫。
+/// state: "none" | "mic" | "accessibility" | "both"
+#[command]
+fn update_tray_permission_state(app: AppHandle, state: String) -> Result<(), String> {
+    let items = app.state::<TrayMenuItems>();
+
+    items
+        .permission_header
+        .set_text(permission_header_text(&state))
+        .map_err(|e| e.to_string())?;
+
+    let tray = app
+        .tray_by_id(TRAY_ICON_ID)
+        .ok_or_else(|| "tray icon not found".to_string())?;
+
+    let menu = build_tray_menu(&app, &items, &state).map_err(|e| e.to_string())?;
+    tray.set_menu(Some(menu)).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 const DEFAULT_SENTRY_RELEASE: &str = concat!("typelate@", env!("CARGO_PKG_VERSION"));
@@ -484,6 +567,7 @@ pub fn run() {
             request_app_restart,
             update_hotkey_config,
             update_tray_label,
+            update_tray_permission_state,
             get_hud_target_position,
             plugins::audio_control::mute_system_audio,
             plugins::audio_control::restore_system_audio,
@@ -558,42 +642,67 @@ pub fn run() {
 
             // ── Tray Icon Menu ──
             let home_item = MenuItem::with_id(app, "tray-home", "回到 TypeLate 首頁", true, None::<&str>)?;
-            let sep1 = PredefinedMenuItem::separator(app)?;
             let mic_item = MenuItem::with_id(app, "tray-mic", "麥克風：系統預設", true, None::<&str>)?;
             let language_item = MenuItem::with_id(app, "tray-language", "轉錄語言：自動偵測", true, None::<&str>)?;
             let hotkey_item = MenuItem::with_id(app, "tray-hotkey", "快捷鍵：Fn（按住）", true, None::<&str>)?;
             let prompt_mode_item = MenuItem::with_id(app, "tray-prompt-mode", "AI 模式：潤稿", true, None::<&str>)?;
-            let sep2 = PredefinedMenuItem::separator(app)?;
             let version_item = MenuItem::with_id(
                 app, "tray-version",
                 &format!("版本：v{}", app.package_info().version),
                 false, None::<&str>,
             )?;
             let update_item = MenuItem::with_id(app, "tray-update", "檢查更新", true, None::<&str>)?;
-            let sep3 = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItem::with_id(app, "tray-quit", "退出 TypeLate", true, None::<&str>)?;
 
-            let tray_menu = Menu::with_items(app, &[
-                &home_item, &sep1,
-                &mic_item, &language_item, &hotkey_item, &prompt_mode_item, &sep2,
-                &version_item, &update_item, &sep3,
-                &quit_item,
-            ])?;
+            // 權限警示區（預設隱藏：以 "none" 狀態建立 menu）。
+            // header 為純標題，停用點擊（enabled: false）；下方兩列可點擊直跳系統設定。
+            let permission_header = MenuItem::with_id(
+                app,
+                "tray-permission-header",
+                permission_header_text("none"),
+                false,
+                None::<&str>,
+            )?;
+            let permission_mic = MenuItem::with_id(
+                app,
+                "tray-permission-mic",
+                "🎙️  麥克風未授權 → 前往設定",
+                true,
+                None::<&str>,
+            )?;
+            let permission_accessibility = MenuItem::with_id(
+                app,
+                "tray-permission-accessibility",
+                "♿  輔助使用未授權 → 前往設定",
+                true,
+                None::<&str>,
+            )?;
 
-            // 儲存動態項目供 update_tray_label command 更新
-            app.manage(TrayMenuItems {
+            let items = TrayMenuItems {
+                home_item,
                 mic_item,
                 language_item,
                 hotkey_item,
                 prompt_mode_item,
-            });
+                version_item,
+                update_item,
+                quit_item,
+                permission_header,
+                permission_mic,
+                permission_accessibility,
+            };
 
-            TrayIconBuilder::new()
+            let initial_menu = build_tray_menu(app.handle(), &items, "none")?;
+
+            // 儲存所有 menu items 供 update_tray_label / update_tray_permission_state 使用
+            app.manage(items);
+
+            TrayIconBuilder::with_id(TRAY_ICON_ID)
                 .icon(tauri::image::Image::from_bytes(include_bytes!(
                     "../icons/tray-icon.png"
                 ))?)
                 .icon_as_template(true)
-                .menu(&tray_menu)
+                .menu(&initial_menu)
                 .show_menu_on_left_click(true)
                 .tooltip("TypeLate")
                 .on_menu_event(|app, event| match event.id.as_ref() {
@@ -619,6 +728,12 @@ pub fn run() {
                         show_main_window(app);
                         let _ = app.emit("menu:navigate", "/settings/about");
                         let _ = app.emit("menu:check-update", ());
+                    }
+                    "tray-permission-mic" => {
+                        let _ = plugins::permissions::open_microphone_settings();
+                    }
+                    "tray-permission-accessibility" => {
+                        let _ = plugins::hotkey_listener::open_accessibility_settings();
                     }
                     "tray-quit" => {
                         app.exit(0);

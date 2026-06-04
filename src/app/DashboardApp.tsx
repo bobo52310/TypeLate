@@ -45,6 +45,8 @@ import { IS_MAC } from "@/lib/platform";
 import { initializeDatabase, getDatabaseInitError } from "@/lib/database";
 import { AccessibilityGuide } from "@/components/AccessibilityGuide";
 import { PermissionsOnboarding } from "@/components/PermissionsOnboarding";
+import { PermissionsBanner } from "@/components/PermissionsBanner";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useSyncStore } from "@/stores/syncStore";
 import { useHashRouter, RouterOutlet, type RoutePath } from "./router";
@@ -101,6 +103,11 @@ const AUTO_CHECK_INTERVAL_MS = 15 * 60_000; // 15 minutes
 export function DashboardApp() {
   const { t } = useTranslation();
   const { currentPath, navigate } = useHashRouter();
+
+  // Persistent OS-permission warning banner data — polls every 2s while
+  // dashboard is open. The HUD also polls independently to keep the tray
+  // menu in sync.
+  const { snapshot: permissionsSnapshot } = usePermissions(true);
 
   // Keyboard shortcuts: Cmd+1/2/3 for tab switching, Cmd+, for settings
   useEffect(() => {
@@ -619,6 +626,12 @@ export function DashboardApp() {
                 <p className="mt-1 text-xs text-destructive/80">{databaseError}</p>
               </div>
             )}
+
+            <PermissionsBanner
+              snapshot={permissionsSnapshot}
+              currentRoute={currentPath}
+              onOpenPermissions={() => navigate("/settings/permissions")}
+            />
 
             <div id="main-content" className="flex-1 overflow-y-auto">
               <RouterOutlet />

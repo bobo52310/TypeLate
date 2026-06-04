@@ -347,6 +347,15 @@
       "whatsNew": "新機能を確認",
       "dismiss": "閉じる"
     },
+    "permissionsMissing": {
+      "titleBoth": "2 つの権限が未許可です",
+      "titleMic": "マイクの権限が必要です",
+      "titleAccessibility": "アクセシビリティ権限が必要です",
+      "descriptionBoth": "TypeLate は録音とホットキーの監視のためにマイクとアクセシビリティの権限が必要です。",
+      "descriptionMic": "TypeLate は録音のためにマイク権限が必要です。",
+      "descriptionAccessibility": "TypeLate はホットキー監視のためにアクセシビリティ権限が必要です。",
+      "action": "権限設定を開く"
+    },
     "heroPrefix": "話すだけで",
     "heroMultiplier": "{value} 倍速い",
     "heroSuffix": "入力が可能です",

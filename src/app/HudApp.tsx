@@ -9,6 +9,8 @@ import { useHistoryStore } from "@/stores/historyStore";
 import { connectToDatabase } from "@/lib/database";
 import { initSentryForHud } from "@/lib/sentry";
 import { SETTINGS_UPDATED, VOCABULARY_CHANGED, TRAY_CYCLE_PROMPT_MODE } from "@/hooks/useTauriEvent";
+import { usePermissions } from "@/hooks/usePermissions";
+import { syncTrayPermissions } from "@/lib/trayMenu";
 import { logInfo, logError } from "@/lib/logger";
 import { NotchHud } from "@/components/NotchHud";
 import { TranscriptionQueueList } from "@/components/TranscriptionQueueList";
@@ -32,6 +34,16 @@ export function HudApp() {
   const resumeAutoHide = useVoiceFlowStore((s) => s.resumeAutoHide);
 
   const initializedRef = useRef(false);
+
+  // HUD 是永遠存在的視窗，由它輪詢權限狀態並同步到 tray menu。
+  // 一旦麥克風 / 輔助使用權限不足，tray dropdown 會在頂部顯示警示區。
+  // 故意只依賴具體欄位而非 snapshot 物件，避免 setSnapshot 每 2 秒新建物件觸發 effect。
+  const { snapshot: permissionsSnapshot } = usePermissions(true);
+  const permMic = permissionsSnapshot.microphone;
+  const permAcc = permissionsSnapshot.accessibility;
+  useEffect(() => {
+    void syncTrayPermissions({ microphone: permMic, accessibility: permAcc });
+  }, [permMic, permAcc]);
 
   const handleRetry = useCallback(() => {
     void handleRetryTranscription();

@@ -4,6 +4,7 @@ import type { TranscriptionLocale } from "@/i18n/languageConfig";
 import { TRANSCRIPTION_LANGUAGE_OPTIONS } from "@/i18n/languageConfig";
 import { isCustomTriggerKey } from "@/types/settings";
 import type { TriggerMode } from "@/types";
+import type { PermissionsSnapshot, PermissionStatus } from "@/hooks/usePermissions";
 
 const TRIGGER_MODE_LABELS: Record<TriggerMode, string> = {
   hold: "按住",
@@ -70,4 +71,34 @@ const PROMPT_MODE_TRAY_LABELS: Record<string, string> = {
 export async function syncTrayPromptMode(mode: PromptMode): Promise<void> {
   const label = PROMPT_MODE_TRAY_LABELS[mode] ?? mode;
   await updateTrayField("prompt_mode", `AI 模式：${label}`);
+}
+
+type TrayPermissionState = "none" | "mic" | "accessibility" | "both";
+
+function isMissing(status: PermissionStatus): boolean {
+  // notDetermined / denied / restricted / unknown 都視為「需要使用者注意」。
+  // unknown 通常是 IPC 失敗（例如非 Mac），由 hook 端在非 Mac 直接回 "granted"。
+  return status !== "granted";
+}
+
+function deriveTrayPermissionState(snapshot: PermissionsSnapshot): TrayPermissionState {
+  const micMissing = isMissing(snapshot.microphone);
+  const accMissing = isMissing(snapshot.accessibility);
+  if (micMissing && accMissing) return "both";
+  if (micMissing) return "mic";
+  if (accMissing) return "accessibility";
+  return "none";
+}
+
+let lastTrayPermissionState: TrayPermissionState | null = null;
+
+export async function syncTrayPermissions(snapshot: PermissionsSnapshot): Promise<void> {
+  const state = deriveTrayPermissionState(snapshot);
+  if (state === lastTrayPermissionState) return;
+  lastTrayPermissionState = state;
+  try {
+    await invoke("update_tray_permission_state", { state });
+  } catch {
+    // 與 updateTrayField 相同：tray 不可用時靜默忽略
+  }
 }
