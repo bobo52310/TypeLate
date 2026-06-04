@@ -347,6 +347,15 @@
       "whatsNew": "了解更多",
       "dismiss": "关闭提示"
     },
+    "permissionsMissing": {
+      "titleBoth": "有 2 项权限未授权",
+      "titleMic": "麦克风未授权",
+      "titleAccessibility": "辅助功能未授权",
+      "descriptionBoth": "TypeLate 需要麦克风与辅助功能权限才能录音和监听快捷键。",
+      "descriptionMic": "TypeLate 需要麦克风权限才能录音。",
+      "descriptionAccessibility": "TypeLate 需要辅助功能权限才能监听快捷键。",
+      "action": "前往授权设置"
+    },
     "heroPrefix": "用嘴炮输出，比打字快了",
     "heroMultiplier": "{value} 倍",
     "heroSuffix": "",

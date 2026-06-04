@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const WEBSITE_URL = "https://typelate.app";
+const WEBSITE_URL = "https://typelate.bobochen.dev";
 
 interface MobileAppDialogProps {
   open: boolean;

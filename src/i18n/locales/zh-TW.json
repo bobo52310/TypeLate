@@ -347,6 +347,15 @@
       "whatsNew": "了解更多",
       "dismiss": "關閉提示"
     },
+    "permissionsMissing": {
+      "titleBoth": "有 2 項權限未授權",
+      "titleMic": "麥克風未授權",
+      "titleAccessibility": "輔助使用未授權",
+      "descriptionBoth": "TypeLate 需要麥克風與輔助使用權限才能錄音和監聽快捷鍵。",
+      "descriptionMic": "TypeLate 需要麥克風權限才能錄音。",
+      "descriptionAccessibility": "TypeLate 需要輔助使用權限才能監聽快捷鍵。",
+      "action": "前往授權設定"
+    },
     "heroPrefix": "用嘴砲輸出，比打字快了",
     "heroMultiplier": "{value} 倍",
     "heroSuffix": "",
