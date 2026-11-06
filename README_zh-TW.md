@@ -24,6 +24,16 @@
 
 > Android 版也已開源：[TypeLate-android](https://github.com/bobo52310/TypeLate-android) — 同樣的 Groq Whisper 語音轉錄、LLM 增強、詞彙同步，以 Kotlin + Jetpack Compose 打造。
 
+## 功能巡禮
+
+五支短片，一分半鐘看懂 TypeLate。點圖片即可播放，也可以到[官網](https://typelate.bobochen.dev/#feature-tour)觀看。
+
+| | |
+|:-:|:-:|
+| <a href="docs/promo-intro-zh-tw.mp4"><img src="docs/promo-intro-zh-tw-poster.jpg" width="400" alt="EP01 · TypeLate 是什麼" /></a><br /><b>EP01 · TypeLate 是什麼</b> <sub>0:30</sub> | <a href="docs/promo-feat-hotkey-zh-tw.mp4"><img src="docs/promo-feat-hotkey-zh-tw-poster.jpg" width="400" alt="EP02 · 一個鍵，三種按法" /></a><br /><b>EP02 · 一個鍵，三種按法</b> <sub>0:19</sub> |
+| <a href="docs/promo-feat-context-zh-tw.mp4"><img src="docs/promo-feat-context-zh-tw-poster.jpg" width="400" alt="EP03 · 看場合說話" /></a><br /><b>EP03 · 看場合說話</b> <sub>0:18</sub> | <a href="docs/promo-feat-vocab-zh-tw.mp4"><img src="docs/promo-feat-vocab-zh-tw-poster.jpg" width="400" alt="EP04 · 記得你的詞" /></a><br /><b>EP04 · 記得你的詞</b> <sub>0:18</sub> |
+| <a href="docs/promo-feat-byok-zh-tw.mp4"><img src="docs/promo-feat-byok-zh-tw-poster.jpg" width="400" alt="EP05 · 你的金鑰，你的資料" /></a><br /><b>EP05 · 你的金鑰，你的資料</b> <sub>0:18</sub> |  |
+
 ## 三步完成
 
 | 步驟 | 動作 |

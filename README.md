@@ -26,6 +26,16 @@
 
 > Android version is also open source: [TypeLate-android](https://github.com/bobo52310/TypeLate-android) — same Groq Whisper transcription, LLM enhancement, and vocabulary sync, built with Kotlin + Jetpack Compose.
 
+## Feature Tour
+
+Five short films, about a minute and a half in total. Click a poster to watch. Also playable on [the website](https://typelate.bobochen.dev/#feature-tour).
+
+| | |
+|:-:|:-:|
+| <a href="docs/promo-intro.mp4"><img src="docs/promo-intro-poster.jpg" width="400" alt="EP01 · What is TypeLate" /></a><br /><b>EP01 · What is TypeLate</b> <sub>0:30</sub> | <a href="docs/promo-feat-hotkey.mp4"><img src="docs/promo-feat-hotkey-poster.jpg" width="400" alt="EP02 · One key, three ways" /></a><br /><b>EP02 · One key, three ways</b> <sub>0:19</sub> |
+| <a href="docs/promo-feat-context.mp4"><img src="docs/promo-feat-context-poster.jpg" width="400" alt="EP03 · Reads the room" /></a><br /><b>EP03 · Reads the room</b> <sub>0:18</sub> | <a href="docs/promo-feat-vocab.mp4"><img src="docs/promo-feat-vocab-poster.jpg" width="400" alt="EP04 · Learns your words" /></a><br /><b>EP04 · Learns your words</b> <sub>0:18</sub> |
+| <a href="docs/promo-feat-byok.mp4"><img src="docs/promo-feat-byok-poster.jpg" width="400" alt="EP05 · Your keys, your data" /></a><br /><b>EP05 · Your keys, your data</b> <sub>0:18</sub> |  |
+
 ## How It Works
 
 | Step | Action |
