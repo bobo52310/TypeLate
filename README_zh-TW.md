@@ -15,7 +15,7 @@
 
   **100% 免費開源。歡迎 Fork 改成你喜歡的樣子，也跟我分享你的作品！**
 
-  <video src="https://github.com/user-attachments/assets/e118712b-2fd6-4f26-a43a-f6e8fc631d62" width="700" controls muted playsinline>
+  <video src="https://github.com/user-attachments/assets/a73dfb1a-8241-4997-8678-c824c088059d" width="700" controls muted playsinline>
     <a href="docs/promo-intro-zh-tw.mp4">看 30 秒產品介紹 →</a>
   </video>
 
